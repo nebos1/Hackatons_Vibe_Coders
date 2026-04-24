@@ -1,0 +1,73 @@
+@using EventsApp.ViewModels.Account
+@model ApplyOrganizerViewModel
+@{
+    ViewData["Title"] = "Apply as Organizer";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="text-center mb-4">
+            <i class="bi bi-person-badge-fill text-primary" style="font-size:3rem;"></i>
+            <h1 class="h3 mt-2">Apply as Organizer</h1>
+            <p class="text-muted">Fill in your organization details. An admin will review your application and you'll be notified when it's approved.</p>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form asp-action="Apply" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="OrganizationName" class="form-label fw-semibold"></label>
+                        <input asp-for="OrganizationName" class="form-control" placeholder="e.g. Sound Factory Events" />
+                        <span asp-validation-for="OrganizationName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label fw-semibold"></label>
+                        <textarea asp-for="Description" class="form-control" rows="4"
+                                  placeholder="Describe your organization, what kind of events you organize…"></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="PhoneNumber" class="form-label fw-semibold"></label>
+                            <input asp-for="PhoneNumber" class="form-control" placeholder="+359 88 123 4567" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="CompanyNumber" class="form-label fw-semibold"></label>
+                            <input asp-for="CompanyNumber" class="form-control" placeholder="123456789" />
+                            <span asp-validation-for="CompanyNumber" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Website" class="form-label fw-semibold"></label>
+                        <input asp-for="Website" class="form-control" placeholder="https://yourwebsite.com" />
+                        <span asp-validation-for="Website" class="text-danger small"></span>
+                    </div>
+
+                    <div class="alert alert-info small mb-4">
+                        <i class="bi bi-info-circle"></i>
+                        By submitting this application, you agree that your organization data will be reviewed by our team.
+                        Only <strong>Organization Name</strong> is required — all other fields are optional.
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-send"></i> Submit application
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

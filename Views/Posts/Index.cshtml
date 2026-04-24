@@ -1,0 +1,29 @@
+@model IReadOnlyList<PostCardViewModel>
+@{
+    ViewData["Title"] = "Feed";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-chat-square-text"></i> Feed</h1>
+    @if (User.IsInRole(GlobalConstants.Roles.Organizer) || User.IsInRole(GlobalConstants.Roles.Admin))
+    {
+        <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg"></i> New post</a>
+    }
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-journal-x" style="font-size:2rem;"></i>
+        <p class="mt-2">No posts yet.</p>
+    </div>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+        @foreach (var post in Model)
+        {
+            <div class="col"><partial name="_PostCard" model="post" /></div>
+        }
+    </div>
+}

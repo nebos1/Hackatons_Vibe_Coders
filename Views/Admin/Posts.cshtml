@@ -1,0 +1,64 @@
+@model IReadOnlyList<PostCardViewModel>
+@{
+    ViewData["Title"] = "Manage Posts";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-chat-square-text"></i> Posts</h1>
+    <a asp-action="Index" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Dashboard</a>
+</div>
+
+@if (Model.Count == 0)
+{
+    <p class="text-muted">No posts yet.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Organizer</th>
+                    <th>Content</th>
+                    <th>Linked event</th>
+                    <th>Posted</th>
+                    <th><i class="bi bi-heart"></i></th>
+                    <th><i class="bi bi-chat"></i></th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var post in Model)
+                {
+                    <tr>
+                        <td>@post.OrganizerName</td>
+                        <td>
+                            <a asp-controller="Posts" asp-action="Details" asp-route-id="@post.Id">
+                                @(post.Content.Length > 80 ? post.Content[..80] + "…" : post.Content)
+                            </a>
+                        </td>
+                        <td>
+                            @if (post.EventId.HasValue)
+                            {
+                                <a asp-controller="Events" asp-action="Details" asp-route-id="@post.EventId" class="small">
+                                    @post.EventTitle
+                                </a>
+                            }
+                            else { <text>—</text> }
+                        </td>
+                        <td>@post.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@post.LikesCount</td>
+                        <td>@post.CommentsCount</td>
+                        <td>
+                            <form asp-action="DeletePost" asp-route-id="@post.Id" method="post"
+                                  onsubmit="return confirm('Delete this post?')">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -38,6 +38,7 @@ using (var scope = app.Services.CreateScope())
     dbContext.Database.Migrate();
 
     await RoleSeeder.SeedRolesAsync(services);
+    await AdminSeeder.SeedAdminAsync(services);
 }
 
 if (app.Environment.IsDevelopment())

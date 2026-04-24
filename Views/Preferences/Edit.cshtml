@@ -1,0 +1,50 @@
+@model PreferencesViewModel
+@{
+    ViewData["Title"] = "Edit Preferences";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <h1 class="h3 mb-4"><i class="bi bi-sliders"></i> Edit Preferences</h1>
+        <p class="text-muted">These preferences are used to recommend events that match your interests.</p>
+
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="PreferredGenre" class="form-label"></label>
+                <select asp-for="PreferredGenre" asp-items="Html.GetEnumSelectList<EventGenre>()" class="form-select">
+                    <option value="">— any genre —</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="PreferredCity" class="form-label"></label>
+                <input asp-for="PreferredCity" class="form-control" placeholder="e.g. Sofia" />
+                <span asp-validation-for="PreferredCity" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="MinAge" class="form-label"></label>
+                <input asp-for="MinAge" type="number" class="form-control" min="0" max="120" placeholder="e.g. 18" />
+                <span asp-validation-for="MinAge" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="MaxDistanceKm" class="form-label"></label>
+                <input asp-for="MaxDistanceKm" type="number" class="form-control" min="0" max="10000" placeholder="e.g. 50" />
+                <span asp-validation-for="MaxDistanceKm" class="text-danger small"></span>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Save</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

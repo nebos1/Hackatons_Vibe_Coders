@@ -1,0 +1,136 @@
+@model IReadOnlyList<AdminOrganizerRowViewModel>
+@{
+    ViewData["Title"] = "Organizer Applications";
+    var pending = Model.Where(o => !o.Approved).ToList();
+    var approved = Model.Where(o => o.Approved).ToList();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-person-badge"></i> Organizer Applications</h1>
+    <a asp-action="Index" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Dashboard</a>
+</div>
+
+@if (Model.Count == 0)
+{
+    <p class="text-muted">No organizer applications yet.</p>
+}
+else
+{
+    @* ===== PENDING SECTION ===== *@
+    @if (pending.Count > 0)
+    {
+        <div class="mb-4">
+            <h2 class="h5 mb-3">
+                <span class="badge bg-warning text-dark me-2">@pending.Count</span>
+                Pending review
+            </h2>
+            <div class="row g-3">
+                @foreach (var org in pending)
+                {
+                    <div class="col-md-6">
+                        <div class="card border-warning shadow-sm h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center bg-warning bg-opacity-10">
+                                <span class="fw-semibold">@org.OrganizationName</span>
+                                <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split"></i> Pending</span>
+                            </div>
+                            <div class="card-body">
+                                <dl class="row small mb-0">
+                                    <dt class="col-5 text-muted">User</dt>
+                                    <dd class="col-7">@org.UserName</dd>
+
+                                    <dt class="col-5 text-muted">Email</dt>
+                                    <dd class="col-7">@org.Email</dd>
+
+                                    @if (!string.IsNullOrWhiteSpace(org.PhoneNumber))
+                                    {
+                                        <dt class="col-5 text-muted">Phone</dt>
+                                        <dd class="col-7">@org.PhoneNumber</dd>
+                                    }
+
+                                    @if (!string.IsNullOrWhiteSpace(org.CompanyNumber))
+                                    {
+                                        <dt class="col-5 text-muted">Company #</dt>
+                                        <dd class="col-7">@org.CompanyNumber</dd>
+                                    }
+
+                                    @if (!string.IsNullOrWhiteSpace(org.Website))
+                                    {
+                                        <dt class="col-5 text-muted">Website</dt>
+                                        <dd class="col-7">
+                                            <a href="@org.Website" target="_blank" rel="noopener">
+                                                @org.Website <i class="bi bi-box-arrow-up-right"></i>
+                                            </a>
+                                        </dd>
+                                    }
+
+                                    <dt class="col-5 text-muted">Applied</dt>
+                                    <dd class="col-7">@org.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+                                </dl>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <form asp-action="ApproveOrganizer" asp-route-id="@org.OrganizerId" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-success w-100" type="submit">
+                                        <i class="bi bi-check-circle-fill"></i> Approve — grant Organizer role
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-success mb-4">
+            <i class="bi bi-check-circle-fill"></i> No pending applications.
+        </div>
+    }
+
+    @* ===== APPROVED SECTION ===== *@
+    @if (approved.Count > 0)
+    {
+        <h2 class="h5 mb-3">
+            <span class="badge bg-success me-2">@approved.Count</span>
+            Approved organizers
+        </h2>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Organization</th>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Company #</th>
+                        <th>Since</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var org in approved)
+                    {
+                        <tr>
+                            <td><strong>@org.OrganizationName</strong></td>
+                            <td>@org.UserName</td>
+                            <td>@org.Email</td>
+                            <td>@(org.PhoneNumber ?? "—")</td>
+                            <td>@(org.CompanyNumber ?? "—")</td>
+                            <td>@org.CreatedAt.ToString("yyyy-MM-dd")</td>
+                            <td>
+                                <form asp-action="ApproveOrganizer" asp-route-id="@org.OrganizerId" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button class="btn btn-sm btn-outline-warning" type="submit"
+                                            onclick="return confirm('Revoke organizer status from @org.UserName?')">
+                                        Revoke
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}

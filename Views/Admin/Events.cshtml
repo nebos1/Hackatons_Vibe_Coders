@@ -1,0 +1,82 @@
+@model IReadOnlyList<EventCardViewModel>
+@{
+    ViewData["Title"] = "Manage Events";
+    var pendingOnly = (bool)(ViewBag.PendingOnly ?? false);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-calendar2-event"></i> Events</h1>
+    <div class="d-flex gap-2">
+        <a asp-action="Events" asp-route-pending="@(!pendingOnly)" class="btn btn-sm btn-outline-secondary">
+            @if (pendingOnly)
+            {
+                <text><i class="bi bi-list"></i> Show all</text>
+            }
+            else
+            {
+                <text><i class="bi bi-hourglass-split"></i> Pending only</text>
+            }
+        </a>
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Dashboard</a>
+    </div>
+</div>
+
+@if (Model.Count == 0)
+{
+    <p class="text-muted">No events found.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th>
+                    <th>Organizer</th>
+                    <th>Venue / City</th>
+                    <th>Start</th>
+                    <th>Genre</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ev in Model)
+                {
+                    <tr>
+                        <td>
+                            <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id">@ev.Title</a>
+                        </td>
+                        <td>@ev.OrganizerName</td>
+                        <td>@ev.VenueName, @ev.VenueCity</td>
+                        <td>@ev.StartTime.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td><span class="badge bg-secondary">@ev.Genre</span></td>
+                        <td>
+                            @if (ev.IsApproved)
+                            {
+                                <span class="badge bg-success">Approved</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            }
+                        </td>
+                        <td>
+                            <form asp-action="ApproveEvent" asp-route-id="@ev.Id" method="post">
+                                @Html.AntiForgeryToken()
+                                @if (ev.IsApproved)
+                                {
+                                    <button class="btn btn-sm btn-outline-warning" type="submit">Unapprove</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-sm btn-success" type="submit">Approve</button>
+                                }
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

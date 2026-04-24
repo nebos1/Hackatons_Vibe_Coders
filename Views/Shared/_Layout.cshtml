@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - EventsApp</title>
+    <title>@ViewData["Title"] - GrooveOn</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -13,7 +13,7 @@
         <nav class="navbar navbar-expand-md navbar-dark bg-dark border-bottom shadow-sm mb-3">
             <div class="container-fluid">
                 <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">
-                    <i class="bi bi-music-note-beamed"></i> EventsApp
+                    <i class="bi bi-music-note-beamed"></i> GrooveOn
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
                         aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,22 +36,25 @@
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Preferences" asp-action="Index">My Preferences</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Events" asp-action="Recommended">Recommended</a>
+                                <a class="nav-link" asp-controller="Events" asp-action="Recommended">
+                                    <i class="bi bi-stars"></i> Recommended
+                                </a>
                             </li>
                         }
                         @if (User.IsInRole(GlobalConstants.Roles.Organizer) || User.IsInRole(GlobalConstants.Roles.Admin))
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Organizer" asp-action="Dashboard">Organizer</a>
+                                <a class="nav-link" asp-controller="Organizer" asp-action="Dashboard">
+                                    <i class="bi bi-person-badge"></i> Organizer
+                                </a>
                             </li>
                         }
                         @if (User.IsInRole(GlobalConstants.Roles.Admin))
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-warning" asp-controller="Admin" asp-action="Index">Admin Panel</a>
+                                <a class="nav-link text-warning" asp-controller="Admin" asp-action="Index">
+                                    <i class="bi bi-shield-check"></i> Admin
+                                </a>
                             </li>
                         }
                     </ul>
@@ -75,7 +78,7 @@
 
     <footer class="border-top footer text-muted bg-light">
         <div class="container text-center py-2">
-            &copy; @DateTime.UtcNow.Year EventsApp
+            &copy; @DateTime.UtcNow.Year GrooveOn
         </div>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>

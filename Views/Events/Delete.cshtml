@@ -1,0 +1,21 @@
+@model EventsApp.Models.Event
+@{
+    ViewData["Title"] = "Delete Event";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6 text-center">
+        <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:3rem;"></i>
+        <h1 class="h3 mt-3">Delete Event</h1>
+        <p class="lead">Are you sure you want to delete <strong>@Model.Title</strong>?</p>
+        <p class="text-muted">This action cannot be undone. All comments, likes and images for this event will also be deleted.</p>
+
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger px-4"><i class="bi bi-trash"></i> Yes, delete</button>
+            </form>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary px-4">Cancel</a>
+        </div>
+    </div>
+</div>
