@@ -82,6 +82,7 @@ namespace EventsApp.Areas.Identity.Pages.Account
         public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
         {
             returnUrl ??= Url.Content("~/");
+            ReturnUrl = returnUrl;
 
             if (!ModelState.IsValid)
             {

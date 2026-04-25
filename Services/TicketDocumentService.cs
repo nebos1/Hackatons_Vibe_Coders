@@ -55,8 +55,7 @@ namespace EventsApp.Services
                             col.Spacing(6);
                             col.Item().Text(ticket.EventTitle).FontSize(18).Bold();
                             col.Item().Text($"Ticket: {ticket.TicketName}").FontSize(13);
-                            col.Item().Text($"Venue: {ticket.VenueName}");
-                            col.Item().Text($"Address: {ticket.VenueAddress}, {ticket.VenueCity}");
+                            col.Item().Text($"Location: {ticket.Address}, {ticket.City}");
                             col.Item().Text($"Starts: {ticket.StartTime:yyyy-MM-dd HH:mm}");
                             col.Item().Text($"Price: {ticket.Price:0.00}");
                             col.Item().Text($"Holder: {ticket.OwnerUserName}");
