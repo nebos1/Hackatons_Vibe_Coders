@@ -248,7 +248,6 @@ namespace EventsApp.Controllers
 
             var ticket = await _db.Tickets
                 .Include(t => t.Event)
-                    .ThenInclude(e => e.Venue)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (ticket == null) return NotFound();
@@ -313,8 +312,8 @@ namespace EventsApp.Controllers
                     EventId = ut.Ticket.EventId,
                     EventTitle = ut.Ticket.Event.Title,
                     TicketName = ut.Ticket.Name,
-                    VenueName = ut.Ticket.Event.Venue.Name,
-                    VenueCity = ut.Ticket.Event.Venue.City,
+                    Address = ut.Ticket.Event.Address,
+                    City = ut.Ticket.Event.City,
                     StartTime = ut.Ticket.Event.StartTime,
                     Price = ut.Ticket.Price,
                     IsUsed = ut.IsUsed,
@@ -332,7 +331,7 @@ namespace EventsApp.Controllers
 
             var ut = await _db.UserTickets
                 .AsNoTracking()
-                .Include(x => x.Ticket).ThenInclude(t => t.Event).ThenInclude(e => e.Venue)
+                .Include(x => x.Ticket).ThenInclude(t => t.Event)
                 .Include(x => x.Transaction).ThenInclude(t => t.User)
                 .Include(x => x.UsedByOrganizer)
                 .FirstOrDefaultAsync(x => x.Id == id);
@@ -354,7 +353,7 @@ namespace EventsApp.Controllers
 
             var ut = await _db.UserTickets
                 .AsNoTracking()
-                .Include(x => x.Ticket).ThenInclude(t => t.Event).ThenInclude(e => e.Venue)
+                .Include(x => x.Ticket).ThenInclude(t => t.Event)
                 .Include(x => x.Transaction).ThenInclude(t => t.User)
                 .Include(x => x.UsedByOrganizer)
                 .FirstOrDefaultAsync(x => x.Id == id);
@@ -400,7 +399,7 @@ namespace EventsApp.Controllers
             var code = input.QrCode.Trim();
 
             var ut = await _db.UserTickets
-                .Include(x => x.Ticket).ThenInclude(t => t.Event).ThenInclude(e => e.Venue)
+                .Include(x => x.Ticket).ThenInclude(t => t.Event)
                 .Include(x => x.Transaction).ThenInclude(t => t.User)
                 .Include(x => x.UsedByOrganizer)
                 .FirstOrDefaultAsync(x => x.QrCode == code);
@@ -455,9 +454,8 @@ namespace EventsApp.Controllers
                 TicketName = ut.Ticket.Name,
                 EventTitle = ut.Ticket.Event.Title,
                 EventId = ut.Ticket.EventId,
-                VenueName = ut.Ticket.Event.Venue.Name,
-                VenueCity = ut.Ticket.Event.Venue.City,
-                VenueAddress = ut.Ticket.Event.Venue.Address,
+                Address = ut.Ticket.Event.Address,
+                City = ut.Ticket.Event.City,
                 StartTime = ut.Ticket.Event.StartTime,
                 Price = ut.Ticket.Price,
                 TransactionStatus = ut.Transaction.Status,

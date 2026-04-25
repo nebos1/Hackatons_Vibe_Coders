@@ -1,0 +1,51 @@
+@page
+@model LoginModel
+@{
+    ViewData["Title"] = "Log in";
+}
+
+<section class="auth-zine-page">
+    <div class="auth-zine-shell">
+        <div class="auth-zine-copy">
+            <span class="auth-zine-stamp auth-zine-stamp-teal">Front Desk</span>
+            <h1>Step <span>inside</span>.</h1>
+            <p>Welcome back to GrooveOn. Sign in to follow events, manage tickets and keep your scene close.</p>
+        </div>
+
+        <div class="auth-zine-card">
+            <form id="account" method="post" asp-route-returnUrl="@Model.ReturnUrl" class="auth-zine-form">
+                <div asp-validation-summary="ModelOnly" class="auth-zine-validation" role="alert"></div>
+
+                <div class="auth-zine-field">
+                    <label asp-for="Input.EmailOrUserName"></label>
+                    <input asp-for="Input.EmailOrUserName" autocomplete="username" placeholder="you@grooveon.app" />
+                    <span asp-validation-for="Input.EmailOrUserName"></span>
+                </div>
+
+                <div class="auth-zine-field">
+                    <label asp-for="Input.Password"></label>
+                    <input asp-for="Input.Password" autocomplete="current-password" placeholder="password" />
+                    <span asp-validation-for="Input.Password"></span>
+                </div>
+
+                <label class="auth-zine-check">
+                    <input asp-for="Input.RememberMe" />
+                    <span>Remember me</span>
+                </label>
+
+                <button id="login-submit" type="submit" class="auth-zine-button auth-zine-button-red">
+                    <i class="bi bi-box-arrow-in-right"></i> Log in
+                </button>
+            </form>
+        </div>
+
+        <p class="auth-zine-alt">
+            New here?
+            <a asp-area="Identity" asp-page="/Account/Register" asp-route-returnUrl="@Model.ReturnUrl">Create an account</a>
+        </p>
+    </div>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

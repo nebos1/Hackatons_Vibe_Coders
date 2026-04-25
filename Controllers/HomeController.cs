@@ -6,16 +6,12 @@ using EventsApp.ViewModels.Events;
 using EventsApp.ViewModels.Home;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventsApp.Controllers
 {
     public class HomeController : Controller
     {
-        private const int LatestCount = 6;
-        private const int MapMarkerCount = 30;
-
         private readonly ApplicationDbContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<HomeController> _logger;
@@ -35,9 +31,34 @@ namespace EventsApp.Controllers
             var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
             var userId = _userManager.GetUserId(User);
 
-            var events = await _db.Events
-                .AsNoTracking()
-                .Where(e => e.IsApproved && e.StartTime >= now)
+            var query = _db.Events.AsNoTracking().AsQueryable();
+            if (!isAdmin)
+            {
+                query = query.Where(e => e.IsApproved);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(e => e.Title.Contains(search));
+            }
+
+            if (!string.IsNullOrWhiteSpace(city))
+            {
+                query = query.Where(e => e.City == city);
+            }
+
+            if (genre.HasValue)
+            {
+                query = query.Where(e => e.Genre == genre.Value);
+            }
+
+            if (dateFrom.HasValue)
+            {
+                var from = dateFrom.Value.Date;
+                query = query.Where(e => e.StartTime >= from);
+            }
+
+            var events = await query
                 .OrderBy(e => e.StartTime)
                 .Select(e => new EventCardViewModel
                 {
@@ -57,45 +78,17 @@ namespace EventsApp.Controllers
                 })
                 .ToListAsync();
 
-            var posts = await _db.Posts
-                .AsNoTracking()
-                .OrderByDescending(p => p.CreatedAt)
-                .Take(LatestCount)
-                .Select(p => new PostCardViewModel
+            var cityEventCounts = await query
+                .GroupBy(e => e.City)
+                .Select(g => new
                 {
-                    Id = p.Id,
-                    OrganizerId = p.OrganizerId,
-                    OrganizerName = p.Organizer.UserName ?? string.Empty,
-                    Content = p.Content,
-                    CreatedAt = p.CreatedAt,
-                    EventId = p.EventId,
-                    EventTitle = p.Event != null ? p.Event.Title : null,
-                    FirstMediaUrl = p.Images.Select(i => i.ImageUrl).FirstOrDefault(),
-                    FirstMediaType = p.Images.Select(i => i.MediaType).FirstOrDefault(),
-                    LikesCount = p.Likes.Count,
-                    CommentsCount = p.Comments.Count,
-                    CurrentUserLiked = userId != null && p.Likes.Any(l => l.UserId == userId),
+                    City = g.Key,
+                    EventCount = g.Count(),
                 })
                 .ToListAsync();
 
-            var upcomingForMap = await _db.Events
-                .AsNoTracking()
-                .Where(e => e.IsApproved && e.StartTime >= now)
-                .OrderBy(e => e.StartTime)
-                .Take(MapMarkerCount)
-                .Select(e => new
-                {
-                    e.Id,
-                    e.Title,
-                    e.ImageUrl,
-                    VenueName = e.Venue.Name,
-                    VenueCity = e.Venue.City,
-                    e.StartTime,
-                })
-                .ToListAsync();
-
-            var markers = upcomingForMap
-                .Where(e => CityCoordinates.TryGetCoordinates(e.VenueCity, out _, out _))
+            var markers = cityEventCounts
+                .Where(e => CityCoordinates.TryGetCoordinates(e.City, out _, out _))
                 .Select(e =>
                 {
                     CityCoordinates.TryGetCoordinates(e.City, out var lat, out var lng);
@@ -110,18 +103,20 @@ namespace EventsApp.Controllers
                 .OrderBy(m => m.City)
                 .ToList();
 
-            var showPrefsPrompt = false;
-            if (userId != null
-                && !User.IsInRole(GlobalConstants.Roles.Admin)
-                && !User.IsInRole(GlobalConstants.Roles.Organizer))
-            {
-                showPrefsPrompt = !await _db.UserPreferences.AnyAsync(p => p.UserId == userId);
-            }
+            var cities = await _db.Events
+                .AsNoTracking()
+                .Select(e => e.City)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
 
             return View(new EventsIndexViewModel
             {
-                LatestEvents = events,
-                LatestPosts = posts,
+                Search = search,
+                City = city,
+                Genre = genre,
+                DateFrom = dateFrom,
+                Events = events,
                 MapMarkers = markers,
                 Cities = cities,
             });

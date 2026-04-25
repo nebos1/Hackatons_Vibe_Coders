@@ -4,63 +4,68 @@
     ViewData["Title"] = "Register";
 }
 
-<h1 class="h3 mb-3"><i class="bi bi-person-plus"></i> Create your GrooveOn account</h1>
+<section class="auth-zine-page">
+    <div class="auth-zine-shell auth-zine-shell-wide">
+        <div class="auth-zine-copy">
+            <span class="auth-zine-stamp auth-zine-stamp-red">New Subscriber</span>
+            <h1>Start your <span>diary</span>.</h1>
+            <p>Create your GrooveOn account to save nights, buy tickets and follow the organizers you care about.</p>
+        </div>
 
-<div class="row">
-    <div class="col-lg-6">
-        <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="card shadow-sm">
-            <div class="card-body">
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-2" role="alert"></div>
+        <div class="auth-zine-card">
+            <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="auth-zine-form">
+                <div asp-validation-summary="ModelOnly" class="auth-zine-validation" role="alert"></div>
 
-                <div class="row g-2">
-                    <div class="col-sm-6 form-floating mb-3">
-                        <input asp-for="Input.FirstName" class="form-control" autocomplete="given-name" placeholder="First name" />
+                <div class="auth-zine-grid">
+                    <div class="auth-zine-field">
                         <label asp-for="Input.FirstName"></label>
-                        <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                        <input asp-for="Input.FirstName" autocomplete="given-name" placeholder="Ivana" />
+                        <span asp-validation-for="Input.FirstName"></span>
                     </div>
-                    <div class="col-sm-6 form-floating mb-3">
-                        <input asp-for="Input.LastName" class="form-control" autocomplete="family-name" placeholder="Last name" />
+                    <div class="auth-zine-field">
                         <label asp-for="Input.LastName"></label>
-                        <span asp-validation-for="Input.LastName" class="text-danger"></span>
+                        <input asp-for="Input.LastName" autocomplete="family-name" placeholder="Petrova" />
+                        <span asp-validation-for="Input.LastName"></span>
                     </div>
                 </div>
 
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.UserName" class="form-control" autocomplete="username" placeholder="Username" />
+                <div class="auth-zine-field">
                     <label asp-for="Input.UserName"></label>
-                    <span asp-validation-for="Input.UserName" class="text-danger"></span>
+                    <input asp-for="Input.UserName" autocomplete="username" placeholder="ivana.petrova" />
+                    <span asp-validation-for="Input.UserName"></span>
                 </div>
 
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.Email" class="form-control" autocomplete="email" placeholder="name@example.com" />
+                <div class="auth-zine-field">
                     <label asp-for="Input.Email"></label>
-                    <span asp-validation-for="Input.Email" class="text-danger"></span>
+                    <input asp-for="Input.Email" autocomplete="email" placeholder="you@grooveon.app" />
+                    <span asp-validation-for="Input.Email"></span>
                 </div>
 
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.Password" class="form-control" autocomplete="new-password" placeholder="password" />
-                    <label asp-for="Input.Password"></label>
-                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                <div class="auth-zine-grid">
+                    <div class="auth-zine-field">
+                        <label asp-for="Input.Password"></label>
+                        <input asp-for="Input.Password" autocomplete="new-password" placeholder="at least 5 characters" />
+                        <span asp-validation-for="Input.Password"></span>
+                    </div>
+                    <div class="auth-zine-field">
+                        <label asp-for="Input.ConfirmPassword"></label>
+                        <input asp-for="Input.ConfirmPassword" autocomplete="new-password" placeholder="repeat password" />
+                        <span asp-validation-for="Input.ConfirmPassword"></span>
+                    </div>
                 </div>
 
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" placeholder="password" />
-                    <label asp-for="Input.ConfirmPassword"></label>
-                    <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
-                </div>
-
-                <button id="registerSubmit" type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-person-plus"></i> Register
+                <button id="registerSubmit" type="submit" class="auth-zine-button auth-zine-button-teal">
+                    <i class="bi bi-person-plus"></i> Create account
                 </button>
+            </form>
+        </div>
 
-                <div class="mt-3 text-center small text-muted">
-                    Already have an account?
-                    <a asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@Model.ReturnUrl">Sign in</a>
-                </div>
-            </div>
-        </form>
+        <p class="auth-zine-alt">
+            Already have an account?
+            <a asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@Model.ReturnUrl">Log in</a>
+        </p>
     </div>
-</div>
+</section>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
