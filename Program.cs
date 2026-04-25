@@ -64,6 +64,7 @@ using (var scope = app.Services.CreateScope())
 
     await RoleSeeder.SeedRolesAsync(services);
     await AdminSeeder.SeedAdminAsync(services);
+    await DemoDataSeeder.SeedAsync(services);
 }
 
 if (app.Environment.IsDevelopment())

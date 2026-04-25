@@ -1,6 +1,27 @@
 @model OrganizerDashboardViewModel
+@using System.Globalization
+@using System.Text.Json
 @{
     ViewData["Title"] = "Организатор";
+    var bgnFmt = (decimal v) => v.ToString("N2", CultureInfo.GetCultureInfo("bg-BG")) + " лв.";
+    var salesPayload = new
+    {
+        labels = Model.SalesLast30Days.Select(p => p.Date.ToString("dd.MM")).ToArray(),
+        sold = Model.SalesLast30Days.Select(p => p.Sold).ToArray(),
+        revenue = Model.SalesLast30Days.Select(p => (double)p.Revenue).ToArray(),
+    };
+    var genrePayload = new
+    {
+        labels = Model.GenreBreakdown.Select(g => g.Genre.ToString()).ToArray(),
+        counts = Model.GenreBreakdown.Select(g => g.Count).ToArray(),
+    };
+    var jsonOpts = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+    var salesJson = JsonSerializer.Serialize(salesPayload, jsonOpts);
+    var genreJson = JsonSerializer.Serialize(genrePayload, jsonOpts);
+    var maxGenreCount = Model.GenreBreakdown.Count > 0 ? Model.GenreBreakdown.Max(g => g.Count) : 1;
+    var maxTopSold = Model.TopByTicketsSold.Count > 0 ? Model.TopByTicketsSold.Max(t => t.Sold) : 1;
+    var maxTopRev = Model.TopByRevenue.Count > 0 ? Model.TopByRevenue.Max(t => t.Revenue) : 1m;
+    var maxCityCount = Model.CityBreakdown.Count > 0 ? Model.CityBreakdown.Max(c => c.Count) : 1;
 }
 
 <section class="groove-app-page">
@@ -59,26 +80,149 @@
 
         <div class="groove-stat-grid">
             <article class="groove-stat-card">
-                <span>Събития</span>
-                <strong>@Model.EventsCount</strong>
+                <span>Приходи (общо)</span>
+                <strong>@bgnFmt(Model.TotalRevenue)</strong>
+                <small class="text-muted">Среден билет: @bgnFmt(Model.AverageTicketPrice)</small>
             </article>
             <article class="groove-stat-card">
-                <span>Публикации</span>
-                <strong>@Model.PostsCount</strong>
+                <span>Продадени билети</span>
+                <strong>@Model.TicketsSoldCount</strong>
+                <small class="text-muted">Сканирани: @Model.TicketsUsedCount</small>
+            </article>
+            <article class="groove-stat-card">
+                <span>Последни 30 дни</span>
+                <strong>@Model.Last30DaysSold бр.</strong>
+                <small class="text-muted">@bgnFmt(Model.Last30DaysRevenue)</small>
+            </article>
+            <article class="groove-stat-card">
+                <span>Събития</span>
+                <strong>@Model.EventsCount</strong>
+                <small class="text-muted">Предстоящи: @Model.UpcomingEventsCount · минали: @Model.PastEventsCount</small>
             </article>
             <article class="groove-stat-card">
                 <span>Видове билети</span>
                 <strong>@Model.TicketTypesCount</strong>
+                <small class="text-muted">Активни събития: @Model.EventsWithTicketsCount</small>
             </article>
             <article class="groove-stat-card">
-                <span>Продадени</span>
-                <strong>@Model.TicketsSoldCount</strong>
-            </article>
-            <article class="groove-stat-card">
-                <span>Събития с билети</span>
-                <strong>@Model.EventsWithTicketsCount</strong>
+                <span>Ангажираност</span>
+                <strong>@Model.TotalLikes <i class="bi bi-heart-fill text-danger"></i></strong>
+                <small class="text-muted">@Model.TotalComments коментара · @Model.PostsCount публикации</small>
             </article>
         </div>
+
+        <section class="groove-page-section">
+            <div class="groove-section-bar">
+                <div>
+                    <span class="groove-kicker">Статистики</span>
+                    <h2>Продажби през <span>последните 30 дни</span>.</h2>
+                </div>
+            </div>
+
+            <div class="groove-table-card" style="padding:1rem;">
+                <canvas id="orgSalesChart" height="90"></canvas>
+            </div>
+
+            <div class="row g-3 mt-3">
+                <div class="col-lg-6">
+                    <div class="groove-table-card" style="padding:1rem;">
+                        <h3 class="h6 mb-3">Топ 5 събития (продадени билети)</h3>
+                        @if (Model.TopByTicketsSold.Count == 0)
+                        {
+                            <p class="text-muted small mb-0">Все още няма продажби.</p>
+                        }
+                        else
+                        {
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var t in Model.TopByTicketsSold)
+                                {
+                                    var pct = maxTopSold > 0 ? (int)Math.Round(100.0 * t.Sold / maxTopSold) : 0;
+                                    <li class="mb-2">
+                                        <div class="d-flex justify-content-between small">
+                                            <a asp-controller="Events" asp-action="Details" asp-route-id="@t.EventId" class="fw-semibold text-decoration-none">@t.Title</a>
+                                            <span class="text-muted">@t.Sold бр. · @bgnFmt(t.Revenue)</span>
+                                        </div>
+                                        <div class="progress" style="height:6px;">
+                                            <div class="progress-bar bg-primary" style="width:@(pct)%;"></div>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="groove-table-card" style="padding:1rem;">
+                        <h3 class="h6 mb-3">Топ 5 събития (приход)</h3>
+                        @if (Model.TopByRevenue.Count == 0)
+                        {
+                            <p class="text-muted small mb-0">Все още няма приходи.</p>
+                        }
+                        else
+                        {
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var t in Model.TopByRevenue)
+                                {
+                                    var pct = maxTopRev > 0 ? (int)Math.Round(100m * t.Revenue / maxTopRev) : 0;
+                                    <li class="mb-2">
+                                        <div class="d-flex justify-content-between small">
+                                            <a asp-controller="Events" asp-action="Details" asp-route-id="@t.EventId" class="fw-semibold text-decoration-none">@t.Title</a>
+                                            <span class="text-muted">@bgnFmt(t.Revenue) · @t.Sold бр.</span>
+                                        </div>
+                                        <div class="progress" style="height:6px;">
+                                            <div class="progress-bar bg-success" style="width:@(pct)%;"></div>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-lg-6">
+                    <div class="groove-table-card" style="padding:1rem;">
+                        <h3 class="h6 mb-3">Разпределение по жанр</h3>
+                        @if (Model.GenreBreakdown.Count == 0)
+                        {
+                            <p class="text-muted small mb-0">Няма публикувани събития.</p>
+                        }
+                        else
+                        {
+                            <canvas id="orgGenreChart" height="180"></canvas>
+                        }
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="groove-table-card" style="padding:1rem;">
+                        <h3 class="h6 mb-3">Събития по град</h3>
+                        @if (Model.CityBreakdown.Count == 0)
+                        {
+                            <p class="text-muted small mb-0">Няма публикувани събития.</p>
+                        }
+                        else
+                        {
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var c in Model.CityBreakdown)
+                                {
+                                    var pct = maxCityCount > 0 ? (int)Math.Round(100.0 * c.Count / maxCityCount) : 0;
+                                    <li class="mb-2">
+                                        <div class="d-flex justify-content-between small">
+                                            <span class="fw-semibold">@c.City</span>
+                                            <span class="text-muted">@c.Count събити@(c.Count == 1 ? "е" : "я")</span>
+                                        </div>
+                                        <div class="progress" style="height:6px;">
+                                            <div class="progress-bar" style="width:@(pct)%;background:#0f766e;"></div>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <div class="groove-page-actions mb-4">
             <a asp-controller="Tickets" asp-action="Validate" class="groove-button groove-button-dark">
@@ -188,3 +332,70 @@
         }
     }
 </section>
+
+@section Scripts {
+    @if (Model.HasProfile)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script>
+            (function () {
+                var sales = @Html.Raw(salesJson);
+                var genre = @Html.Raw(genreJson);
+
+                var salesEl = document.getElementById('orgSalesChart');
+                if (salesEl && window.Chart && sales && sales.labels) {
+                    new Chart(salesEl, {
+                        type: 'line',
+                        data: {
+                            labels: sales.labels,
+                            datasets: [
+                                {
+                                    label: 'Продадени билети',
+                                    data: sales.sold,
+                                    borderColor: '#0f766e',
+                                    backgroundColor: 'rgba(15,118,110,0.15)',
+                                    tension: 0.3, fill: true, yAxisID: 'y'
+                                },
+                                {
+                                    label: 'Приход (лв.)',
+                                    data: sales.revenue,
+                                    borderColor: '#dc2626',
+                                    backgroundColor: 'rgba(220,38,38,0.10)',
+                                    tension: 0.3, fill: false, yAxisID: 'y1'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: { legend: { position: 'bottom' } },
+                            scales: {
+                                y: { beginAtZero: true, position: 'left', title: { display: true, text: 'Билети' } },
+                                y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'лв.' } }
+                            }
+                        }
+                    });
+                }
+
+                var genreEl = document.getElementById('orgGenreChart');
+                if (genreEl && window.Chart && genre && genre.labels && genre.labels.length) {
+                    new Chart(genreEl, {
+                        type: 'doughnut',
+                        data: {
+                            labels: genre.labels,
+                            datasets: [{
+                                data: genre.counts,
+                                backgroundColor: ['#0ea5e9', '#a855f7', '#f59e0b', '#ec4899', '#dc2626', '#7c3aed', '#14b8a6', '#0f766e'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { position: 'bottom' } }
+                        }
+                    });
+                }
+            })();
+        </script>
+    }
+}
