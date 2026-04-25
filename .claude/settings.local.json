@@ -10,7 +10,13 @@
       "Bash(curl -sk -o /dev/null -w \"7180 -> %{http_code}\\\\n\" --max-time 3 https://localhost:7180/)",
       "Bash(curl -sk -c /tmp/cj.txt -b /tmp/cj.txt https://localhost:7180/Identity/Account/Register -o /tmp/reg.html)",
       "Read(//tmp/**)",
-      "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -d EventsApp -Q \"SELECT Email, EmailConfirmed FROM AspNetUsers WHERE Email='test1@example.com';\" -W)"
+      "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -d EventsApp -Q \"SELECT Email, EmailConfirmed FROM AspNetUsers WHERE Email='test1@example.com';\" -W)",
+      "PowerShell(Stop-Process -Force)",
+      "Bash(git *)",
+      "Bash(where sqlcmd *)",
+      "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -d EventsApp -Q \"SELECT UserName, Email, EmailConfirmed FROM AspNetUsers\" -W)",
+      "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -d EventsApp -Q \"SELECT u.UserName, r.Name AS Role FROM AspNetUsers u JOIN AspNetUserRoles ur ON u.Id = ur.UserId JOIN AspNetRoles r ON r.Id = ur.RoleId\" -W)",
+      "Bash(sqlcmd *)"
     ]
   }
 }
