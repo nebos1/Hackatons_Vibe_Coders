@@ -2,6 +2,11 @@
 @using System.Text.Json
 @{
     ViewData["Title"] = "Home";
+    var isAuthed = User.Identity?.IsAuthenticated == true;
+    var isStaff = User.IsInRole(GlobalConstants.Roles.Organizer) || User.IsInRole(GlobalConstants.Roles.Admin);
+    var genres = Enum.GetValues<EventGenre>()
+        .Select(g => new { Value = g, Text = g.ToString() })
+        .ToList();
     var markersJson = JsonSerializer.Serialize(Model.MapMarkers);
 }
 
@@ -46,50 +51,93 @@
     </script>
 }
 
-<section class="hero text-center mb-4">
-    <h1 class="display-5"><i class="bi bi-music-note-beamed"></i> GrooveOn</h1>
-    <p class="lead mb-4">Discover events, venues and organizers — follow the scene in your city.</p>
-
-    <form asp-controller="Search" asp-action="Index" method="get" class="row g-2 justify-content-center mb-3">
-        <div class="col-md-7">
-            <div class="input-group input-group-lg">
-                <span class="input-group-text bg-white"><i class="bi bi-stars text-primary"></i></span>
-                <input type="text" name="q" class="form-control" placeholder="Search events, venues, posts…" />
-                <button class="btn btn-primary" type="submit">Search</button>
-            </div>
-        </div>
-    </form>
+<section class="hero text-center mb-4 py-4 rounded bg-dark text-white shadow-sm">
+    <h1 class="display-5 fw-bold"><i class="bi bi-music-note-beamed"></i> Открий събития около теб</h1>
+    <p class="lead mb-4">
+        GrooveOn ти показва концерти, парти-та и фестивали в твоя град. Филтрирай по жанр, град или дата.
+    </p>
 
     <div class="d-flex justify-content-center gap-2 flex-wrap">
-        <a asp-controller="Events" asp-action="Index" class="btn btn-light btn-lg">Browse events</a>
-        <a asp-controller="Posts" asp-action="Index" class="btn btn-outline-light btn-lg">Open feed</a>
-        @if (User.Identity?.IsAuthenticated == true)
+        @if (!isAuthed)
         {
-            <a asp-controller="Preferences" asp-action="Index" class="btn btn-outline-light btn-lg">My preferences</a>
+            <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-light btn-lg">
+                <i class="bi bi-box-arrow-in-right"></i> Login
+            </a>
+            <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-outline-light btn-lg">
+                <i class="bi bi-person-plus"></i> Register
+            </a>
         }
-        @if (User.IsInRole(GlobalConstants.Roles.Organizer) || User.IsInRole(GlobalConstants.Roles.Admin))
+        else if (!isStaff)
         {
-            <a asp-controller="Organizer" asp-action="Dashboard" class="btn btn-warning btn-lg">Organizer dashboard</a>
+            <a asp-controller="Events" asp-action="Recommended" class="btn btn-light btn-lg">
+                <i class="bi bi-stars"></i> Recommended for you
+            </a>
+            <a asp-controller="Tickets" asp-action="MyTickets" class="btn btn-outline-light btn-lg">
+                <i class="bi bi-ticket-perforated"></i> My Tickets
+            </a>
         }
     </div>
 </section>
 
-@if (Model.ShowPreferencesPrompt)
-{
-    <div class="alert alert-primary d-flex align-items-center justify-content-between flex-wrap gap-2 shadow-sm" role="alert">
-        <div>
-            <i class="bi bi-stars me-2"></i>
-            <strong>Welcome!</strong> Tell us what you like to get personalized event recommendations.
+<section class="mb-4">
+    <form asp-action="Index" method="get" class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="h6 mb-3"><i class="bi bi-funnel"></i> Filters</h2>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label small mb-1">Search</label>
+                    <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Event title…" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">City</label>
+                    <select name="city" class="form-select">
+                        <option value="">All cities</option>
+                        @foreach (var c in Model.Cities)
+                        {
+                            if (c.Value == Model.City)
+                            {
+                                <option value="@c.Value" selected>@c.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@c.Value">@c.Text</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small mb-1">Genre</label>
+                    <select name="genre" class="form-select">
+                        <option value="">All</option>
+                        @foreach (var g in genres)
+                        {
+                            if (Model.Genre.HasValue && Model.Genre.Value == g.Value)
+                            {
+                                <option value="@g.Value" selected>@g.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@g.Value">@g.Text</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">From date</label>
+                    <input type="date" name="dateFrom" value="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" class="form-control" />
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Apply filters</button>
+                <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-x-circle"></i> Clear</a>
+            </div>
         </div>
-        <a asp-controller="Preferences" asp-action="Edit" class="btn btn-primary">
-            <i class="bi bi-sliders"></i> Set preferences
-        </a>
-    </div>
-}
+    </form>
+</section>
 
 <section class="mb-5">
     <div class="d-flex justify-content-between align-items-end mb-3">
-        <h2 class="h4 mb-0"><i class="bi bi-map"></i> Events around Bulgaria</h2>
+        <h2 class="h4 mb-0"><i class="bi bi-geo-alt"></i> Events Map</h2>
         <span class="small text-muted">@Model.MapMarkers.Count on map &middot; OpenStreetMap</span>
     </div>
     <div id="events-map" style="height: 420px; border-radius: 0.5rem; box-shadow: 0 1px 6px rgba(0,0,0,.08);"></div>
@@ -104,11 +152,13 @@
 <section class="mb-5">
     <div class="d-flex justify-content-between align-items-end mb-3">
         <h2 class="h4 mb-0"><i class="bi bi-calendar2-event"></i> Upcoming events</h2>
-        <a asp-controller="Events" asp-action="Index" class="small">All events →</a>
+        <span class="small text-muted">@Model.LatestEvents.Count results</span>
     </div>
     @if (Model.LatestEvents.Count == 0)
     {
-        <div class="empty-state">No upcoming events yet.</div>
+        <div class="alert alert-light border text-center">
+            <i class="bi bi-calendar-x"></i> No events match your filters. Try clearing them.
+        </div>
     }
     else
     {
@@ -116,26 +166,6 @@
             @foreach (var ev in Model.LatestEvents)
             {
                 <div class="col"><partial name="_EventCard" model="ev" /></div>
-            }
-        </div>
-    }
-</section>
-
-<section class="mb-5">
-    <div class="d-flex justify-content-between align-items-end mb-3">
-        <h2 class="h4 mb-0"><i class="bi bi-chat-square-text"></i> Latest from organizers</h2>
-        <a asp-controller="Posts" asp-action="Index" class="small">All posts →</a>
-    </div>
-    @if (Model.LatestPosts.Count == 0)
-    {
-        <div class="empty-state">No posts yet.</div>
-    }
-    else
-    {
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
-            @foreach (var post in Model.LatestPosts)
-            {
-                <div class="col"><partial name="_PostCard" model="post" /></div>
             }
         </div>
     }

@@ -15,6 +15,10 @@ namespace EventsApp.Common
             public const int UserNameMaxLength = 50;
             public const int BioMaxLength = 500;
             public const int ProfileImageUrlMaxLength = 500;
+            public const int FirstNameMinLength = 1;
+            public const int FirstNameMaxLength = 50;
+            public const int LastNameMinLength = 1;
+            public const int LastNameMaxLength = 50;
         }
 
         public static class Organizer

@@ -20,20 +20,29 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="mainNav">
+                    @{
+                        var isAuthed = User.Identity?.IsAuthenticated == true;
+                        var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
+                        var isOrganizer = User.IsInRole(GlobalConstants.Roles.Organizer);
+                        var isStaff = isAdmin || isOrganizer;
+                    }
                     <ul class="navbar-nav me-auto mb-2 mb-md-0">
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Events" asp-action="Index">Events</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Venues" asp-action="Index">Venues</a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link" asp-controller="Posts" asp-action="Index">Feed</a>
                         </li>
-                        @if (User.Identity?.IsAuthenticated == true)
+                        @if (isStaff)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Events" asp-action="Index">Events</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Venues" asp-action="Index">Venues</a>
+                            </li>
+                        }
+                        @if (isAuthed)
                         {
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Events" asp-action="Recommended">
@@ -46,23 +55,20 @@
                                 </a>
                             </li>
                         }
-                        @if (User.IsInRole(GlobalConstants.Roles.Organizer) || User.IsInRole(GlobalConstants.Roles.Admin))
+                        @if (isStaff)
                         {
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Tickets" asp-action="Validate">
                                     <i class="bi bi-qr-code-scan"></i> Validate
                                 </a>
                             </li>
-                        }
-                        @if (User.IsInRole(GlobalConstants.Roles.Organizer) || User.IsInRole(GlobalConstants.Roles.Admin))
-                        {
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Organizer" asp-action="Dashboard">
                                     <i class="bi bi-person-badge"></i> Organizer
                                 </a>
                             </li>
                         }
-                        @if (User.IsInRole(GlobalConstants.Roles.Admin))
+                        @if (isAdmin)
                         {
                             <li class="nav-item">
                                 <a class="nav-link text-warning" asp-controller="Admin" asp-action="Index">

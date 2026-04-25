@@ -4,16 +4,16 @@ using EventsApp.Data;
 using EventsApp.Models;
 using EventsApp.ViewModels.Events;
 using EventsApp.ViewModels.Home;
-using EventsApp.ViewModels.Posts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventsApp.Controllers
 {
     public class HomeController : Controller
     {
-        private const int LatestCount = 6;
+        private const int LatestCount = 12;
         private const int MapMarkerCount = 30;
 
         private readonly ApplicationDbContext _db;
@@ -30,14 +30,38 @@ namespace EventsApp.Controllers
             _logger = logger;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search, string? city, EventGenre? genre, DateTime? dateFrom)
         {
             var now = DateTime.UtcNow;
             var userId = _userManager.GetUserId(User);
 
-            var events = await _db.Events
+            var query = _db.Events
                 .AsNoTracking()
-                .Where(e => e.IsApproved && e.StartTime >= now)
+                .Where(e => e.IsApproved && e.StartTime >= now);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(e => e.Title.Contains(term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(city))
+            {
+                query = query.Where(e => e.Venue.City == city);
+            }
+
+            if (genre.HasValue)
+            {
+                query = query.Where(e => e.Genre == genre.Value);
+            }
+
+            if (dateFrom.HasValue)
+            {
+                var from = dateFrom.Value.Date;
+                query = query.Where(e => e.StartTime >= from);
+            }
+
+            var events = await query
                 .OrderBy(e => e.StartTime)
                 .Take(LatestCount)
                 .Select(e => new EventCardViewModel
@@ -58,30 +82,7 @@ namespace EventsApp.Controllers
                 })
                 .ToListAsync();
 
-            var posts = await _db.Posts
-                .AsNoTracking()
-                .OrderByDescending(p => p.CreatedAt)
-                .Take(LatestCount)
-                .Select(p => new PostCardViewModel
-                {
-                    Id = p.Id,
-                    OrganizerId = p.OrganizerId,
-                    OrganizerName = p.Organizer.UserName ?? string.Empty,
-                    Content = p.Content,
-                    CreatedAt = p.CreatedAt,
-                    EventId = p.EventId,
-                    EventTitle = p.Event != null ? p.Event.Title : null,
-                    FirstMediaUrl = p.Images.Select(i => i.ImageUrl).FirstOrDefault(),
-                    FirstMediaType = p.Images.Select(i => i.MediaType).FirstOrDefault(),
-                    LikesCount = p.Likes.Count,
-                    CommentsCount = p.Comments.Count,
-                    CurrentUserLiked = userId != null && p.Likes.Any(l => l.UserId == userId),
-                })
-                .ToListAsync();
-
-            var upcomingForMap = await _db.Events
-                .AsNoTracking()
-                .Where(e => e.IsApproved && e.StartTime >= now)
+            var upcomingForMap = await query
                 .OrderBy(e => e.StartTime)
                 .Take(MapMarkerCount)
                 .Select(e => new
@@ -114,20 +115,23 @@ namespace EventsApp.Controllers
                 })
                 .ToList();
 
-            var showPrefsPrompt = false;
-            if (userId != null
-                && !User.IsInRole(GlobalConstants.Roles.Admin)
-                && !User.IsInRole(GlobalConstants.Roles.Organizer))
-            {
-                showPrefsPrompt = !await _db.UserPreferences.AnyAsync(p => p.UserId == userId);
-            }
+            var cities = await _db.Venues
+                .AsNoTracking()
+                .Select(v => v.City)
+                .Distinct()
+                .OrderBy(c => c)
+                .Select(c => new SelectListItem { Value = c, Text = c })
+                .ToListAsync();
 
             return View(new HomeIndexViewModel
             {
+                Search = search,
+                City = city,
+                Genre = genre,
+                DateFrom = dateFrom,
                 LatestEvents = events,
-                LatestPosts = posts,
                 MapMarkers = markers,
-                ShowPreferencesPrompt = showPrefsPrompt,
+                Cities = cities,
             });
         }
 

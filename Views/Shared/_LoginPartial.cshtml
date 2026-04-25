@@ -6,9 +6,17 @@
 <ul class="navbar-nav">
     @if (SignInManager.IsSignedIn(User))
     {
+        var currentUser = await UserManager.GetUserAsync(User);
+        var fullName = string.Join(" ", new[] { currentUser?.FirstName, currentUser?.LastName }
+            .Where(s => !string.IsNullOrWhiteSpace(s)));
+        var displayName = !string.IsNullOrWhiteSpace(fullName)
+            ? fullName
+            : (!string.IsNullOrWhiteSpace(currentUser?.UserName)
+                ? currentUser!.UserName
+                : (!string.IsNullOrWhiteSpace(currentUser?.Email) ? currentUser!.Email : "Account"));
         <li class="nav-item">
             <a class="nav-link" asp-controller="Account" asp-action="Index">
-                <i class="bi bi-person-circle"></i> @User.Identity?.Name
+                <i class="bi bi-person-circle"></i> @displayName
             </a>
         </li>
         <li class="nav-item">

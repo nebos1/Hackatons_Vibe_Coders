@@ -22,6 +22,12 @@ namespace EventsApp.Models
         [Required]
         public DateTime CreatedAt { get; set; }
 
+        [MaxLength(GlobalConstants.User.FirstNameMaxLength)]
+        public string? FirstName { get; set; }
+
+        [MaxLength(GlobalConstants.User.LastNameMaxLength)]
+        public string? LastName { get; set; }
+
         [MaxLength(GlobalConstants.User.ProfileImageUrlMaxLength)]
         public string? ProfileImageUrl { get; set; }
 

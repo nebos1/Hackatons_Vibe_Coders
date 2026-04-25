@@ -21,7 +21,6 @@ namespace EventsApp.ViewModels.Tickets
 
         [Required]
         [Range(0, 1_000_000)]
-        [DataType(DataType.Currency)]
         public decimal Price { get; set; }
 
         [Required]
@@ -33,7 +32,6 @@ namespace EventsApp.ViewModels.Tickets
         [Display(Name = "Remaining (defaults to total)")]
         public int? QuantityRemaining { get; set; }
 
-        [Url]
         [StringLength(GlobalConstants.Ticket.ImageUrlMaxLength)]
         [Display(Name = "Image URL")]
         public string? ImageUrl { get; set; }

@@ -101,21 +101,22 @@ namespace EventsApp.Controllers
             if (ev == null) return NotFound();
             if (!isAdmin && ev.OrganizerId != userId) return Forbid();
 
+            input.EventTitle = ev.Title;
+
             if (!ModelState.IsValid)
             {
-                input.EventTitle = ev.Title;
                 return View(input);
             }
 
             var ticket = new Ticket
             {
                 EventId = ev.Id,
-                Name = input.Name,
-                Description = input.Description,
+                Name = input.Name.Trim(),
+                Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim(),
                 Price = input.Price,
                 QuantityTotal = input.QuantityTotal,
                 QuantityRemaining = input.QuantityRemaining ?? input.QuantityTotal,
-                ImageUrl = input.ImageUrl,
+                ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim(),
                 IsActive = input.IsActive,
             };
 
@@ -185,12 +186,12 @@ namespace EventsApp.Controllers
                 return View(input);
             }
 
-            ticket.Name = input.Name;
-            ticket.Description = input.Description;
+            ticket.Name = input.Name.Trim();
+            ticket.Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
             ticket.Price = input.Price;
             ticket.QuantityTotal = input.QuantityTotal;
             ticket.QuantityRemaining = remaining;
-            ticket.ImageUrl = input.ImageUrl;
+            ticket.ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim();
             ticket.IsActive = input.IsActive;
 
             await _db.SaveChangesAsync();

@@ -6,12 +6,12 @@
 <h1 class="h3 mb-3"><i class="bi bi-ticket-perforated"></i> Create ticket type</h1>
 <p class="text-muted">For event: <strong>@Model.EventTitle</strong></p>
 
-<form asp-action="Create" method="post" class="col-lg-7">
+<form asp-action="Create" asp-route-id="" method="post" class="col-lg-7">
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="EventId" />
     <input type="hidden" asp-for="EventTitle" />
 
-    <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+    <div asp-validation-summary="All" class="text-danger mb-2"></div>
 
     <div class="mb-3">
         <label asp-for="Name" class="form-label"></label>
