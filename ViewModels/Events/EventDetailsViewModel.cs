@@ -15,6 +15,8 @@ namespace EventsApp.ViewModels.Events
         public bool IsApproved { get; set; }
         public string Address { get; set; } = null!;
         public string City { get; set; } = null!;
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
         public string OrganizerId { get; set; } = null!;
         public string OrganizerName { get; set; } = null!;
         public IReadOnlyList<string> ImageUrls { get; set; } = Array.Empty<string>();

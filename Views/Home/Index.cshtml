@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Home";
     var markersJson = JsonSerializer.Serialize(Model.MapMarkers);
-    var mappedEventCount = Model.MapMarkers.Sum(m => m.EventCount);
+    var mappedEventCount = Model.MapMarkers.Count;
 }
 
 @section Scripts {
@@ -26,48 +26,162 @@
                     .replace(/'/g, '&#39;');
             }
 
-            var bulgariaBounds = L.latLngBounds(
-                [41.2354, 22.3571],
-                [44.2156, 28.6122]);
+            function formatDate(iso) {
+                try {
+                    var d = new Date(iso);
+                    return d.toLocaleString();
+                } catch (_) { return iso; }
+            }
 
-            var map = L.map('events-map', {
-                maxBoundsViscosity: 0.75
-            });
+            var bulgariaBounds = L.latLngBounds([41.2354, 22.3571], [44.2156, 28.6122]);
 
+            var map = L.map('events-map', { maxBoundsViscosity: 0.5 });
             map.fitBounds(bulgariaBounds, { padding: [12, 12], animate: false });
-            map.setMaxBounds(bulgariaBounds.pad(0.2));
+            map.setMaxBounds(bulgariaBounds.pad(0.4));
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                minZoom: 6,
-                maxZoom: 12,
-                bounds: bulgariaBounds.pad(0.2),
-                noWrap: true,
+                minZoom: 5,
+                maxZoom: 18,
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             }).addTo(map);
 
-            if (!markers || !markers.length) return;
+            var markerById = {};
+            var markerLatLngs = [];
 
-            markers.forEach(function (m) {
-                var latlng = [m.Lat, m.Lng];
-                var eventLabel = m.EventCount === 1 ? 'event' : 'events';
-                var icon = L.divIcon({
-                    className: 'event-count-marker',
-                    html: '<span class="event-count-marker__city">' + escapeHtml(m.City) + '</span>' +
-                        '<span class="event-count-marker__number">' + m.EventCount + '</span>' +
-                        '<span class="event-count-marker__label">' + eventLabel + '</span>',
-                    iconSize: [128, 42],
-                    iconAnchor: [64, 21]
+            function makeIcon(genre) {
+                return L.divIcon({
+                    className: 'event-pin',
+                    html: '<span class="event-pin__dot"></span><span class="event-pin__label">' + escapeHtml(genre) + '</span>',
+                    iconSize: [90, 28],
+                    iconAnchor: [12, 28]
                 });
+            }
 
-                L.marker(latlng, {
-                    icon: icon
-                })
-                    .addTo(map)
-                    .bindPopup(
-                        '<strong>' + escapeHtml(m.City) + '</strong><br>' +
-                        '<small>' + m.EventCount + ' ' + eventLabel + '</small><br>' +
-                        '<a href="/?city=' + encodeURIComponent(m.City) + '" class="btn btn-sm btn-primary mt-2">Show events</a>');
+            (markers || []).forEach(function (m) {
+                if (typeof m.lat !== 'number' || typeof m.lng !== 'number') return;
+                var ll = [m.lat, m.lng];
+                markerLatLngs.push(ll);
+
+                var html =
+                    '<div class="event-popup">' +
+                    (m.imageUrl ? '<img src="' + escapeHtml(m.imageUrl) + '" alt="" class="event-popup__img" />' : '') +
+                    '<div class="event-popup__title">' + escapeHtml(m.title) + '</div>' +
+                    '<div class="event-popup__meta"><i class="bi bi-geo-alt"></i> ' + escapeHtml(m.address) + ', ' + escapeHtml(m.city) + '</div>' +
+                    '<div class="event-popup__meta"><i class="bi bi-clock"></i> ' + escapeHtml(formatDate(m.startTime)) + '</div>' +
+                    '<div class="event-popup__meta"><span class="badge bg-secondary">' + escapeHtml(m.genre) + '</span>' +
+                    (m.isApproximate ? ' <span class="badge bg-light text-muted border">approx.</span>' : '') + '</div>' +
+                    '<a class="btn btn-sm btn-primary mt-2 w-100" href="/Events/Details/' + m.eventId + '">Open details</a>' +
+                    '</div>';
+
+                var marker = L.marker(ll, { icon: makeIcon(m.genre || '') }).addTo(map).bindPopup(html);
+                marker.on('click', function () {
+                    highlightCard(m.eventId, true);
+                });
+                markerById[m.eventId] = marker;
             });
+
+            if (markerLatLngs.length === 1) {
+                map.setView(markerLatLngs[0], 14);
+            } else if (markerLatLngs.length > 1) {
+                map.fitBounds(L.latLngBounds(markerLatLngs).pad(0.18), { animate: false });
+            }
+
+            function highlightCard(eventId, scroll) {
+                document.querySelectorAll('.event-card.is-active').forEach(function (n) { n.classList.remove('is-active'); });
+                var card = document.querySelector('.event-card[data-event-id="' + eventId + '"]');
+                if (card) {
+                    card.classList.add('is-active');
+                    if (scroll) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            document.addEventListener('click', function (e) {
+                var trigger = e.target.closest('[data-show-on-map]');
+                if (!trigger) return;
+                e.preventDefault();
+                var id = parseInt(trigger.getAttribute('data-show-on-map'), 10);
+                var m = markerById[id];
+                if (!m) return;
+                map.setView(m.getLatLng(), 15, { animate: true });
+                m.openPopup();
+                highlightCard(id, false);
+            });
+
+            // Geolocation
+            var youAreHere = null;
+            var geoBtn = document.getElementById('use-my-location');
+            var geoStatus = document.getElementById('geo-status');
+            if (geoBtn && navigator.geolocation) {
+                geoBtn.addEventListener('click', function () {
+                    if (geoStatus) geoStatus.textContent = 'Locating...';
+                    navigator.geolocation.getCurrentPosition(function (pos) {
+                        var lat = pos.coords.latitude, lng = pos.coords.longitude;
+                        if (youAreHere) map.removeLayer(youAreHere);
+                        youAreHere = L.circleMarker([lat, lng], {
+                            radius: 9, color: '#0d6efd', fillColor: '#0d6efd', fillOpacity: 0.4, weight: 2
+                        }).addTo(map).bindPopup('You are here').openPopup();
+
+                        if (markerLatLngs.length > 0) {
+                            sortCardsByDistance(lat, lng);
+                            var nearest = nearestMarker(lat, lng);
+                            if (nearest) {
+                                map.fitBounds(L.latLngBounds([[lat, lng], nearest.latlng]).pad(0.5));
+                            } else {
+                                map.setView([lat, lng], 12);
+                            }
+                            if (geoStatus) geoStatus.textContent = 'Showing events sorted by distance from you.';
+                        } else {
+                            map.setView([lat, lng], 12);
+                            if (geoStatus) geoStatus.textContent = 'No events near you - showing your location.';
+                        }
+                    }, function (err) {
+                        if (geoStatus) geoStatus.textContent = 'Location access denied or unavailable.';
+                    }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
+                });
+            } else if (geoBtn) {
+                geoBtn.disabled = true;
+                geoBtn.title = 'Geolocation is not supported in this browser.';
+            }
+
+            function nearestMarker(lat, lng) {
+                var best = null;
+                Object.keys(markerById).forEach(function (k) {
+                    var m = markerById[k];
+                    var ll = m.getLatLng();
+                    var d = haversine(lat, lng, ll.lat, ll.lng);
+                    if (!best || d < best.d) best = { d: d, latlng: ll, id: k };
+                });
+                return best;
+            }
+
+            function sortCardsByDistance(lat, lng) {
+                var grid = document.getElementById('event-cards-grid');
+                if (!grid) return;
+                var cols = Array.from(grid.children);
+                cols.forEach(function (col) {
+                    var card = col.querySelector('.event-card');
+                    var id = card && card.getAttribute('data-event-id');
+                    var m = id && markerById[id];
+                    var d = m ? haversine(lat, lng, m.getLatLng().lat, m.getLatLng().lng) : Number.POSITIVE_INFINITY;
+                    col.dataset.distance = d;
+                    var distEl = card && card.querySelector('.event-card__distance');
+                    if (distEl && isFinite(d)) {
+                        distEl.textContent = d < 1 ? Math.round(d * 1000) + ' m' : d.toFixed(1) + ' km';
+                    }
+                });
+                cols.sort(function (a, b) { return parseFloat(a.dataset.distance) - parseFloat(b.dataset.distance); });
+                cols.forEach(function (c) { grid.appendChild(c); });
+            }
+
+            function haversine(lat1, lon1, lat2, lon2) {
+                var R = 6371;
+                var dLat = (lat2 - lat1) * Math.PI / 180;
+                var dLon = (lon2 - lon1) * Math.PI / 180;
+                var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                return 2 * R * Math.asin(Math.sqrt(a));
+            }
         })();
     </script>
 }
@@ -80,8 +194,8 @@
         <div class="col-md-7">
             <div class="input-group input-group-lg">
                 <span class="input-group-text bg-white"><i class="bi bi-stars text-primary"></i></span>
-                <input type="text" name="q" class="form-control" placeholder="Search events, locations, posts..." />
-                <button class="btn btn-primary" type="submit">Search</button>
+                <input type="text" name="q" class="form-control" placeholder="Try: techno tonight in Sofia, jazz this weekend, near me..." />
+                <button class="btn btn-primary" type="submit"><i class="bi bi-stars"></i> Smart search</button>
             </div>
         </div>
     </form>
@@ -106,15 +220,23 @@
 </section>
 
 <section class="mb-5">
-    <div class="d-flex justify-content-between align-items-end mb-3">
-        <h2 class="h4 mb-0"><i class="bi bi-map"></i> Events around Bulgaria</h2>
-        <span class="small text-muted">@mappedEventCount events in @Model.MapMarkers.Count cities &middot; OpenStreetMap</span>
+    <div class="d-flex justify-content-between align-items-end mb-3 flex-wrap gap-2">
+        <div>
+            <h2 class="h4 mb-0"><i class="bi bi-map"></i> Events around Bulgaria</h2>
+            <div class="small text-muted">@mappedEventCount events on map &middot; click an event to locate it</div>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <button id="use-my-location" type="button" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-geo-alt-fill"></i> Use my location
+            </button>
+            <span id="geo-status" class="small text-muted"></span>
+        </div>
     </div>
     <div id="events-map"></div>
     @if (Model.MapMarkers.Count == 0)
     {
         <div class="small text-muted mt-2">
-            No mapped events yet. Add events in cities like Sofia, Plovdiv, Varna, Burgas, Ruse to see them here.
+            No mapped events match your filters. Add coordinates to your events or pick a city to see them here.
         </div>
     }
 </section>
@@ -139,7 +261,7 @@ else
     <form method="get" class="card card-body mb-4">
         <div class="row g-2">
             <div class="col-md-4">
-                <input type="text" name="search" value="@Model.Search" placeholder="Search by title..." class="form-control" />
+                <input type="text" name="search" value="@Model.Search" placeholder="Search by title, city, address..." class="form-control" />
             </div>
             <div class="col-md-3">
                 <select name="city" class="form-select">
@@ -169,7 +291,7 @@ else
         </div>
     </form>
 
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+    <div id="event-cards-grid" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
         @foreach (var ev in Model.Events)
         {
             <div class="col"><partial name="_EventCard" model="ev" /></div>

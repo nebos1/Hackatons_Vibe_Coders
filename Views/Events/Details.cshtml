@@ -1,6 +1,37 @@
 @model EventDetailsViewModel
+@using System.Globalization
 @{
     ViewData["Title"] = Model.Title;
+    var hasCoords = Model.Latitude.HasValue && Model.Longitude.HasValue;
+    var lat = Model.Latitude?.ToString(CultureInfo.InvariantCulture) ?? "";
+    var lng = Model.Longitude?.ToString(CultureInfo.InvariantCulture) ?? "";
+}
+
+@section Scripts {
+    @if (hasCoords)
+    {
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+              integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+        <script>
+            (function () {
+                var el = document.getElementById('event-detail-map');
+                if (!el || typeof L === 'undefined') return;
+                var lat = @lat;
+                var lng = @lng;
+                var map = L.map(el, { scrollWheelZoom: false }).setView([lat, lng], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                    attribution: '&copy; OpenStreetMap'
+                }).addTo(map);
+                L.marker([lat, lng]).addTo(map)
+                    .bindPopup(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Title))
+                        + '<br><small>' + @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Address + ", " + Model.City)) + '</small>')
+                    .openPopup();
+            })();
+        </script>
+    }
 }
 
 <div class="mb-3">
@@ -24,6 +55,29 @@
 @if (!Model.IsApproved)
 {
     <div class="alert alert-warning"><i class="bi bi-hourglass-split"></i> This event is pending approval.</div>
+}
+
+@if (hasCoords)
+{
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body p-2">
+            <div id="event-detail-map" style="height: 280px; border-radius: 6px;"></div>
+        </div>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center small">
+            <span><i class="bi bi-geo-alt"></i> @Model.Address, @Model.City</span>
+            <a class="btn btn-sm btn-outline-primary"
+               href="https://www.google.com/maps/search/?api=1&query=@(lat),@(lng)"
+               target="_blank" rel="noopener">
+                <i class="bi bi-box-arrow-up-right"></i> Open in Google Maps
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-light border small mb-4">
+        <i class="bi bi-map"></i> Location map not available. The organizer didn't add coordinates.
+    </div>
 }
 
 <div class="row">

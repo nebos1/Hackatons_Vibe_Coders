@@ -49,6 +49,14 @@ namespace EventsApp.ViewModels.Events
         [Display(Name = "Upload Photo")]
         public IFormFile? Photo { get; set; }
 
+        [Range(-90, 90)]
+        [Display(Name = "Latitude")]
+        public double? Latitude { get; set; }
+
+        [Range(-180, 180)]
+        [Display(Name = "Longitude")]
+        public double? Longitude { get; set; }
+
         [Display(Name = "Approved")]
         public bool IsApproved { get; set; }
 

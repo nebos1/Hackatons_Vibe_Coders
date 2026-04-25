@@ -7,7 +7,7 @@
     <div class="col-lg-7">
         <h1 class="h3 mb-4"><i class="bi bi-pencil-square"></i> Edit Event</h1>
 
-        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
@@ -18,9 +18,15 @@
             </div>
 
             <div class="mb-3">
-                <label asp-for="Description" class="form-label"></label>
-                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                <div class="d-flex justify-content-between align-items-end">
+                    <label asp-for="Description" class="form-label"></label>
+                    <button type="button" id="ai-generate-description" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-stars"></i> Generate with AI
+                    </button>
+                </div>
+                <textarea asp-for="Description" id="event-description" class="form-control" rows="5"></textarea>
                 <span asp-validation-for="Description" class="text-danger small"></span>
+                <div id="ai-description-status" class="form-text"></div>
             </div>
 
             <div class="row">
@@ -57,10 +63,41 @@
                 <span asp-validation-for="Genre" class="text-danger small"></span>
             </div>
 
+            @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+            {
+                <div class="mb-3">
+                    <label class="form-label">Current image</label>
+                    <div>
+                        <img src="@Model.ImageUrl" alt="current" style="max-height:160px;border-radius:6px;" />
+                    </div>
+                </div>
+            }
+
             <div class="mb-3">
-                <label asp-for="ImageUrl" class="form-label"></label>
+                <label asp-for="Photo" class="form-label"><i class="bi bi-cloud-upload"></i> Replace image (upload)</label>
+                <input asp-for="Photo" class="form-control" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+                <span asp-validation-for="Photo" class="text-danger small"></span>
+                <div class="form-text">Leave blank to keep the current image.</div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="ImageUrl" class="form-label">Or paste a new image URL (optional)</label>
                 <input asp-for="ImageUrl" class="form-control" placeholder="https://..." />
                 <span asp-validation-for="ImageUrl" class="text-danger small"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Latitude" class="form-label"></label>
+                    <input asp-for="Latitude" class="form-control" type="number" step="any" placeholder="42.6977" />
+                    <span asp-validation-for="Latitude" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Longitude" class="form-label"></label>
+                    <input asp-for="Longitude" class="form-control" type="number" step="any" placeholder="23.3219" />
+                    <span asp-validation-for="Longitude" class="text-danger small"></span>
+                </div>
+                <div class="form-text mb-2 ms-1">Optional. Used to pin the event on the map.</div>
             </div>
 
             @if (Model.CanEditApproval)
@@ -81,4 +118,5 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <partial name="_AiDescriptionScript" />
 }

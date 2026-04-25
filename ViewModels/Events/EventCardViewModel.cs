@@ -17,5 +17,7 @@ namespace EventsApp.ViewModels.Events
         public int LikesCount { get; set; }
         public int CommentsCount { get; set; }
         public bool CurrentUserLiked { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
     }
 }

@@ -3,6 +3,7 @@ using EventsApp.Data;
 using EventsApp.Models;
 using EventsApp.ViewModels.Events;
 using EventsApp.Services;
+using EventsApp.Services.AI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,12 +16,52 @@ namespace EventsApp.Controllers
         private readonly ApplicationDbContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IMediaUploadService _mediaUploadService;
+        private readonly IAiSearchService _ai;
 
-        public EventsController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IMediaUploadService mediaUploadService)
+        public EventsController(
+            ApplicationDbContext db,
+            UserManager<ApplicationUser> userManager,
+            IMediaUploadService mediaUploadService,
+            IAiSearchService ai)
         {
             _db = db;
             _userManager = userManager;
             _mediaUploadService = mediaUploadService;
+            _ai = ai;
+        }
+
+        public class GenerateDescriptionRequest
+        {
+            public string Title { get; set; } = string.Empty;
+            public string? City { get; set; }
+            public string? Genre { get; set; }
+            public string? Hints { get; set; }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = GlobalConstants.Roles.Admin + "," + GlobalConstants.Roles.Organizer)]
+        public async Task<IActionResult> GenerateDescription([FromBody] GenerateDescriptionRequest req, CancellationToken cancellationToken)
+        {
+            if (req == null || string.IsNullOrWhiteSpace(req.Title))
+            {
+                return Json(new { ok = false, error = "Please enter a title first - the AI uses it as the seed." });
+            }
+
+            if (!_ai.IsEnabled)
+            {
+                return Json(new { ok = false, error = "AI is not configured. Set AI:ApiKey." });
+            }
+
+            var description = await _ai.GenerateEventDescriptionAsync(req.Title, req.City, req.Genre, req.Hints, cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                var detail = _ai.LastStatusDetail ?? "AI returned no text.";
+                return Json(new { ok = false, error = detail });
+            }
+
+            return Json(new { ok = true, description });
         }
 
         public IActionResult Index(string? search, string? city, EventGenre? genre, DateTime? dateFrom)
@@ -65,6 +106,8 @@ namespace EventsApp.Controllers
                 IsApproved = ev.IsApproved,
                 Address = ev.Address,
                 City = ev.City,
+                Latitude = ev.Latitude,
+                Longitude = ev.Longitude,
                 OrganizerId = ev.OrganizerId,
                 OrganizerName = ev.Organizer.UserName ?? string.Empty,
                 ImageUrls = ev.Images.Select(i => i.ImageUrl).ToList(),
@@ -143,8 +186,17 @@ namespace EventsApp.Controllers
                 EndTime = input.EndTime,
                 Genre = input.Genre,
                 ImageUrl = input.ImageUrl, // fallback to URL if no upload
+                Latitude = input.Latitude,
+                Longitude = input.Longitude,
                 IsApproved = isAdmin && input.IsApproved,
             };
+
+            if (!ev.Latitude.HasValue && !ev.Longitude.HasValue &&
+                CityCoordinates.TryGetCoordinates(ev.City, out var seedLat, out var seedLng))
+            {
+                ev.Latitude = seedLat;
+                ev.Longitude = seedLng;
+            }
 
             _db.Events.Add(ev);
             await _db.SaveChangesAsync();
@@ -195,6 +247,8 @@ namespace EventsApp.Controllers
                 EndTime = ev.EndTime,
                 Genre = ev.Genre,
                 ImageUrl = ev.ImageUrl,
+                Latitude = ev.Latitude,
+                Longitude = ev.Longitude,
                 IsApproved = ev.IsApproved,
                 CanEditApproval = isAdmin,
             };
@@ -238,7 +292,22 @@ namespace EventsApp.Controllers
             ev.StartTime = input.StartTime;
             ev.EndTime = input.EndTime;
             ev.Genre = input.Genre;
-            ev.ImageUrl = input.ImageUrl;
+            ev.Latitude = input.Latitude;
+            ev.Longitude = input.Longitude;
+            if (input.Photo != null && input.Photo.Length > 0)
+            {
+                var uploadResult = await _mediaUploadService.SaveAsync(input.Photo, "events");
+                if (uploadResult != null)
+                {
+                    ev.ImageUrl = uploadResult.Url;
+                    _db.EventImages.Add(new EventImage { EventId = ev.Id, ImageUrl = uploadResult.Url });
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(input.ImageUrl))
+            {
+                ev.ImageUrl = input.ImageUrl;
+            }
+
             if (isAdmin)
             {
                 ev.IsApproved = input.IsApproved;

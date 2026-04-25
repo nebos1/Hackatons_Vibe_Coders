@@ -39,7 +39,11 @@ namespace EventsApp.Controllers
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                query = query.Where(e => e.Title.Contains(search));
+                query = query.Where(e =>
+                    e.Title.Contains(search) ||
+                    (e.Description != null && e.Description.Contains(search)) ||
+                    e.City.Contains(search) ||
+                    e.Address.Contains(search));
             }
 
             if (!string.IsNullOrWhiteSpace(city))
@@ -75,33 +79,12 @@ namespace EventsApp.Controllers
                     LikesCount = e.Likes.Count,
                     CommentsCount = e.Comments.Count,
                     CurrentUserLiked = userId != null && e.Likes.Any(l => l.UserId == userId),
+                    Latitude = e.Latitude,
+                    Longitude = e.Longitude,
                 })
                 .ToListAsync();
 
-            var cityEventCounts = await query
-                .GroupBy(e => e.City)
-                .Select(g => new
-                {
-                    City = g.Key,
-                    EventCount = g.Count(),
-                })
-                .ToListAsync();
-
-            var markers = cityEventCounts
-                .Where(e => CityCoordinates.TryGetCoordinates(e.City, out _, out _))
-                .Select(e =>
-                {
-                    CityCoordinates.TryGetCoordinates(e.City, out var lat, out var lng);
-                    return new EventMapMarkerViewModel
-                    {
-                        City = e.City,
-                        EventCount = e.EventCount,
-                        Lat = lat,
-                        Lng = lng,
-                    };
-                })
-                .OrderBy(m => m.City)
-                .ToList();
+            var markers = BuildMarkers(events);
 
             var cities = await _db.Events
                 .AsNoTracking()
@@ -120,6 +103,66 @@ namespace EventsApp.Controllers
                 MapMarkers = markers,
                 Cities = cities,
             });
+        }
+
+        private static IReadOnlyList<EventMapMarkerViewModel> BuildMarkers(IReadOnlyList<EventCardViewModel> events)
+        {
+            var byCity = events
+                .Where(e => !e.Latitude.HasValue || !e.Longitude.HasValue)
+                .GroupBy(e => e.City, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.Select(e => e.Id).ToList(), StringComparer.OrdinalIgnoreCase);
+
+            var result = new List<EventMapMarkerViewModel>(events.Count);
+
+            foreach (var ev in events)
+            {
+                double lat, lng;
+                bool approx = false;
+
+                if (ev.Latitude.HasValue && ev.Longitude.HasValue)
+                {
+                    lat = ev.Latitude.Value;
+                    lng = ev.Longitude.Value;
+                }
+                else if (CityCoordinates.TryGetCoordinates(ev.City, out var clat, out var clng))
+                {
+                    var idx = byCity.TryGetValue(ev.City, out var ids) ? ids.IndexOf(ev.Id) : 0;
+                    var (offLat, offLng) = JitterOffset(idx);
+                    lat = clat + offLat;
+                    lng = clng + offLng;
+                    approx = true;
+                }
+                else
+                {
+                    continue;
+                }
+
+                result.Add(new EventMapMarkerViewModel
+                {
+                    EventId = ev.Id,
+                    Title = ev.Title,
+                    City = ev.City,
+                    Address = ev.Address,
+                    StartTime = ev.StartTime,
+                    Genre = ev.Genre,
+                    ImageUrl = ev.ImageUrl,
+                    OrganizerName = ev.OrganizerName,
+                    Lat = lat,
+                    Lng = lng,
+                    IsApproximate = approx,
+                });
+            }
+
+            return result;
+        }
+
+        private static (double dLat, double dLng) JitterOffset(int index)
+        {
+            if (index <= 0) return (0, 0);
+            const double step = 0.0035;
+            var ring = (int)Math.Ceiling(Math.Sqrt(index));
+            var angle = (index * 137.508) * Math.PI / 180.0;
+            return (Math.Sin(angle) * step * ring, Math.Cos(angle) * step * ring);
         }
 
         public IActionResult Privacy()

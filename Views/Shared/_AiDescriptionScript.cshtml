@@ -1,0 +1,77 @@
+@{
+    var antiforgery = Html.AntiForgeryToken();
+}
+@antiforgery
+<script>
+    (function () {
+        var btn = document.getElementById('ai-generate-description');
+        var ta = document.getElementById('event-description');
+        var status = document.getElementById('ai-description-status');
+        if (!btn || !ta) return;
+
+        function val(name) {
+            var el = document.querySelector('[name="' + name + '"]');
+            if (!el) return null;
+            if (el.tagName === 'SELECT') {
+                var opt = el.options[el.selectedIndex];
+                return opt ? opt.text : el.value;
+            }
+            return el.value;
+        }
+
+        btn.addEventListener('click', async function () {
+            var title = val('Title');
+            if (!title || !title.trim()) {
+                status.textContent = 'Enter a title first.';
+                status.className = 'form-text text-danger';
+                return;
+            }
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]');
+            if (!token) {
+                status.textContent = 'Security token missing - reload the page.';
+                status.className = 'form-text text-danger';
+                return;
+            }
+
+            var original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generating...';
+            status.textContent = 'Asking AI...';
+            status.className = 'form-text text-muted';
+
+            try {
+                var resp = await fetch('/Events/GenerateDescription', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token.value,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        city: val('City'),
+                        genre: val('Genre'),
+                        hints: ta.value
+                    })
+                });
+
+                var data = await resp.json();
+                if (data.ok && data.description) {
+                    ta.value = data.description;
+                    status.textContent = 'AI generated a draft - feel free to edit before saving.';
+                    status.className = 'form-text text-success';
+                } else {
+                    status.textContent = data.error || 'AI did not return text.';
+                    status.className = 'form-text text-danger';
+                }
+            } catch (err) {
+                status.textContent = 'Request failed: ' + (err && err.message ? err.message : 'unknown error');
+                status.className = 'form-text text-danger';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        });
+    })();
+</script>

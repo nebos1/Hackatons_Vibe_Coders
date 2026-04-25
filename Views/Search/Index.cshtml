@@ -1,6 +1,95 @@
 @model EventsApp.ViewModels.Search.SearchResultsViewModel
+@using System.Text.Json
 @{
     ViewData["Title"] = string.IsNullOrWhiteSpace(Model.Query) ? "Search" : $"Search: {Model.Query}";
+    var hintLevel = string.IsNullOrEmpty(Model.AiHintLevel) ? "info" : Model.AiHintLevel;
+    var markersJson = JsonSerializer.Serialize(Model.MapMarkers);
+    var hasMarkers = Model.MapMarkers.Count > 0;
+}
+
+@section Scripts {
+    @if (hasMarkers)
+    {
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+              integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+        <script>
+            (function () {
+                var markers = @Html.Raw(markersJson);
+                var mapEl = document.getElementById('search-map');
+                if (!mapEl || typeof L === 'undefined' || !markers.length) return;
+
+                function escapeHtml(v) {
+                    return String(v ?? '')
+                        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                }
+                function fmtDate(iso) { try { return new Date(iso).toLocaleString(); } catch (_) { return iso; } }
+
+                var map = L.map('search-map');
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    minZoom: 5, maxZoom: 18,
+                    attribution: '&copy; OpenStreetMap'
+                }).addTo(map);
+
+                var markerById = {};
+                var latLngs = [];
+                markers.forEach(function (m) {
+                    if (typeof m.lat !== 'number' || typeof m.lng !== 'number') return;
+                    var ll = [m.lat, m.lng];
+                    latLngs.push(ll);
+                    var html =
+                        '<div class="event-popup">' +
+                        (m.imageUrl ? '<img src="' + escapeHtml(m.imageUrl) + '" alt="" class="event-popup__img" />' : '') +
+                        '<div class="event-popup__title">' + escapeHtml(m.title) + '</div>' +
+                        '<div class="event-popup__meta"><i class="bi bi-geo-alt"></i> ' + escapeHtml(m.address) + ', ' + escapeHtml(m.city) + '</div>' +
+                        '<div class="event-popup__meta"><i class="bi bi-clock"></i> ' + escapeHtml(fmtDate(m.startTime)) + '</div>' +
+                        '<div class="event-popup__meta"><span class="badge bg-secondary">' + escapeHtml(m.genre) + '</span>' +
+                        (m.isApproximate ? ' <span class="badge bg-light text-muted border">approx.</span>' : '') + '</div>' +
+                        '<a class="btn btn-sm btn-primary mt-2 w-100" href="/Events/Details/' + m.eventId + '">Open details</a>' +
+                        '</div>';
+                    var icon = L.divIcon({
+                        className: 'event-pin',
+                        html: '<span class="event-pin__dot"></span><span class="event-pin__label">' + escapeHtml(m.genre || '') + '</span>',
+                        iconSize: [90, 28],
+                        iconAnchor: [12, 28]
+                    });
+                    var marker = L.marker(ll, { icon: icon }).addTo(map).bindPopup(html);
+                    marker.on('click', function () { highlight(m.eventId, true); });
+                    markerById[m.eventId] = marker;
+                });
+
+                if (latLngs.length === 1) {
+                    map.setView(latLngs[0], 15);
+                    setTimeout(function () { markerById[markers[0].eventId].openPopup(); }, 250);
+                } else if (latLngs.length > 1) {
+                    map.fitBounds(L.latLngBounds(latLngs).pad(0.18));
+                }
+
+                function highlight(id, scroll) {
+                    document.querySelectorAll('.event-card.is-active').forEach(function (n) { n.classList.remove('is-active'); });
+                    var card = document.querySelector('.event-card[data-event-id="' + id + '"]');
+                    if (card) {
+                        card.classList.add('is-active');
+                        if (scroll) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+
+                document.addEventListener('click', function (e) {
+                    var trig = e.target.closest('[data-show-on-map]');
+                    if (!trig) return;
+                    e.preventDefault();
+                    var id = parseInt(trig.getAttribute('data-show-on-map'), 10);
+                    var m = markerById[id];
+                    if (!m) return;
+                    map.setView(m.getLatLng(), 15, { animate: true });
+                    m.openPopup();
+                    highlight(id, false);
+                });
+            })();
+        </script>
+    }
 }
 
 <div class="card border-0 shadow-sm mb-4">
@@ -8,7 +97,7 @@
         <h1 class="h4 mb-3"><i class="bi bi-search"></i> Smart search</h1>
         <form asp-action="Index" method="get" class="row g-2">
             <div class="col-12 col-md">
-                <input type="text" name="q" value="@Model.Query" class="form-control form-control-lg" placeholder="Try: rock, jazz, sofia, festival..." autofocus />
+                <input type="text" name="q" value="@Model.Query" class="form-control form-control-lg" placeholder="Try: techno tonight in sofia, jazz this weekend..." autofocus />
             </div>
             <div class="col-12 col-md-auto">
                 <button class="btn btn-primary btn-lg w-100" type="submit"><i class="bi bi-stars"></i> Search</button>
@@ -16,8 +105,37 @@
         </form>
         @if (!string.IsNullOrWhiteSpace(Model.AiHint))
         {
-            <div class="alert alert-info mt-3 mb-0 small d-flex align-items-center">
+            <div class="alert alert-@hintLevel mt-3 mb-0 small d-flex align-items-center">
                 <i class="bi bi-robot me-2"></i><span>@Model.AiHint</span>
+            </div>
+        }
+        @if (Model.AiUsed)
+        {
+            <div class="d-flex flex-wrap gap-2 mt-2 small">
+                @if (!string.IsNullOrWhiteSpace(Model.InterpretedCity))
+                {
+                    <span class="badge bg-light text-dark border"><i class="bi bi-geo-alt"></i> City: @Model.InterpretedCity</span>
+                }
+                @if (Model.InterpretedGenre.HasValue)
+                {
+                    <span class="badge bg-light text-dark border"><i class="bi bi-music-note"></i> Genre: @Model.InterpretedGenre</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.InterpretedKeyword))
+                {
+                    <span class="badge bg-light text-dark border"><i class="bi bi-tag"></i> Keyword: @Model.InterpretedKeyword</span>
+                }
+                @if (Model.InterpretedDateFrom.HasValue)
+                {
+                    <span class="badge bg-light text-dark border"><i class="bi bi-calendar"></i> From: @Model.InterpretedDateFrom.Value.ToString("yyyy-MM-dd")</span>
+                }
+                @if (Model.InterpretedDateTo.HasValue)
+                {
+                    <span class="badge bg-light text-dark border"><i class="bi bi-calendar"></i> To: @Model.InterpretedDateTo.Value.ToString("yyyy-MM-dd")</span>
+                }
+                @if (Model.InterpretedNearMe)
+                {
+                    <span class="badge bg-light text-dark border"><i class="bi bi-pin-map"></i> Near me</span>
+                }
             </div>
         }
     </div>
@@ -29,6 +147,20 @@
 }
 else
 {
+    @if (hasMarkers)
+    {
+        <section class="mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body p-2">
+                    <div id="search-map" style="height: 360px; border-radius: 6px;"></div>
+                </div>
+                <div class="card-footer bg-white small text-muted">
+                    <i class="bi bi-pin-map"></i> @Model.MapMarkers.Count event(s) on the map. Click a card or marker to focus.
+                </div>
+            </div>
+        </section>
+    }
+
     <section class="mb-4">
         <h2 class="h5"><i class="bi bi-calendar2-event"></i> Events (@Model.Events.Count)</h2>
         @if (Model.Events.Count == 0)

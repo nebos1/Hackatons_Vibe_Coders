@@ -2,11 +2,16 @@ using EventsApp.Data;
 using EventsApp.Infrastructure;
 using EventsApp.Models;
 using EventsApp.Services;
+using EventsApp.Services.AI;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+DotEnvLoader.LoadIntoConfiguration(
+    Path.Combine(builder.Environment.ContentRootPath, ".env"),
+    builder.Configuration);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -31,12 +36,16 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 builder.Services.AddSingleton<IMediaUploadService, MediaUploadService>();
 builder.Services.AddSingleton<ITicketDocumentService, TicketDocumentService>();
 
+builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
+builder.Services.AddHttpClient<IAiSearchService, SirmaAiSearchService>();
+
 builder.Services.Configure<FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = 100L * 1024 * 1024;
 });
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddAntiforgery(opts => opts.HeaderName = "RequestVerificationToken");
 
 var app = builder.Build();
 

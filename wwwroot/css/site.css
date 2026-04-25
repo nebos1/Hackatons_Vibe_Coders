@@ -118,6 +118,65 @@ video.card-img-top-fixed {
     line-height: 1.05;
 }
 
+.event-pin {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.event-pin__dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50% 50% 50% 0;
+    background: #c83a2f;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    transform: rotate(-45deg);
+    flex-shrink: 0;
+}
+
+.event-pin__label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(255,255,255,0.92);
+    color: #134e4a;
+    padding: 1px 6px;
+    border-radius: 8px;
+    border: 1px solid rgba(15,118,110,0.4);
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.event-popup {
+    width: 220px;
+}
+
+.event-popup__img {
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 0.4rem;
+}
+
+.event-popup__title {
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.event-popup__meta {
+    font-size: 0.78rem;
+    color: #6c757d;
+    margin-bottom: 0.15rem;
+}
+
+.event-card.is-active {
+    outline: 3px solid #0f766e;
+    outline-offset: -3px;
+    box-shadow: 0 8px 22px rgba(15,118,110,0.25) !important;
+    transform: translateY(-2px);
+}
+
 .event-count-marker__city {
     grid-column: 1;
     grid-row: 1;
