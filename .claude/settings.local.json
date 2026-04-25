@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build *)",
+      "Bash(tasklist)",
+      "Bash(ASPNETCORE_URLS=\"http://localhost:5099\" ASPNETCORE_ENVIRONMENT=\"Development\" dotnet run --no-build --project .)",
+      "Read(//c/Users/JAVICI~1/AppData/Local/Temp/claude/c--Users-javicilie-source-repos-EventsApp/6a37ab40-1168-4dca-83fe-9585e1ea91a6/tasks/**)",
+      "Bash(curl -sk -o /dev/null -w \"GET / -> %{http_code}\\\\n\" --max-time 3 http://localhost:5099/)",
+      "Bash(curl -sk -o /dev/null -w \"5180 -> %{http_code}\\\\n\" --max-time 3 http://localhost:5180/)",
+      "Bash(curl -sk -o /dev/null -w \"7180 -> %{http_code}\\\\n\" --max-time 3 https://localhost:7180/)",
+      "Bash(curl -sk -c /tmp/cj.txt -b /tmp/cj.txt https://localhost:7180/Identity/Account/Register -o /tmp/reg.html)",
+      "Read(//tmp/**)",
+      "Bash(sqlcmd -S \"\\(localdb\\)\\\\MSSQLLocalDB\" -d EventsApp -Q \"SELECT Email, EmailConfirmed FROM AspNetUsers WHERE Email='test1@example.com';\" -W)"
+    ]
+  }
+}
