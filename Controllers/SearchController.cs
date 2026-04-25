@@ -50,9 +50,11 @@ namespace EventsApp.Controllers
 
             var keyword = intent?.Keyword ?? term;
 
-            var eventsQuery = _db.Events
+            var visibleEventsQuery = _db.Events
                 .AsNoTracking()
                 .Where(e => isAdmin || e.IsApproved);
+
+            var eventsQuery = visibleEventsQuery;
 
             if (intent?.City != null)
             {
@@ -87,50 +89,32 @@ namespace EventsApp.Controllers
                     || e.City.Contains(keyword));
             }
 
-            vm.Events = await eventsQuery
+            var matchedEvents = await ProjectEventCards(eventsQuery, userId)
                 .OrderBy(e => e.StartTime)
                 .Take(ResultsPerSection)
-                .Select(e => new EventCardViewModel
-                {
-                    Id = e.Id,
-                    Title = e.Title,
-                    ImageUrl = e.ImageUrl,
-                    Address = e.Address,
-                    City = e.City,
-                    StartTime = e.StartTime,
-                    Genre = e.Genre,
-                    IsApproved = e.IsApproved,
-                    OrganizerId = e.OrganizerId,
-                    OrganizerName = e.Organizer.UserName ?? string.Empty,
-                    LikesCount = e.Likes.Count,
-                    CommentsCount = e.Comments.Count,
-                    CurrentUserLiked = userId != null && e.Likes.Any(l => l.UserId == userId),
-                    Latitude = e.Latitude,
-                    Longitude = e.Longitude,
-                })
                 .ToListAsync(cancellationToken);
 
-            vm.Posts = await _db.Posts
-                .AsNoTracking()
-                .Where(p => p.Content.Contains(keyword) || (p.Event != null && p.Event.Title.Contains(keyword)))
+            var matchedPosts = await ProjectPostCards(keyword, userId)
                 .OrderByDescending(p => p.CreatedAt)
                 .Take(ResultsPerSection)
-                .Select(p => new PostCardViewModel
-                {
-                    Id = p.Id,
-                    OrganizerId = p.OrganizerId,
-                    OrganizerName = p.Organizer.UserName ?? string.Empty,
-                    Content = p.Content,
-                    CreatedAt = p.CreatedAt,
-                    EventId = p.EventId,
-                    EventTitle = p.Event != null ? p.Event.Title : null,
-                    FirstMediaUrl = p.Images.Select(i => i.ImageUrl).FirstOrDefault(),
-                    FirstMediaType = p.Images.Select(i => i.MediaType).FirstOrDefault(),
-                    LikesCount = p.Likes.Count,
-                    CommentsCount = p.Comments.Count,
-                    CurrentUserLiked = userId != null && p.Likes.Any(l => l.UserId == userId),
-                })
                 .ToListAsync(cancellationToken);
+
+            vm.Posts = matchedPosts;
+
+            if (matchedEvents.Count == 0)
+            {
+                vm.ShowingFallbackEvents = true;
+                vm.SearchMessageLevel = "warning";
+                vm.SearchMessage = $"No event matches were found for \"{term}\". Showing all available events instead.";
+
+                vm.Events = await ProjectEventCards(visibleEventsQuery, userId)
+                    .OrderBy(e => e.StartTime)
+                    .ToListAsync(cancellationToken);
+            }
+            else
+            {
+                vm.Events = matchedEvents;
+            }
 
             vm.MapMarkers = BuildMarkers(vm.Events);
 
@@ -147,6 +131,50 @@ namespace EventsApp.Controllers
 
             ApplyHint(vm, intent != null);
             return View(vm);
+        }
+
+        private IQueryable<EventCardViewModel> ProjectEventCards(IQueryable<Event> query, string? userId)
+        {
+            return query.Select(e => new EventCardViewModel
+            {
+                Id = e.Id,
+                Title = e.Title,
+                ImageUrl = e.ImageUrl,
+                Address = e.Address,
+                City = e.City,
+                StartTime = e.StartTime,
+                Genre = e.Genre,
+                IsApproved = e.IsApproved,
+                OrganizerId = e.OrganizerId,
+                OrganizerName = e.Organizer.UserName ?? string.Empty,
+                LikesCount = e.Likes.Count,
+                CommentsCount = e.Comments.Count,
+                CurrentUserLiked = userId != null && e.Likes.Any(l => l.UserId == userId),
+                Latitude = e.Latitude,
+                Longitude = e.Longitude,
+            });
+        }
+
+        private IQueryable<PostCardViewModel> ProjectPostCards(string keyword, string? userId)
+        {
+            return _db.Posts
+                .AsNoTracking()
+                .Where(p => p.Content.Contains(keyword) || (p.Event != null && p.Event.Title.Contains(keyword)))
+                .Select(p => new PostCardViewModel
+                {
+                    Id = p.Id,
+                    OrganizerId = p.OrganizerId,
+                    OrganizerName = p.Organizer.UserName ?? string.Empty,
+                    Content = p.Content,
+                    CreatedAt = p.CreatedAt,
+                    EventId = p.EventId,
+                    EventTitle = p.Event != null ? p.Event.Title : null,
+                    FirstMediaUrl = p.Images.Select(i => i.ImageUrl).FirstOrDefault(),
+                    FirstMediaType = p.Images.Select(i => i.MediaType).FirstOrDefault(),
+                    LikesCount = p.Likes.Count,
+                    CommentsCount = p.Comments.Count,
+                    CurrentUserLiked = userId != null && p.Likes.Any(l => l.UserId == userId),
+                });
         }
 
         private void ApplyHint(SearchResultsViewModel vm, bool intentExtracted)

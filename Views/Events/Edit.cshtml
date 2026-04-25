@@ -32,14 +32,23 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="City" class="form-label"></label>
-                    <input asp-for="City" class="form-control" />
+                    <input asp-for="City" id="City" class="form-control" autocomplete="off" />
                     <span asp-validation-for="City" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label asp-for="Address" class="form-label"></label>
-                    <input asp-for="Address" class="form-control" />
+                    <input asp-for="Address" id="Address" class="form-control"
+                           autocomplete="off"
+                           placeholder="Start typing a venue or address (Google Places)" />
                     <span asp-validation-for="Address" class="text-danger small"></span>
+                    <div class="form-text">Pick from the suggestions and the city + coordinates will fill in automatically.</div>
                 </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label"><i class="bi bi-geo-alt"></i> Pin location</label>
+                <div id="event-location-map" style="height: 320px; border-radius: 0.5rem; overflow: hidden;"></div>
+                <div id="event-location-status" class="form-text"></div>
             </div>
 
             <div class="row">
@@ -89,15 +98,15 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label asp-for="Latitude" class="form-label"></label>
-                    <input asp-for="Latitude" class="form-control" type="number" step="any" placeholder="42.6977" />
+                    <input asp-for="Latitude" id="Latitude" class="form-control" type="number" step="any" placeholder="42.6977" />
                     <span asp-validation-for="Latitude" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label asp-for="Longitude" class="form-label"></label>
-                    <input asp-for="Longitude" class="form-control" type="number" step="any" placeholder="23.3219" />
+                    <input asp-for="Longitude" id="Longitude" class="form-control" type="number" step="any" placeholder="23.3219" />
                     <span asp-validation-for="Longitude" class="text-danger small"></span>
                 </div>
-                <div class="form-text mb-2 ms-1">Optional. Used to pin the event on the map.</div>
+                <div class="form-text mb-2 ms-1">Auto-filled when you pick an address above or click on the map.</div>
             </div>
 
             @if (Model.CanEditApproval)
@@ -119,4 +128,6 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <partial name="_AiDescriptionScript" />
+    <partial name="_GoogleMapsLoader" />
+    <script src="~/js/event-place-picker.js" asp-append-version="true"></script>
 }

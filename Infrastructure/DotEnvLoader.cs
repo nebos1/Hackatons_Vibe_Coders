@@ -41,6 +41,7 @@ namespace EventsApp.Infrastructure
                     string.Equals(kv.Key, "AI_API_KEY", StringComparison.OrdinalIgnoreCase))
                 {
                     mapped["AI:ApiKey"] = kv.Value;
+                    mapped["SirmaAi:ApiKey"] = kv.Value;
                 }
                 if (string.Equals(kv.Key, "Sirma_project_id", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(kv.Key, "SIRMA_PROJECT_ID", StringComparison.OrdinalIgnoreCase) ||
@@ -53,6 +54,19 @@ namespace EventsApp.Infrastructure
                     string.Equals(kv.Key, "AI_AGENT_ID", StringComparison.OrdinalIgnoreCase))
                 {
                     mapped["AI:AgentId"] = kv.Value;
+                    mapped["SirmaAi:AgentId"] = kv.Value;
+                }
+                if (string.Equals(kv.Key, "Sirma_domain", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(kv.Key, "SIRMA_DOMAIN", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(kv.Key, "SIRMA_AI_DOMAIN", StringComparison.OrdinalIgnoreCase))
+                {
+                    mapped["SirmaAi:Domain"] = kv.Value;
+                }
+                if (string.Equals(kv.Key, "GOOGLE_MAPS_KEY", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(kv.Key, "GOOGLE_MAPS_API_KEY", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(kv.Key, "GoogleMaps_key", StringComparison.OrdinalIgnoreCase))
+                {
+                    mapped["GoogleMaps:ApiKey"] = kv.Value;
                 }
             }
 

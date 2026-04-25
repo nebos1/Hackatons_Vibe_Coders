@@ -1,10 +1,14 @@
 @model EventsApp.ViewModels.Search.SearchResultsViewModel
 @using System.Text.Json
+@using System.Text.Json.Serialization
 @{
     ViewData["Title"] = string.IsNullOrWhiteSpace(Model.Query) ? "Search" : $"Search: {Model.Query}";
     var hintLevel = string.IsNullOrEmpty(Model.AiHintLevel) ? "info" : Model.AiHintLevel;
-    var markersJson = JsonSerializer.Serialize(Model.MapMarkers);
+    var mapJsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+    mapJsonOptions.Converters.Add(new JsonStringEnumConverter());
+    var markersJson = JsonSerializer.Serialize(Model.MapMarkers, mapJsonOptions);
     var hasMarkers = Model.MapMarkers.Count > 0;
+    var eventsHeading = Model.ShowingFallbackEvents ? "Available Events" : "Events";
 }
 
 @section Scripts {
@@ -17,7 +21,7 @@
         <script>
             (function () {
                 var markers = @Html.Raw(markersJson);
-                var mapEl = document.getElementById('search-map');
+                var mapEl = document.getElementById('events-map');
                 if (!mapEl || typeof L === 'undefined' || !markers.length) return;
 
                 function escapeHtml(v) {
@@ -27,7 +31,7 @@
                 }
                 function fmtDate(iso) { try { return new Date(iso).toLocaleString(); } catch (_) { return iso; } }
 
-                var map = L.map('search-map');
+                var map = L.map('events-map');
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     minZoom: 5, maxZoom: 18,
                     attribution: '&copy; OpenStreetMap'
@@ -109,6 +113,12 @@
                 <i class="bi bi-robot me-2"></i><span>@Model.AiHint</span>
             </div>
         }
+        @if (!string.IsNullOrWhiteSpace(Model.SearchMessage))
+        {
+            <div class="alert alert-@Model.SearchMessageLevel mt-3 mb-0 small d-flex align-items-center">
+                <i class="bi bi-info-circle me-2"></i><span>@Model.SearchMessage</span>
+            </div>
+        }
         @if (Model.AiUsed)
         {
             <div class="d-flex flex-wrap gap-2 mt-2 small">
@@ -152,20 +162,27 @@ else
         <section class="mb-4">
             <div class="card shadow-sm">
                 <div class="card-body p-2">
-                    <div id="search-map" style="height: 360px; border-radius: 6px;"></div>
+                    <div id="events-map" style="height: 360px; border-radius: 6px;"></div>
                 </div>
                 <div class="card-footer bg-white small text-muted">
-                    <i class="bi bi-pin-map"></i> @Model.MapMarkers.Count event(s) on the map. Click a card or marker to focus.
+                    @if (Model.ShowingFallbackEvents)
+                    {
+                        <span><i class="bi bi-pin-map"></i> Showing all available events on the map. Click a card or marker to focus.</span>
+                    }
+                    else
+                    {
+                        <span><i class="bi bi-pin-map"></i> @Model.MapMarkers.Count event(s) on the map. Click a card or marker to focus.</span>
+                    }
                 </div>
             </div>
         </section>
     }
 
     <section class="mb-4">
-        <h2 class="h5"><i class="bi bi-calendar2-event"></i> Events (@Model.Events.Count)</h2>
+        <h2 class="h5"><i class="bi bi-calendar2-event"></i> @eventsHeading (@Model.Events.Count)</h2>
         @if (Model.Events.Count == 0)
         {
-            <p class="text-muted small mb-0">No matching events.</p>
+            <p class="text-muted small mb-0">No available events right now.</p>
         }
         else
         {
@@ -178,20 +195,23 @@ else
         }
     </section>
 
-    <section class="mb-4">
-        <h2 class="h5"><i class="bi bi-chat-square-text"></i> Posts (@Model.Posts.Count)</h2>
-        @if (Model.Posts.Count == 0)
-        {
-            <p class="text-muted small mb-0">No matching posts.</p>
-        }
-        else
-        {
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
-                @foreach (var p in Model.Posts)
-                {
-                    <div class="col"><partial name="_PostCard" model="p" /></div>
-                }
-            </div>
-        }
-    </section>
+    @if (Model.Posts.Count > 0 || !Model.ShowingFallbackEvents)
+    {
+        <section class="mb-4">
+            <h2 class="h5"><i class="bi bi-chat-square-text"></i> Posts (@Model.Posts.Count)</h2>
+            @if (Model.Posts.Count == 0)
+            {
+                <p class="text-muted small mb-0">No matching posts.</p>
+            }
+            else
+            {
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+                    @foreach (var p in Model.Posts)
+                    {
+                        <div class="col"><partial name="_PostCard" model="p" /></div>
+                    }
+                </div>
+            }
+        </section>
+    }
 }

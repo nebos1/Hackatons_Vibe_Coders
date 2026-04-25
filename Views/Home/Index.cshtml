@@ -1,206 +1,42 @@
 @model EventsIndexViewModel
 @using System.Text.Json
+@using System.Text.Json.Serialization
 @{
     ViewData["Title"] = "Home";
-    var markersJson = JsonSerializer.Serialize(Model.MapMarkers);
+    var mapJsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+    mapJsonOptions.Converters.Add(new JsonStringEnumConverter());
+    var dataPayload = new { markers = Model.MapMarkers };
+    var dataJson = JsonSerializer.Serialize(dataPayload, mapJsonOptions);
     var mappedEventCount = Model.MapMarkers.Count;
+    var totalEventCount = Model.Events.Count;
 }
 
 @section Scripts {
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script>
-        (function () {
-            var markers = @Html.Raw(markersJson);
-            var mapEl = document.getElementById('events-map');
-            if (!mapEl || typeof L === 'undefined') return;
-
-            function escapeHtml(value) {
-                return String(value ?? '')
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#39;');
-            }
-
-            function formatDate(iso) {
-                try {
-                    var d = new Date(iso);
-                    return d.toLocaleString();
-                } catch (_) { return iso; }
-            }
-
-            var bulgariaBounds = L.latLngBounds([41.2354, 22.3571], [44.2156, 28.6122]);
-
-            var map = L.map('events-map', { maxBoundsViscosity: 0.5 });
-            map.fitBounds(bulgariaBounds, { padding: [12, 12], animate: false });
-            map.setMaxBounds(bulgariaBounds.pad(0.4));
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                minZoom: 5,
-                maxZoom: 18,
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            }).addTo(map);
-
-            var markerById = {};
-            var markerLatLngs = [];
-
-            function makeIcon(genre) {
-                return L.divIcon({
-                    className: 'event-pin',
-                    html: '<span class="event-pin__dot"></span><span class="event-pin__label">' + escapeHtml(genre) + '</span>',
-                    iconSize: [90, 28],
-                    iconAnchor: [12, 28]
-                });
-            }
-
-            (markers || []).forEach(function (m) {
-                if (typeof m.lat !== 'number' || typeof m.lng !== 'number') return;
-                var ll = [m.lat, m.lng];
-                markerLatLngs.push(ll);
-
-                var html =
-                    '<div class="event-popup">' +
-                    (m.imageUrl ? '<img src="' + escapeHtml(m.imageUrl) + '" alt="" class="event-popup__img" />' : '') +
-                    '<div class="event-popup__title">' + escapeHtml(m.title) + '</div>' +
-                    '<div class="event-popup__meta"><i class="bi bi-geo-alt"></i> ' + escapeHtml(m.address) + ', ' + escapeHtml(m.city) + '</div>' +
-                    '<div class="event-popup__meta"><i class="bi bi-clock"></i> ' + escapeHtml(formatDate(m.startTime)) + '</div>' +
-                    '<div class="event-popup__meta"><span class="badge bg-secondary">' + escapeHtml(m.genre) + '</span>' +
-                    (m.isApproximate ? ' <span class="badge bg-light text-muted border">approx.</span>' : '') + '</div>' +
-                    '<a class="btn btn-sm btn-primary mt-2 w-100" href="/Events/Details/' + m.eventId + '">Open details</a>' +
-                    '</div>';
-
-                var marker = L.marker(ll, { icon: makeIcon(m.genre || '') }).addTo(map).bindPopup(html);
-                marker.on('click', function () {
-                    highlightCard(m.eventId, true);
-                });
-                markerById[m.eventId] = marker;
-            });
-
-            if (markerLatLngs.length === 1) {
-                map.setView(markerLatLngs[0], 14);
-            } else if (markerLatLngs.length > 1) {
-                map.fitBounds(L.latLngBounds(markerLatLngs).pad(0.18), { animate: false });
-            }
-
-            function highlightCard(eventId, scroll) {
-                document.querySelectorAll('.event-card.is-active').forEach(function (n) { n.classList.remove('is-active'); });
-                var card = document.querySelector('.event-card[data-event-id="' + eventId + '"]');
-                if (card) {
-                    card.classList.add('is-active');
-                    if (scroll) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }
-
-            document.addEventListener('click', function (e) {
-                var trigger = e.target.closest('[data-show-on-map]');
-                if (!trigger) return;
-                e.preventDefault();
-                var id = parseInt(trigger.getAttribute('data-show-on-map'), 10);
-                var m = markerById[id];
-                if (!m) return;
-                map.setView(m.getLatLng(), 15, { animate: true });
-                m.openPopup();
-                highlightCard(id, false);
-            });
-
-            // Geolocation
-            var youAreHere = null;
-            var geoBtn = document.getElementById('use-my-location');
-            var geoStatus = document.getElementById('geo-status');
-            if (geoBtn && navigator.geolocation) {
-                geoBtn.addEventListener('click', function () {
-                    if (geoStatus) geoStatus.textContent = 'Locating...';
-                    navigator.geolocation.getCurrentPosition(function (pos) {
-                        var lat = pos.coords.latitude, lng = pos.coords.longitude;
-                        if (youAreHere) map.removeLayer(youAreHere);
-                        youAreHere = L.circleMarker([lat, lng], {
-                            radius: 9, color: '#0d6efd', fillColor: '#0d6efd', fillOpacity: 0.4, weight: 2
-                        }).addTo(map).bindPopup('You are here').openPopup();
-
-                        if (markerLatLngs.length > 0) {
-                            sortCardsByDistance(lat, lng);
-                            var nearest = nearestMarker(lat, lng);
-                            if (nearest) {
-                                map.fitBounds(L.latLngBounds([[lat, lng], nearest.latlng]).pad(0.5));
-                            } else {
-                                map.setView([lat, lng], 12);
-                            }
-                            if (geoStatus) geoStatus.textContent = 'Showing events sorted by distance from you.';
-                        } else {
-                            map.setView([lat, lng], 12);
-                            if (geoStatus) geoStatus.textContent = 'No events near you - showing your location.';
-                        }
-                    }, function (err) {
-                        if (geoStatus) geoStatus.textContent = 'Location access denied or unavailable.';
-                    }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
-                });
-            } else if (geoBtn) {
-                geoBtn.disabled = true;
-                geoBtn.title = 'Geolocation is not supported in this browser.';
-            }
-
-            function nearestMarker(lat, lng) {
-                var best = null;
-                Object.keys(markerById).forEach(function (k) {
-                    var m = markerById[k];
-                    var ll = m.getLatLng();
-                    var d = haversine(lat, lng, ll.lat, ll.lng);
-                    if (!best || d < best.d) best = { d: d, latlng: ll, id: k };
-                });
-                return best;
-            }
-
-            function sortCardsByDistance(lat, lng) {
-                var grid = document.getElementById('event-cards-grid');
-                if (!grid) return;
-                var cols = Array.from(grid.children);
-                cols.forEach(function (col) {
-                    var card = col.querySelector('.event-card');
-                    var id = card && card.getAttribute('data-event-id');
-                    var m = id && markerById[id];
-                    var d = m ? haversine(lat, lng, m.getLatLng().lat, m.getLatLng().lng) : Number.POSITIVE_INFINITY;
-                    col.dataset.distance = d;
-                    var distEl = card && card.querySelector('.event-card__distance');
-                    if (distEl && isFinite(d)) {
-                        distEl.textContent = d < 1 ? Math.round(d * 1000) + ' m' : d.toFixed(1) + ' km';
-                    }
-                });
-                cols.sort(function (a, b) { return parseFloat(a.dataset.distance) - parseFloat(b.dataset.distance); });
-                cols.forEach(function (c) { grid.appendChild(c); });
-            }
-
-            function haversine(lat1, lon1, lat2, lon2) {
-                var R = 6371;
-                var dLat = (lat2 - lat1) * Math.PI / 180;
-                var dLon = (lon2 - lon1) * Math.PI / 180;
-                var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-                return 2 * R * Math.asin(Math.sqrt(a));
-            }
-        })();
-    </script>
+    <script id="home-events-data" type="application/json">@Html.Raw(dataJson)</script>
+    <partial name="_GoogleMapsLoader" />
+    <script src="~/js/home-map.js" asp-append-version="true"></script>
 }
 
 <section class="hero text-center mb-4">
     <h1 class="display-5"><i class="bi bi-music-note-beamed"></i> GrooveOn</h1>
-    <p class="lead mb-4">Discover events and organizers - follow the scene in your city.</p>
+    <p class="lead mb-2">Discover events and organizers - follow the scene in your city.</p>
+    <p class="small text-white-50 mb-4">Search by city, genre, venue or event keyword. Examples: <em>Русе</em>, <em>София techno</em>, <em>house</em>, <em>около мен</em>.</p>
 
-    <form asp-controller="Search" asp-action="Index" method="get" class="row g-2 justify-content-center mb-3">
+    <form id="home-smart-search-form" class="row g-2 justify-content-center mb-2" autocomplete="off">
+        @Html.AntiForgeryToken()
         <div class="col-md-7">
             <div class="input-group input-group-lg">
                 <span class="input-group-text bg-white"><i class="bi bi-stars text-primary"></i></span>
-                <input type="text" name="q" class="form-control" placeholder="Try: techno tonight in Sofia, jazz this weekend, near me..." />
+                <input id="home-smart-search-input" type="text" name="q" class="form-control"
+                       placeholder="Try: techno tonight in Sofia, jazz this weekend, около мен..." />
                 <button class="btn btn-primary" type="submit"><i class="bi bi-stars"></i> Smart search</button>
+                <button id="home-smart-clear" class="btn btn-outline-light" type="button">Clear</button>
             </div>
         </div>
     </form>
+    <div class="text-center"><span id="home-search-status" class="small text-muted"></span></div>
 
-    <div class="d-flex justify-content-center gap-2 flex-wrap">
+    <div class="d-flex justify-content-center gap-2 flex-wrap mt-3">
         <a asp-controller="Home" asp-action="Index" class="btn btn-light btn-lg">Browse events</a>
         <a asp-controller="Posts" asp-action="Index" class="btn btn-outline-light btn-lg">Open feed</a>
         @if (User.Identity?.IsAuthenticated == true)
@@ -223,7 +59,10 @@
     <div class="d-flex justify-content-between align-items-end mb-3 flex-wrap gap-2">
         <div>
             <h2 class="h4 mb-0"><i class="bi bi-map"></i> Events around Bulgaria</h2>
-            <div class="small text-muted">@mappedEventCount events on map &middot; click an event to locate it</div>
+            <div class="small text-muted">
+                <span id="home-event-count">@totalEventCount event@(totalEventCount == 1 ? "" : "s")</span>
+                &middot; click an event to locate it
+            </div>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <button id="use-my-location" type="button" class="btn btn-outline-primary btn-sm">
@@ -233,6 +72,9 @@
         </div>
     </div>
     <div id="events-map"></div>
+    <div id="home-no-results" class="alert alert-warning mt-2" style="display:none;">
+        No events found. Try clearing your search or zoom out to see all events in Bulgaria.
+    </div>
     @if (Model.MapMarkers.Count == 0)
     {
         <div class="small text-muted mt-2">
@@ -294,7 +136,14 @@ else
     <div id="event-cards-grid" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
         @foreach (var ev in Model.Events)
         {
-            <div class="col"><partial name="_EventCard" model="ev" /></div>
+            <div class="col"
+                 data-event-id="@ev.Id"
+                 data-event-title="@ev.Title"
+                 data-event-city="@ev.City"
+                 data-event-address="@ev.Address"
+                 data-event-genre="@ev.Genre">
+                <partial name="_EventCard" model="ev" />
+            </div>
         }
     </div>
 }

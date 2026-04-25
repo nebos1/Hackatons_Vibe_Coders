@@ -1,0 +1,30 @@
+@using Microsoft.Extensions.Options
+@using EventsApp.Configuration
+@inject IOptions<GoogleMapsOptions> GMaps
+@{
+    var key = GMaps.Value.ApiKey;
+    var region = string.IsNullOrWhiteSpace(GMaps.Value.DefaultRegion) ? "BG" : GMaps.Value.DefaultRegion;
+    var language = string.IsNullOrWhiteSpace(GMaps.Value.DefaultLanguage) ? "bg" : GMaps.Value.DefaultLanguage;
+    var libraries = ViewData["GoogleMapsLibraries"] as string ?? "places,marker";
+    var callback = ViewData["GoogleMapsCallback"] as string ?? "initGoogleMap";
+}
+@if (!string.IsNullOrWhiteSpace(key))
+{
+    <script>
+        window.GROOVEON_MAPS = window.GROOVEON_MAPS || { ready: false, callbacks: [] };
+        window.@(Html.Raw(callback)) = function () {
+            window.GROOVEON_MAPS.ready = true;
+            (window.GROOVEON_MAPS.callbacks || []).forEach(function (cb) { try { cb(); } catch (e) { console.error(e); } });
+            window.GROOVEON_MAPS.callbacks = [];
+        };
+    </script>
+    <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=@key&libraries=@libraries&region=@region&language=@language&callback=@callback&loading=async"></script>
+}
+else
+{
+    <div class="alert alert-warning small mb-2">
+        Google Maps API key is not configured. Add <code>GOOGLE_MAPS_KEY</code> to <code>.env</code>
+        or set <code>GoogleMaps:ApiKey</code> via user-secrets to enable maps.
+    </div>
+}

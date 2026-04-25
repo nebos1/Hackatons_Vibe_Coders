@@ -11,6 +11,9 @@ namespace EventsApp.ViewModels.Search
         public IReadOnlyList<EventCardViewModel> Events { get; set; } = Array.Empty<EventCardViewModel>();
         public IReadOnlyList<PostCardViewModel> Posts { get; set; } = Array.Empty<PostCardViewModel>();
         public IReadOnlyList<EventMapMarkerViewModel> MapMarkers { get; set; } = Array.Empty<EventMapMarkerViewModel>();
+        public string? SearchMessage { get; set; }
+        public string SearchMessageLevel { get; set; } = "info";
+        public bool ShowingFallbackEvents { get; set; }
         public string? AiHint { get; set; }
         public string? AiHintLevel { get; set; }
         public bool AiUsed { get; set; }

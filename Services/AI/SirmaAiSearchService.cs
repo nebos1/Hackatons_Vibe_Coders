@@ -15,28 +15,48 @@ namespace EventsApp.Services.AI
         };
 
         private static readonly string SearchInstructions =
-@"You are a query parser for an events website (concerts, parties, club nights) in Bulgaria.
-Given a user's free-text search, output ONLY a JSON object with this exact schema and nothing else:
-{""city"":string|null,""keyword"":string|null,""genre"":string|null,""dateFrom"":string|null,""dateTo"":string|null,""nearMe"":boolean}
+@"You are a search parser for GrooveOn, an events discovery platform in Bulgaria.
+Extract structured search filters from the user query.
+Return ONLY valid JSON. No markdown. No explanations.
+
+Schema:
+{
+  ""city"": string or null,
+  ""genre"": string or null,
+  ""keyword"": string or null,
+  ""dateIntent"": string or null,
+  ""dateFrom"": string or null,
+  ""dateTo"": string or null,
+  ""nearMe"": boolean,
+  ""latitude"": number or null,
+  ""longitude"": number or null,
+  ""keywords"": string[]
+}
 
 Rules:
-- city: a Bulgarian city name in English (Sofia, Plovdiv, Varna, Burgas, Ruse, Stara Zagora, Pleven, Sliven, Dobrich, Shumen, Pernik, Haskovo, Yambol, Pazardzhik, Blagoevgrad, Veliko Tarnovo, Vratsa, Gabrovo, Asenovgrad, Vidin, Kazanlak, Kyustendil, Montana, Targovishte, Razgrad, Silistra). Translate Bulgarian city names. null if not specified.
-- keyword: short search term derived from query (artist, venue, descriptor) or null.
-- genre: one of [Techno, House, HipHop, Pop, Rock, Jazz, Classical, Other] or null.
+- Detect Bulgarian cities, including София, Пловдив, Варна, Бургас, Русе, Стара Загора, Плевен, Велико Търново, Благоевград, Шумен, Добрич, Сливен, Перник, Хасково, Ямбол. Also detect latin spellings: sofia, plovdiv, varna, burgas, ruse, stara zagora, pleven, veliko tarnovo, blagoevgrad, shumen, dobrich, sliven, pernik, haskovo, yambol. Always return city in canonical English form (Sofia, Plovdiv, Varna, Burgas, Ruse, Stara Zagora, Pleven, Sliven, Dobrich, Shumen, Pernik, Haskovo, Yambol, Pazardzhik, Blagoevgrad, Veliko Tarnovo, Vratsa, Gabrovo, Asenovgrad, Vidin, Kazanlak, Kyustendil, Montana, Targovishte, Razgrad, Silistra) or null.
+- Detect music/event genres: techno, техно, house, хаус, chalga, чалга, rock, рок, pop, hip hop, jazz, live music, festival. Map genre to one of [Techno, House, HipHop, Pop, Rock, Jazz, Classical, Other] or null.
+- If the query says 'около мен', 'near me', set nearMe=true.
+- If the query contains a city, set city.
+- If the query contains a genre, set genre.
+- Put remaining meaningful words in keyword (single short term) and keywords (array of all meaningful tokens).
+- A Google Maps toolkit (geocode_address) is available. When you detect a city, you SHOULD call geocode_address with the city name plus ', Bulgaria' (e.g. 'Ruse, Bulgaria') to obtain accurate latitude/longitude and put them into the latitude and longitude fields. If geocoding fails, leave them null.
+- dateIntent: short label such as 'tonight','tomorrow','this weekend','this week' or null.
 - dateFrom / dateTo: ISO 8601 date strings. Resolve relative phrases:
     'tonight','tazi vecher' -> today
     'tomorrow','utre' -> tomorrow
     'this weekend','uikenda' -> upcoming Saturday and Sunday
     'this week','tazi sedmica' -> today through next Sunday
   Otherwise null.
-- nearMe: true if user mentions 'near me','around me','okolo men','blizo','bliska'.
-Output ONLY the JSON. No markdown, no explanation.";
+- Return null for unknown fields.
+- Return ONLY the JSON.";
 
         private static readonly string DescriptionInstructions =
 @"You are a marketing copywriter for an events platform (concerts, parties, club nights, festivals).
 Write a single concise event description (60-120 words) in plain text (no markdown headings, no lists).
+LANGUAGE: Write the description in Bulgarian (български език). Use natural, fluent Bulgarian — not a translation.
 Tone: energetic, inviting, modern. Mention the genre and city if relevant. Do NOT invent specific artist names, prices, or times - stick to the inputs given.
-Output ONLY the description text, no preamble, no quotes.";
+Output ONLY the description text in Bulgarian, no preamble, no quotes, no English text.";
 
         private readonly HttpClient _http;
         private readonly AiOptions _opts;
@@ -95,7 +115,10 @@ Output ONLY the description text, no preamble, no quotes.";
                 LastStatus = AiStatus.ParseFailed;
                 LastStatusDetail = "AI returned a response that didn't match the expected JSON shape.";
                 _logger.LogWarning("Sirma AI returned unparseable response: {Body}", Truncate(raw, 300));
+                return null;
             }
+
+            intent.RawQuery = query.Trim();
             return intent;
         }
 
@@ -340,21 +363,36 @@ Output ONLY the description text, no preamble, no quotes.";
                 {
                     City = ReadString(r, "city"),
                     Keyword = ReadString(r, "keyword"),
+                    DateIntent = ReadString(r, "dateIntent"),
                     NearMe = r.TryGetProperty("nearMe", out var nm) && nm.ValueKind == JsonValueKind.True,
+                    Latitude = ReadDouble(r, "latitude"),
+                    Longitude = ReadDouble(r, "longitude"),
+                    Keywords = ReadStringArray(r, "keywords"),
                 };
 
                 var genreStr = ReadString(r, "genre");
-                if (!string.IsNullOrWhiteSpace(genreStr) &&
-                    Enum.TryParse<EventGenre>(genreStr, ignoreCase: true, out var g))
+                if (!string.IsNullOrWhiteSpace(genreStr))
                 {
-                    intent.Genre = g;
+                    if (Enum.TryParse<EventGenre>(genreStr, ignoreCase: true, out var g))
+                    {
+                        intent.Genre = g;
+                    }
+                    else
+                    {
+                        var normalized = NormalizeGenre(genreStr);
+                        if (normalized != null && Enum.TryParse<EventGenre>(normalized, ignoreCase: true, out var g2))
+                        {
+                            intent.Genre = g2;
+                        }
+                    }
                 }
 
                 if (TryParseDate(ReadString(r, "dateFrom"), out var df)) intent.DateFrom = df;
                 if (TryParseDate(ReadString(r, "dateTo"), out var dt)) intent.DateTo = dt;
 
                 if (intent.City == null && intent.Keyword == null && intent.Genre == null &&
-                    intent.DateFrom == null && intent.DateTo == null && !intent.NearMe)
+                    intent.DateFrom == null && intent.DateTo == null && !intent.NearMe &&
+                    intent.Keywords.Length == 0 && intent.Latitude == null && intent.Longitude == null)
                 {
                     return null;
                 }
@@ -373,6 +411,47 @@ Output ONLY the description text, no preamble, no quotes.";
             if (v.ValueKind != JsonValueKind.String) return null;
             var s = v.GetString();
             return string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+        }
+
+        private static double? ReadDouble(JsonElement el, string prop)
+        {
+            if (!el.TryGetProperty(prop, out var v)) return null;
+            if (v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var d)) return d;
+            if (v.ValueKind == JsonValueKind.String &&
+                double.TryParse(v.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var ds)) return ds;
+            return null;
+        }
+
+        private static string[] ReadStringArray(JsonElement el, string prop)
+        {
+            if (!el.TryGetProperty(prop, out var v) || v.ValueKind != JsonValueKind.Array)
+                return Array.Empty<string>();
+            var list = new List<string>();
+            foreach (var item in v.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.String)
+                {
+                    var s = item.GetString();
+                    if (!string.IsNullOrWhiteSpace(s)) list.Add(s.Trim());
+                }
+            }
+            return list.ToArray();
+        }
+
+        private static string? NormalizeGenre(string s)
+        {
+            var lower = s.Trim().ToLowerInvariant();
+            return lower switch
+            {
+                "техно" or "techno" => "Techno",
+                "хаус" or "house" => "House",
+                "хип хоп" or "хип-хоп" or "hip hop" or "hip-hop" or "hiphop" or "rap" or "рап" => "HipHop",
+                "поп" or "pop" or "чалга" or "chalga" => "Pop",
+                "рок" or "rock" => "Rock",
+                "джаз" or "jazz" => "Jazz",
+                "класика" or "classical" or "classic" => "Classical",
+                _ => null,
+            };
         }
 
         private static bool TryParseDate(string? s, out DateTime result)

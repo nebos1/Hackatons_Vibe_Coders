@@ -1,8 +1,10 @@
+using EventsApp.Configuration;
 using EventsApp.Data;
 using EventsApp.Infrastructure;
 using EventsApp.Models;
 using EventsApp.Services;
 using EventsApp.Services.AI;
+using EventsApp.Services.Geocoding;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -37,7 +39,10 @@ builder.Services.AddSingleton<IMediaUploadService, MediaUploadService>();
 builder.Services.AddSingleton<ITicketDocumentService, TicketDocumentService>();
 
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
+builder.Services.Configure<SirmaAiOptions>(builder.Configuration.GetSection(SirmaAiOptions.SectionName));
+builder.Services.Configure<GoogleMapsOptions>(builder.Configuration.GetSection(GoogleMapsOptions.SectionName));
 builder.Services.AddHttpClient<IAiSearchService, SirmaAiSearchService>();
+builder.Services.AddHttpClient<IGeocodingService, NominatimGeocodingService>();
 
 builder.Services.Configure<FormOptions>(options =>
 {

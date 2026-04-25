@@ -11,6 +11,11 @@ namespace EventsApp.Services.AI
         public DateTime? DateTo { get; set; }
         public bool NearMe { get; set; }
         public string? Explanation { get; set; }
+        public string? DateIntent { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+        public string[] Keywords { get; set; } = Array.Empty<string>();
+        public string? RawQuery { get; set; }
     }
 
     public enum AiStatus

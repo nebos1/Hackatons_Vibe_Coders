@@ -4,6 +4,7 @@ using EventsApp.Models;
 using EventsApp.ViewModels.Events;
 using EventsApp.Services;
 using EventsApp.Services.AI;
+using EventsApp.Services.Geocoding;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -17,17 +18,20 @@ namespace EventsApp.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IMediaUploadService _mediaUploadService;
         private readonly IAiSearchService _ai;
+        private readonly IGeocodingService _geocoder;
 
         public EventsController(
             ApplicationDbContext db,
             UserManager<ApplicationUser> userManager,
             IMediaUploadService mediaUploadService,
-            IAiSearchService ai)
+            IAiSearchService ai,
+            IGeocodingService geocoder)
         {
             _db = db;
             _userManager = userManager;
             _mediaUploadService = mediaUploadService;
             _ai = ai;
+            _geocoder = geocoder;
         }
 
         public class GenerateDescriptionRequest
@@ -191,11 +195,19 @@ namespace EventsApp.Controllers
                 IsApproved = isAdmin && input.IsApproved,
             };
 
-            if (!ev.Latitude.HasValue && !ev.Longitude.HasValue &&
-                CityCoordinates.TryGetCoordinates(ev.City, out var seedLat, out var seedLng))
+            if (!ev.Latitude.HasValue || !ev.Longitude.HasValue)
             {
-                ev.Latitude = seedLat;
-                ev.Longitude = seedLng;
+                var geo = await _geocoder.GeocodeAsync(ev.Address, ev.City);
+                if (geo != null)
+                {
+                    ev.Latitude = geo.Latitude;
+                    ev.Longitude = geo.Longitude;
+                }
+                else if (CityCoordinates.TryGetCoordinates(ev.City, out var seedLat, out var seedLng))
+                {
+                    ev.Latitude = seedLat;
+                    ev.Longitude = seedLng;
+                }
             }
 
             _db.Events.Add(ev);
@@ -285,6 +297,9 @@ namespace EventsApp.Controllers
                 return View(input);
             }
 
+            var addressChanged = !string.Equals(ev.Address, input.Address, StringComparison.Ordinal)
+                                 || !string.Equals(ev.City, input.City, StringComparison.Ordinal);
+
             ev.Title = input.Title;
             ev.Description = input.Description;
             ev.City = input.City;
@@ -294,6 +309,24 @@ namespace EventsApp.Controllers
             ev.Genre = input.Genre;
             ev.Latitude = input.Latitude;
             ev.Longitude = input.Longitude;
+
+            if ((!ev.Latitude.HasValue || !ev.Longitude.HasValue) || addressChanged && (input.Latitude == null || input.Longitude == null))
+            {
+                if (!ev.Latitude.HasValue || !ev.Longitude.HasValue)
+                {
+                    var geo = await _geocoder.GeocodeAsync(ev.Address, ev.City);
+                    if (geo != null)
+                    {
+                        ev.Latitude = geo.Latitude;
+                        ev.Longitude = geo.Longitude;
+                    }
+                    else if (CityCoordinates.TryGetCoordinates(ev.City, out var lat, out var lng))
+                    {
+                        ev.Latitude = lat;
+                        ev.Longitude = lng;
+                    }
+                }
+            }
             if (input.Photo != null && input.Photo.Length > 0)
             {
                 var uploadResult = await _mediaUploadService.SaveAsync(input.Photo, "events");
