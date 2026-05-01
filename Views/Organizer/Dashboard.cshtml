@@ -3,6 +3,7 @@
 @using System.Text.Json
 @{
     ViewData["Title"] = "Организатор";
+    var isEn = CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "en";
     var bgnFmt = (decimal v) => v.ToString("N2", CultureInfo.GetCultureInfo("bg-BG")) + " лв.";
     var salesPayload = new
     {
@@ -29,13 +30,13 @@
     {
         <div class="groove-empty-card">
             <i class="bi bi-person-badge"></i>
-            <h1 class="groove-panel-title">Нека подредим твоя <span>организаторски профил</span>.</h1>
-            <p class="groove-panel-intro">
+            <h1 class="groove-panel-title" data-i18n-html="org.setup.h1">Нека подредим твоя <span>организаторски профил</span>.</h1>
+            <p class="groove-panel-intro" data-i18n="org.setup.p">
                 Добави име на организация, описание и контакти, за да започнеш да публикуваш събития и билети.
             </p>
             <div class="groove-form-actions justify-content-center">
                 <a asp-action="Profile" class="groove-button groove-button-dark">
-                    <i class="bi bi-pencil-square"></i> Попълни профила
+                    <i class="bi bi-pencil-square"></i> <span data-i18n="org.setup.btn">Попълни профила</span>
                 </a>
             </div>
         </div>
@@ -43,79 +44,93 @@
     else
     {
         var approvalClass = Model.Approved ? "groove-status-badge-success" : "groove-status-badge-warning";
-        var approvalText = Model.Approved ? "Одобрен профил" : "Чака одобрение";
 
         <div class="groove-page-hero">
             <div class="groove-page-hero__copy">
-                <span class="groove-stamp groove-stamp-teal">Организатор</span>
+                <span class="groove-stamp groove-stamp-teal" data-i18n="nav.organizer">Организатор</span>
                 <h1>@Model.OrganizationName</h1>
                 <p>@(!string.IsNullOrWhiteSpace(Model.Description)
                     ? Model.Description
-                    : "Това е твоето работно табло за събития, публикации, билети и входна проверка.")</p>
+                    : (isEn ? "This is your dashboard for events, posts, tickets and entry validation." : "Това е твоето работно табло за събития, публикации, билети и входна проверка."))</p>
                 <div class="groove-inline-actions mt-3">
-                    <span class="groove-status-badge @approvalClass">@approvalText</span>
+                    <span class="groove-status-badge @approvalClass">
+                        @if (Model.Approved)
+                        {
+                            <span data-i18n="org.approved">Одобрен профил</span>
+                        }
+                        else
+                        {
+                            <span data-i18n="org.pending">Чака одобрение</span>
+                        }
+                    </span>
                     @if (!string.IsNullOrWhiteSpace(Model.PhoneNumber))
                     {
                         <span class="groove-badge"><i class="bi bi-telephone"></i> @Model.PhoneNumber</span>
                     }
                     @if (!string.IsNullOrWhiteSpace(Model.Website))
                     {
-                        <a href="@Model.Website" target="_blank" rel="noopener" class="groove-link">Уебсайт</a>
+                        <a href="@Model.Website" target="_blank" rel="noopener" class="groove-link" data-i18n="org.website">Уебсайт</a>
                     }
                 </div>
             </div>
 
             <div class="groove-page-actions">
                 <a asp-controller="Events" asp-action="Create" class="groove-button groove-button-dark">
-                    <i class="bi bi-calendar-plus"></i> Ново събитие
+                    <i class="bi bi-calendar-plus"></i> <span data-i18n="org.newevent">Ново събитие</span>
                 </a>
                 <a asp-controller="Posts" asp-action="Create" class="groove-button groove-button-paper">
-                    <i class="bi bi-pencil-square"></i> Нова публикация
+                    <i class="bi bi-pencil-square"></i> <span data-i18n="org.newpost">Нова публикация</span>
                 </a>
                 <a asp-action="Profile" class="groove-button groove-button-paper">
-                    <i class="bi bi-person-gear"></i> Редактирай профила
+                    <i class="bi bi-person-gear"></i> <span data-i18n="org.editprofile">Редактирай профила</span>
                 </a>
             </div>
         </div>
 
         <div class="groove-stat-grid">
             <article class="groove-stat-card">
-                <span>Приходи (общо)</span>
+                <span data-i18n="org.stat.revenue">Приходи (общо)</span>
                 <strong>@bgnFmt(Model.TotalRevenue)</strong>
-                <small class="text-muted">Среден билет: @bgnFmt(Model.AverageTicketPrice)</small>
+                <small class="text-muted"><span data-i18n="org.stat.avgticket">Среден билет:</span> @bgnFmt(Model.AverageTicketPrice)</small>
             </article>
             <article class="groove-stat-card">
-                <span>Продадени билети</span>
+                <span data-i18n="org.stat.sold">Продадени билети</span>
                 <strong>@Model.TicketsSoldCount</strong>
-                <small class="text-muted">Сканирани: @Model.TicketsUsedCount</small>
+                <small class="text-muted"><span data-i18n="org.stat.scanned">Сканирани:</span> @Model.TicketsUsedCount</small>
             </article>
             <article class="groove-stat-card">
-                <span>Последни 30 дни</span>
-                <strong>@Model.Last30DaysSold бр.</strong>
+                <span data-i18n="org.stat.last30">Последни 30 дни</span>
+                <strong>@Model.Last30DaysSold <span data-i18n="org.stat.pcs">бр.</span></strong>
                 <small class="text-muted">@bgnFmt(Model.Last30DaysRevenue)</small>
             </article>
             <article class="groove-stat-card">
-                <span>Събития</span>
+                <span data-i18n="org.stat.events">Събития</span>
                 <strong>@Model.EventsCount</strong>
-                <small class="text-muted">Предстоящи: @Model.UpcomingEventsCount · минали: @Model.PastEventsCount</small>
+                <small class="text-muted">
+                    <span data-i18n="org.stat.upcoming">Предстоящи:</span> @Model.UpcomingEventsCount
+                    · <span data-i18n="org.stat.past">минали:</span> @Model.PastEventsCount
+                </small>
             </article>
             <article class="groove-stat-card">
-                <span>Видове билети</span>
+                <span data-i18n="org.stat.tickettypes">Видове билети</span>
                 <strong>@Model.TicketTypesCount</strong>
-                <small class="text-muted">Активни събития: @Model.EventsWithTicketsCount</small>
+                <small class="text-muted"><span data-i18n="org.stat.activeevents">Активни събития:</span> @Model.EventsWithTicketsCount</small>
             </article>
             <article class="groove-stat-card">
-                <span>Ангажираност</span>
+                <span data-i18n="org.stat.engagement">Ангажираност</span>
                 <strong>@Model.TotalLikes <i class="bi bi-heart-fill text-danger"></i></strong>
-                <small class="text-muted">@Model.TotalComments коментара · @Model.PostsCount публикации</small>
+                <small class="text-muted">
+                    @Model.TotalComments <span data-i18n="org.stat.comments">коментара</span>
+                    · @Model.PostsCount <span data-i18n="org.stat.posts">публикации</span>
+                </small>
             </article>
         </div>
 
         <section class="groove-page-section">
             <div class="groove-section-bar">
                 <div>
-                    <span class="groove-kicker">Статистики</span>
-                    <h2>Продажби през <span>последните 30 дни</span>.</h2>
+                    <span class="groove-kicker" data-i18n="org.kicker.stats">Статистики</span>
+                    <h2 data-i18n-html="org.sales.h2">Продажби през <span>последните 30 дни</span>.</h2>
                 </div>
             </div>
 
@@ -126,10 +141,10 @@
             <div class="row g-3 mt-3">
                 <div class="col-lg-6">
                     <div class="groove-table-card" style="padding:1rem;">
-                        <h3 class="h6 mb-3">Топ 5 събития (продадени билети)</h3>
+                        <h3 class="h6 mb-3" data-i18n="org.top5sold.h">Топ 5 събития (продадени билети)</h3>
                         @if (Model.TopByTicketsSold.Count == 0)
                         {
-                            <p class="text-muted small mb-0">Все още няма продажби.</p>
+                            <p class="text-muted small mb-0" data-i18n="org.nosales">Все още няма продажби.</p>
                         }
                         else
                         {
@@ -140,7 +155,7 @@
                                     <li class="mb-2">
                                         <div class="d-flex justify-content-between small">
                                             <a asp-controller="Events" asp-action="Details" asp-route-id="@t.EventId" class="fw-semibold text-decoration-none">@t.Title</a>
-                                            <span class="text-muted">@t.Sold бр. · @bgnFmt(t.Revenue)</span>
+                                            <span class="text-muted">@t.Sold <span data-i18n="org.stat.pcs">бр.</span> · @bgnFmt(t.Revenue)</span>
                                         </div>
                                         <div class="progress" style="height:6px;">
                                             <div class="progress-bar bg-primary" style="width:@(pct)%;"></div>
@@ -153,10 +168,10 @@
                 </div>
                 <div class="col-lg-6">
                     <div class="groove-table-card" style="padding:1rem;">
-                        <h3 class="h6 mb-3">Топ 5 събития (приход)</h3>
+                        <h3 class="h6 mb-3" data-i18n="org.top5rev.h">Топ 5 събития (приход)</h3>
                         @if (Model.TopByRevenue.Count == 0)
                         {
-                            <p class="text-muted small mb-0">Все още няма приходи.</p>
+                            <p class="text-muted small mb-0" data-i18n="org.norevenue">Все още няма приходи.</p>
                         }
                         else
                         {
@@ -167,7 +182,7 @@
                                     <li class="mb-2">
                                         <div class="d-flex justify-content-between small">
                                             <a asp-controller="Events" asp-action="Details" asp-route-id="@t.EventId" class="fw-semibold text-decoration-none">@t.Title</a>
-                                            <span class="text-muted">@bgnFmt(t.Revenue) · @t.Sold бр.</span>
+                                            <span class="text-muted">@bgnFmt(t.Revenue) · @t.Sold <span data-i18n="org.stat.pcs">бр.</span></span>
                                         </div>
                                         <div class="progress" style="height:6px;">
                                             <div class="progress-bar bg-success" style="width:@(pct)%;"></div>
@@ -183,10 +198,10 @@
             <div class="row g-3 mt-1">
                 <div class="col-lg-6">
                     <div class="groove-table-card" style="padding:1rem;">
-                        <h3 class="h6 mb-3">Разпределение по жанр</h3>
+                        <h3 class="h6 mb-3" data-i18n="org.genre.h">Разпределение по жанр</h3>
                         @if (Model.GenreBreakdown.Count == 0)
                         {
-                            <p class="text-muted small mb-0">Няма публикувани събития.</p>
+                            <p class="text-muted small mb-0" data-i18n="org.nopublished">Няма публикувани събития.</p>
                         }
                         else
                         {
@@ -196,10 +211,10 @@
                 </div>
                 <div class="col-lg-6">
                     <div class="groove-table-card" style="padding:1rem;">
-                        <h3 class="h6 mb-3">Събития по град</h3>
+                        <h3 class="h6 mb-3" data-i18n="org.cities.h">Събития по град</h3>
                         @if (Model.CityBreakdown.Count == 0)
                         {
-                            <p class="text-muted small mb-0">Няма публикувани събития.</p>
+                            <p class="text-muted small mb-0" data-i18n="org.nopublished">Няма публикувани събития.</p>
                         }
                         else
                         {
@@ -210,7 +225,11 @@
                                     <li class="mb-2">
                                         <div class="d-flex justify-content-between small">
                                             <span class="fw-semibold">@c.City</span>
-                                            <span class="text-muted">@c.Count събити@(c.Count == 1 ? "е" : "я")</span>
+                                            <span class="text-muted">
+                                                @c.Count @(isEn
+                                                    ? (c.Count == 1 ? "event" : "events")
+                                                    : (c.Count == 1 ? "събитие" : "събития"))
+                                            </span>
                                         </div>
                                         <div class="progress" style="height:6px;">
                                             <div class="progress-bar" style="width:@(pct)%;background:#0f766e;"></div>
@@ -226,10 +245,10 @@
 
         <div class="groove-page-actions mb-4">
             <a asp-controller="Tickets" asp-action="Validate" class="groove-button groove-button-dark">
-                <i class="bi bi-qr-code-scan"></i> Валидиране
+                <i class="bi bi-qr-code-scan"></i> <span data-i18n="nav.validate">Валидиране</span>
             </a>
             <a asp-controller="Account" asp-action="Index" class="groove-button groove-button-paper">
-                <i class="bi bi-person-circle"></i> Моят профил
+                <i class="bi bi-person-circle"></i> <span data-i18n="org.myprofile">Моят профил</span>
             </a>
         </div>
 
@@ -238,8 +257,8 @@
             <section class="groove-page-section">
                 <div class="groove-section-bar">
                     <div>
-                        <span class="groove-kicker">Продажби</span>
-                        <h2>Билети по <span>събития</span>.</h2>
+                        <span class="groove-kicker" data-i18n="org.kicker.sales">Продажби</span>
+                        <h2 data-i18n-html="org.tickets.h2">Билети по <span>събития</span>.</h2>
                     </div>
                 </div>
 
@@ -248,10 +267,10 @@
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>Събитие</th>
-                                    <th>Начало</th>
-                                    <th>Статус</th>
-                                    <th>Продадени</th>
+                                    <th data-i18n="org.th.event">Събитие</th>
+                                    <th data-i18n="org.th.start">Начало</th>
+                                    <th data-i18n="org.th.status">Статус</th>
+                                    <th data-i18n="org.th.sold">Продадени</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -266,21 +285,21 @@
                                         <td>
                                             @if (row.HasActiveTickets)
                                             {
-                                                <span class="groove-status-badge groove-status-badge-success">Активни билети</span>
+                                                <span class="groove-status-badge groove-status-badge-success" data-i18n="org.badge.active">Активни билети</span>
                                             }
                                             else
                                             {
-                                                <span class="groove-status-badge groove-status-badge-muted">Без билети</span>
+                                                <span class="groove-status-badge groove-status-badge-muted" data-i18n="org.badge.none">Без билети</span>
                                             }
                                         </td>
                                         <td>@row.Sold</td>
                                         <td>
                                             <div class="groove-list-actions">
                                                 <a asp-controller="Events" asp-action="Edit" asp-route-id="@row.EventId" class="groove-button groove-button-paper">
-                                                    <i class="bi bi-pencil"></i> Редакция
+                                                    <i class="bi bi-pencil"></i> <span data-i18n="org.btn.edit">Редакция</span>
                                                 </a>
                                                 <a asp-controller="Tickets" asp-action="Manage" asp-route-id="@row.EventId" class="groove-button groove-button-dark">
-                                                    <i class="bi bi-ticket-perforated"></i> Билети
+                                                    <i class="bi bi-ticket-perforated"></i> <span data-i18n="org.btn.tickets">Билети</span>
                                                 </a>
                                             </div>
                                         </td>
@@ -298,8 +317,8 @@
             <section class="groove-page-section">
                 <div class="groove-section-bar">
                     <div>
-                        <span class="groove-kicker">Каталог</span>
-                        <h2>Последни <span>събития</span>.</h2>
+                        <span class="groove-kicker" data-i18n="org.kicker.catalog">Каталог</span>
+                        <h2 data-i18n-html="org.recent.events.h2">Последни <span>събития</span>.</h2>
                     </div>
                 </div>
 
@@ -317,8 +336,8 @@
             <section class="groove-page-section">
                 <div class="groove-section-bar">
                     <div>
-                        <span class="groove-kicker">Дневник</span>
-                        <h2>Последни <span>публикации</span>.</h2>
+                        <span class="groove-kicker" data-i18n="org.kicker.diary">Дневник</span>
+                        <h2 data-i18n-html="org.recent.posts.h2">Последни <span>публикации</span>.</h2>
                     </div>
                 </div>
 
@@ -341,6 +360,7 @@
             (function () {
                 var sales = @Html.Raw(salesJson);
                 var genre = @Html.Raw(genreJson);
+                var isEn = (document.querySelector('meta[name="x-app-lang"]') || {}).content === 'en';
 
                 var salesEl = document.getElementById('orgSalesChart');
                 if (salesEl && window.Chart && sales && sales.labels) {
@@ -350,14 +370,14 @@
                             labels: sales.labels,
                             datasets: [
                                 {
-                                    label: 'Продадени билети',
+                                    label: isEn ? 'Tickets Sold' : 'Продадени билети',
                                     data: sales.sold,
                                     borderColor: '#0f766e',
                                     backgroundColor: 'rgba(15,118,110,0.15)',
                                     tension: 0.3, fill: true, yAxisID: 'y'
                                 },
                                 {
-                                    label: 'Приход (лв.)',
+                                    label: isEn ? 'Revenue (BGN)' : 'Приход (лв.)',
                                     data: sales.revenue,
                                     borderColor: '#dc2626',
                                     backgroundColor: 'rgba(220,38,38,0.10)',
@@ -370,8 +390,8 @@
                             interaction: { mode: 'index', intersect: false },
                             plugins: { legend: { position: 'bottom' } },
                             scales: {
-                                y: { beginAtZero: true, position: 'left', title: { display: true, text: 'Билети' } },
-                                y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'лв.' } }
+                                y: { beginAtZero: true, position: 'left', title: { display: true, text: isEn ? 'Tickets' : 'Билети' } },
+                                y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: isEn ? 'BGN' : 'лв.' } }
                             }
                         }
                     });

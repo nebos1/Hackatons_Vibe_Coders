@@ -54,7 +54,12 @@
                     <span asp-validation-for="City" class="text-danger small"></span>
                 </div>
                 <div class="mb-3">
-                    <label asp-for="Address" class="form-label"></label>
+                    <div class="d-flex justify-content-between align-items-end gap-2 mb-1">
+                        <label asp-for="Address" class="form-label mb-0"></label>
+                        <button type="button" id="btn-use-my-location" class="groove-button groove-button-paper btn-sm">
+                            <i class="bi bi-geo-alt-fill"></i> My Location
+                        </button>
+                    </div>
                     <div style="position:relative;">
                         <input asp-for="Address" id="Address" class="form-control"
                                autocomplete="off"

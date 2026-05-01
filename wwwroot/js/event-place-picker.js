@@ -478,6 +478,51 @@
                 el.addEventListener('input', function () { el.dataset.autoset = ''; });
             });
 
+            var myLocationBtn = document.getElementById('btn-use-my-location');
+            if (myLocationBtn) {
+                myLocationBtn.addEventListener('click', function () {
+                    if (!navigator.geolocation) {
+                        if (statusEl) statusEl.textContent = 'Браузърът не поддържа геолокация.';
+                        return;
+                    }
+
+                    var icon = myLocationBtn.querySelector('i');
+                    myLocationBtn.disabled = true;
+                    if (icon) { icon.className = 'bi bi-arrow-repeat'; }
+                    if (statusEl) statusEl.textContent = 'Определяне на местоположението...';
+
+                    navigator.geolocation.getCurrentPosition(
+                        function (pos) {
+                            var lat = pos.coords.latitude;
+                            var lng = pos.coords.longitude;
+                            var latLng = new google.maps.LatLng(lat, lng);
+
+                            setVal(latInput, lat.toFixed(6));
+                            setVal(lngInput, lng.toFixed(6));
+
+                            if (map) {
+                                placeMarker(latLng);
+                                map.panTo(latLng);
+                                map.setZoom(17);
+                            }
+
+                            if (addressInput) addressInput.dataset.autoset = '1';
+                            if (cityInput) cityInput.dataset.autoset = '1';
+                            reverseGeocode(latLng);
+
+                            myLocationBtn.disabled = false;
+                            if (icon) { icon.className = 'bi bi-geo-alt-fill'; }
+                        },
+                        function () {
+                            myLocationBtn.disabled = false;
+                            if (icon) { icon.className = 'bi bi-geo-alt-fill'; }
+                            if (statusEl) statusEl.textContent = 'Достъпът до местоположението е отказан.';
+                        },
+                        { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                });
+            }
+
             if (addressInput) {
                 addressInput.addEventListener('keydown', function (e) {
                     if (e.key === 'Enter') {

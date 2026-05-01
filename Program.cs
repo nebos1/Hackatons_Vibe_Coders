@@ -50,6 +50,7 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = 100L * 1024 * 1024;
 });
 
+builder.Services.AddLocalization();
 builder.Services.AddControllersWithViews();
 builder.Services.AddAntiforgery(opts => opts.HeaderName = "RequestVerificationToken");
 
@@ -79,6 +80,12 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+var supportedCultures = new[] { "bg", "en" };
+app.UseRequestLocalization(new RequestLocalizationOptions()
+    .SetDefaultCulture("bg")
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures));
 
 app.UseRouting();
 

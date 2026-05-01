@@ -52,7 +52,8 @@
                         title: title,
                         city: val('City'),
                         genre: val('Genre'),
-                        hints: ta.value
+                        hints: ta.value,
+                        lang: (document.querySelector('meta[name="x-app-lang"]') || {}).content || 'bg'
                     })
                 });
 

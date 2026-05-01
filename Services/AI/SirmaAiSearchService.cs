@@ -54,8 +54,13 @@ Rules:
 - Return null for unknown fields.
 - Return ONLY the JSON.";
 
-        private static readonly string DescriptionInstructions =
-@"You are a marketing copywriter for an events platform (concerts, parties, club nights, festivals).
+        private static string GetDescriptionInstructions(string? lang) => (lang == "en")
+            ? @"You are a marketing copywriter for an events platform (concerts, parties, club nights, festivals).
+Write a single concise event description (60-120 words) in plain text (no markdown headings, no lists).
+LANGUAGE: Write the description in English. Use natural, fluent English.
+Tone: energetic, inviting, modern. Mention the genre and city if relevant. Do NOT invent specific artist names, prices, or times - stick to the inputs given.
+Output ONLY the description text in English, no preamble, no quotes."
+            : @"You are a marketing copywriter for an events platform (concerts, parties, club nights, festivals).
 Write a single concise event description (60-120 words) in plain text (no markdown headings, no lists).
 LANGUAGE: Write the description in Bulgarian (български език). Use natural, fluent Bulgarian — not a translation.
 Tone: energetic, inviting, modern. Mention the genre and city if relevant. Do NOT invent specific artist names, prices, or times - stick to the inputs given.
@@ -125,12 +130,12 @@ Output ONLY the description text in Bulgarian, no preamble, no quotes, no Englis
             return intent;
         }
 
-        public async Task<string?> GenerateEventDescriptionAsync(string title, string? city, string? genre, string? hints, CancellationToken cancellationToken = default)
+        public async Task<string?> GenerateEventDescriptionAsync(string title, string? city, string? genre, string? hints, string? lang = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(title)) return null;
 
             var sb = new StringBuilder();
-            sb.AppendLine(DescriptionInstructions);
+            sb.AppendLine(GetDescriptionInstructions(lang));
             sb.AppendLine();
             sb.AppendLine("Event title: " + title.Trim());
             if (!string.IsNullOrWhiteSpace(city)) sb.AppendLine("City: " + city.Trim());

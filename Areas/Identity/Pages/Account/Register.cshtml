@@ -7,9 +7,9 @@
 <section class="auth-zine-page">
     <div class="auth-zine-shell auth-zine-shell-wide">
         <div class="auth-zine-copy">
-            <span class="auth-zine-stamp auth-zine-stamp-red">Нов профил</span>
-            <h1>Започни своя <span>дневник</span>.</h1>
-            <p>Създай GrooveOn акаунт, за да запазваш вечери, да купуваш билети и да следиш любимите си организатори.</p>
+            <span class="auth-zine-stamp auth-zine-stamp-red" data-i18n="register.stamp">Нов профил</span>
+            <h1 data-i18n-html="register.h1">Започни своя <span>дневник</span>.</h1>
+            <p data-i18n="register.p">Създай GrooveOn акаунт, за да запазваш вечери, да купуваш билети и да следиш любимите си организатори.</p>
         </div>
 
         <div class="auth-zine-card">
@@ -19,12 +19,14 @@
                 <div class="auth-zine-grid">
                     <div class="auth-zine-field">
                         <label asp-for="Input.FirstName"></label>
-                        <input asp-for="Input.FirstName" autocomplete="given-name" placeholder="Ивана" />
+                        <input asp-for="Input.FirstName" autocomplete="given-name"
+                               placeholder="Ивана" data-i18n-placeholder="register.firstname.placeholder" />
                         <span asp-validation-for="Input.FirstName"></span>
                     </div>
                     <div class="auth-zine-field">
                         <label asp-for="Input.LastName"></label>
-                        <input asp-for="Input.LastName" autocomplete="family-name" placeholder="Петрова" />
+                        <input asp-for="Input.LastName" autocomplete="family-name"
+                               placeholder="Петрова" data-i18n-placeholder="register.lastname.placeholder" />
                         <span asp-validation-for="Input.LastName"></span>
                     </div>
                 </div>
@@ -44,25 +46,27 @@
                 <div class="auth-zine-grid">
                     <div class="auth-zine-field">
                         <label asp-for="Input.Password"></label>
-                        <input asp-for="Input.Password" autocomplete="new-password" placeholder="поне 5 символа" />
+                        <input asp-for="Input.Password" autocomplete="new-password"
+                               placeholder="поне 5 символа" data-i18n-placeholder="register.password.placeholder" />
                         <span asp-validation-for="Input.Password"></span>
                     </div>
                     <div class="auth-zine-field">
                         <label asp-for="Input.ConfirmPassword"></label>
-                        <input asp-for="Input.ConfirmPassword" autocomplete="new-password" placeholder="повтори паролата" />
+                        <input asp-for="Input.ConfirmPassword" autocomplete="new-password"
+                               placeholder="повтори паролата" data-i18n-placeholder="register.confirm.placeholder" />
                         <span asp-validation-for="Input.ConfirmPassword"></span>
                     </div>
                 </div>
 
                 <button id="registerSubmit" type="submit" class="auth-zine-button auth-zine-button-teal">
-                    <i class="bi bi-person-plus"></i> Създай акаунт
+                    <i class="bi bi-person-plus"></i> <span data-i18n="register.btn">Създай акаунт</span>
                 </button>
             </form>
         </div>
 
         <p class="auth-zine-alt">
-            Вече имаш профил?
-            <a asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@Model.ReturnUrl">Вход</a>
+            <span data-i18n="register.hasaccount">Вече имаш профил?</span>
+            <a asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@Model.ReturnUrl" data-i18n="register.loginlink">Вход</a>
         </p>
     </div>
 </section>

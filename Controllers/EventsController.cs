@@ -41,6 +41,7 @@ namespace EventsApp.Controllers
             public string? City { get; set; }
             public string? Genre { get; set; }
             public string? Hints { get; set; }
+            public string? Lang { get; set; }
         }
 
         [HttpPost]
@@ -58,7 +59,7 @@ namespace EventsApp.Controllers
                 return Json(new { ok = false, error = "AI is not configured. Set AI:ApiKey." });
             }
 
-            var description = await _ai.GenerateEventDescriptionAsync(req.Title, req.City, req.Genre, req.Hints, cancellationToken);
+            var description = await _ai.GenerateEventDescriptionAsync(req.Title, req.City, req.Genre, req.Hints, req.Lang, cancellationToken);
 
             if (string.IsNullOrWhiteSpace(description))
             {

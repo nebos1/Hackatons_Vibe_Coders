@@ -7,9 +7,9 @@
 <section class="auth-zine-page">
     <div class="auth-zine-shell">
         <div class="auth-zine-copy">
-            <span class="auth-zine-stamp auth-zine-stamp-teal">Вход</span>
-            <h1>Влез <span>вътре</span>.</h1>
-            <p>Добре дошъл отново в GrooveOn. Влез, за да следиш събития, билети и любимите си сцени.</p>
+            <span class="auth-zine-stamp auth-zine-stamp-teal" data-i18n="login.stamp">Вход</span>
+            <h1 data-i18n-html="login.h1">Влез <span>вътре</span>.</h1>
+            <p data-i18n="login.p">Добре дошъл отново в GrooveOn. Влез, за да следиш събития, билети и любимите си сцени.</p>
         </div>
 
         <div class="auth-zine-card">
@@ -18,30 +18,32 @@
 
                 <div class="auth-zine-field">
                     <label asp-for="Input.EmailOrUserName"></label>
-                    <input asp-for="Input.EmailOrUserName" autocomplete="username" placeholder="you@grooveon.app" />
+                    <input asp-for="Input.EmailOrUserName" autocomplete="username" placeholder="you@grooveon.app"
+                           data-i18n-placeholder="login.email.placeholder" />
                     <span asp-validation-for="Input.EmailOrUserName"></span>
                 </div>
 
                 <div class="auth-zine-field">
                     <label asp-for="Input.Password"></label>
-                    <input asp-for="Input.Password" autocomplete="current-password" placeholder="парола" />
+                    <input asp-for="Input.Password" autocomplete="current-password"
+                           placeholder="парола" data-i18n-placeholder="login.password.placeholder" />
                     <span asp-validation-for="Input.Password"></span>
                 </div>
 
                 <label class="auth-zine-check">
                     <input asp-for="Input.RememberMe" />
-                    <span>Запомни ме</span>
+                    <span data-i18n="login.remember">Запомни ме</span>
                 </label>
 
                 <button id="login-submit" type="submit" class="auth-zine-button auth-zine-button-red">
-                    <i class="bi bi-box-arrow-in-right"></i> Вход
+                    <i class="bi bi-box-arrow-in-right"></i> <span data-i18n="login.btn">Вход</span>
                 </button>
             </form>
         </div>
 
         <p class="auth-zine-alt">
-            Нямаш профил?
-            <a asp-area="Identity" asp-page="/Account/Register" asp-route-returnUrl="@Model.ReturnUrl">Създай акаунт</a>
+            <span data-i18n="login.noaccount">Нямаш профил?</span>
+            <a asp-area="Identity" asp-page="/Account/Register" asp-route-returnUrl="@Model.ReturnUrl" data-i18n="login.createaccount">Създай акаунт</a>
         </p>
     </div>
 </section>

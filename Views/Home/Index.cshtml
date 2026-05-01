@@ -38,20 +38,20 @@
 <div class="groove-home">
     <div class="groove-marquee" aria-hidden="true">
         <div>
-            <span>★ Живи нощи</span><span>★ Дневник</span><span>★ Карта на България</span><span>★ Свежи билети</span><span>★ Техно</span><span>★ House</span><span>★ Jazz</span><span>★ Около мен</span>
-            <span>★ Живи нощи</span><span>★ Дневник</span><span>★ Карта на България</span><span>★ Свежи билети</span><span>★ Техно</span><span>★ House</span><span>★ Jazz</span><span>★ Около мен</span>
+            <span data-i18n="marquee.live">★ Живи нощи</span><span data-i18n="marquee.diary">★ Дневник</span><span data-i18n="marquee.map">★ Карта на България</span><span data-i18n="marquee.tickets">★ Свежи билети</span><span>★ Техно</span><span>★ House</span><span>★ Jazz</span><span data-i18n="marquee.nearme">★ Около мен</span>
+            <span data-i18n="marquee.live">★ Живи нощи</span><span data-i18n="marquee.diary">★ Дневник</span><span data-i18n="marquee.map">★ Карта на България</span><span data-i18n="marquee.tickets">★ Свежи билети</span><span>★ Техно</span><span>★ House</span><span>★ Jazz</span><span data-i18n="marquee.nearme">★ Около мен</span>
         </div>
     </div>
 
     <section class="groove-hero">
         <div class="groove-hero__copy">
             <div class="groove-stamp-row">
-                <span class="groove-stamp groove-stamp-teal">Евенто Пулс</span>
-                <span class="groove-hand-note">на живо</span>
+                <span class="groove-stamp groove-stamp-teal" data-i18n="home.stamp">GrooveOn</span>
+                <span class="groove-hand-note" data-i18n="home.live">на живо</span>
             </div>
-            <h1>Дневник за най-<span>шумните</span> нощи в България.</h1>
-            <p>
-                Евенто Пулс е част скрапбук, част карта, част бюро за събития. Организаторите движат сцената,
+            <h1 data-i18n-html="home.hero.h1">Дневник за най-<span>шумните</span> нощи в България.</h1>
+            <p data-i18n="home.hero.p">
+                GrooveOn е част скрапбук, част карта, част бюро за събития. Организаторите движат сцената,
                 слушателите намират точната вечер, а всеки град получава своите карфици.
             </p>
 
@@ -60,29 +60,30 @@
                 <label class="groove-smart-search__field" for="home-smart-search-input">
                     <i class="bi bi-stars groove-smart-search__icon" aria-hidden="true"></i>
                     <input id="home-smart-search-input" type="text" name="q"
+                           data-i18n-placeholder="home.search.placeholder"
                            placeholder="техно тази вечер в София · джаз през уикенда · около мен" />
                 </label>
                 <button class="groove-button groove-button-red groove-smart-search__submit" type="submit">
-                    <i class="bi bi-stars"></i> Smart търсене
+                    <i class="bi bi-stars"></i> <span data-i18n="home.search.btn">Smart търсене</span>
                 </button>
-                <button id="home-smart-clear" class="groove-button groove-button-paper groove-smart-search__clear" type="button">
+                <button id="home-smart-clear" class="groove-button groove-button-paper groove-smart-search__clear" type="button" data-i18n="home.clear">
                     Изчисти
                 </button>
                 <div class="groove-smart-search__status"><span id="home-search-status"></span></div>
             </form>
 
             <div class="groove-hero__actions">
-                <a href="#event-map" class="groove-button groove-button-dark">Виж картата</a>
-                <a asp-controller="Posts" asp-action="Index" class="groove-button groove-button-paper">Отвори потока</a>
+                <a href="#event-map" class="groove-button groove-button-dark" data-i18n="home.viewmap">Виж картата</a>
+                <a asp-controller="Posts" asp-action="Index" class="groove-button groove-button-paper" data-i18n="home.openfeed">Отвори потока</a>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <a asp-controller="Events" asp-action="Recommended" class="groove-button groove-button-paper">Препоръчани</a>
+                    <a asp-controller="Events" asp-action="Recommended" class="groove-button groove-button-paper" data-i18n="nav.recommended">Препоръчани</a>
                 }
             </div>
             <div class="groove-stats">
-                <span><strong>@Model.Events.Count</strong> записани нощи</span>
-                <span><strong>@visibleCityCount</strong> града</span>
-                <span><strong>@Model.MapMarkers.Count</strong> карфици</span>
+                <span><strong>@Model.Events.Count</strong> <span data-i18n="home.stats.nights">записани нощи</span></span>
+                <span><strong>@visibleCityCount</strong> <span data-i18n="home.stats.cities">града</span></span>
+                <span><strong>@Model.MapMarkers.Count</strong> <span data-i18n="home.stats.pins">карфици</span></span>
             </div>
         </div>
 
@@ -96,56 +97,56 @@
 
     <section id="event-map" class="groove-section groove-map-section">
         <div class="groove-map-copy">
-            <span class="groove-stamp groove-stamp-teal">Картата</span>
-            <h2><span id="home-event-count">@Model.MapMarkers.Count</span> карфици, <span>@visibleCityCount града</span>.</h2>
-            <p>
+            <span class="groove-stamp groove-stamp-teal" data-i18n="home.map.stamp">Картата</span>
+            <h2><span id="home-event-count">@Model.MapMarkers.Count</span> <span data-i18n="home.map.pins">карфици,</span> <span>@visibleCityCount <span data-i18n="home.map.cities">града</span></span>.</h2>
+            <p data-i18n="home.map.p">
                 Когато организаторите добавят събития с координати, те се появяват тук на момента.
                 Кликни върху карфица, за да видиш детайлите.
             </p>
             <button id="use-my-location" class="groove-link" type="button">
-                <i class="bi bi-crosshair"></i> Покажи моето местоположение
+                <i class="bi bi-crosshair"></i> <span data-i18n="home.geo.btn">Покажи моето местоположение</span>
             </button>
             <div id="geo-status" class="small text-muted mt-1"></div>
         </div>
         <div class="groove-map-frame">
-            <span class="groove-map-badge groove-map-badge-left">@(hasRealMapPins ? "жива карта" : "празна карта")</span>
+            <span class="groove-map-badge groove-map-badge-left" data-i18n="@(hasRealMapPins ? "home.map.live" : "home.map.empty")">@(hasRealMapPins ? "жива карта" : "празна карта")</span>
             <span class="groove-map-badge groove-map-badge-right">google maps</span>
             <div id="events-map"></div>
-            <div id="home-no-results" class="alert alert-warning mt-2" style="display:none;">Няма събития, отговарящи на търсенето.</div>
+            <div id="home-no-results" class="alert alert-warning mt-2" style="display:none;" data-i18n="home.noresults">Няма събития, отговарящи на търсенето.</div>
         </div>
     </section>
 
     <section class="groove-section">
         <div class="groove-section-heading">
             <div>
-                <span class="groove-stamp groove-stamp-red">Бюро за събития</span>
-                <h2>@(hasRealEvents ? "Събития" : "Все още няма публикувани събития")</h2>
+                <span class="groove-stamp groove-stamp-red" data-i18n="home.events.stamp">Бюро за събития</span>
+                <h2 data-i18n="@(hasRealEvents ? "home.events.title" : "home.events.empty")">@(hasRealEvents ? "Събития" : "Все още няма публикувани събития")</h2>
             </div>
             @if (User.IsInRole(GlobalConstants.Roles.Organizer) || User.IsInRole(GlobalConstants.Roles.Admin))
             {
-                <a asp-controller="Events" asp-action="Create" class="groove-link">Създай събитие</a>
+                <a asp-controller="Events" asp-action="Create" class="groove-link" data-i18n="home.events.create">Създай събитие</a>
             }
         </div>
 
         <form method="get" class="groove-filter">
-            <input type="text" name="search" value="@Model.Search" placeholder="Търси по заглавие..." />
+            <input type="text" name="search" value="@Model.Search" placeholder="Търси по заглавие..." data-i18n-placeholder="home.filter.search" />
             <select name="city">
-                <option value="">Всички градове</option>
+                <option value="" data-i18n="filter.allcities">Всички градове</option>
                 @foreach (var c in Model.Cities)
                 {
                     <option value="@c" selected="@(Model.City == c)">@c</option>
                 }
             </select>
             <select name="genre">
-                <option value="">Всички жанрове</option>
+                <option value="" data-i18n="filter.allgenres">Всички жанрове</option>
                 @foreach (var g in Enum.GetValues<EventGenre>())
                 {
                     <option value="@((int)g)" selected="@(Model.Genre == g)">@g.GetDisplayName()</option>
                 }
             </select>
             <input type="date" name="dateFrom" value="@Model.DateFrom?.ToString("yyyy-MM-dd")" />
-            <button type="submit">Филтър</button>
-            <a asp-action="Index">Изчисти</a>
+            <button type="submit" data-i18n="home.filter.btn">Филтър</button>
+            <a asp-action="Index" data-i18n="home.clear">Изчисти</a>
         </form>
 
         @if (hasRealEvents)
@@ -167,10 +168,10 @@
         else
         {
             <div class="groove-empty-state">
-                <p>Все още няма публикувани събития. Когато организаторите добавят такива, те ще се появят тук.</p>
+                <p data-i18n="home.events.emptytext">Все още няма публикувани събития. Когато организаторите добавят такива, те ще се появят тук.</p>
                 @if (User.Identity?.IsAuthenticated == true && !User.IsInRole(GlobalConstants.Roles.Organizer) && !User.IsInRole(GlobalConstants.Roles.Admin))
                 {
-                    <a asp-controller="Account" asp-action="Apply" class="groove-link">Кандидатствай за организатор</a>
+                    <a asp-controller="Account" asp-action="Apply" class="groove-link" data-i18n="home.events.apply">Кандидатствай за организатор</a>
                 }
             </div>
         }
