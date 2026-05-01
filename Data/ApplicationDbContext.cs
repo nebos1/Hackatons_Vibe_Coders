@@ -13,6 +13,8 @@ namespace EventsApp.Data
 
         public DbSet<OrganizerData> OrganizerData { get; set; } = null!;
 
+        public DbSet<OrganizerProfile> OrganizerProfiles { get; set; } = null!;
+
         public DbSet<Event> Events { get; set; } = null!;
 
         public DbSet<Post> Posts { get; set; } = null!;
@@ -67,6 +69,17 @@ namespace EventsApp.Data
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
+            builder.Entity<OrganizerProfile>(entity =>
+            {
+                entity.HasOne(p => p.Owner)
+                      .WithMany(u => u.OrganizerProfiles)
+                      .HasForeignKey(p => p.OwnerId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(p => new { p.OwnerId, p.DisplayName });
+                entity.HasIndex(p => new { p.OwnerId, p.IsDefault });
+            });
+
             builder.Entity<UserPreferences>(entity =>
             {
                 entity.HasOne(p => p.User)
@@ -83,6 +96,11 @@ namespace EventsApp.Data
                       .WithMany(u => u.Events)
                       .HasForeignKey(e => e.OrganizerId)
                       .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.OrganizerProfile)
+                      .WithMany(p => p.Events)
+                      .HasForeignKey(e => e.OrganizerProfileId)
+                      .OnDelete(DeleteBehavior.SetNull);
             });
 
             builder.Entity<Post>(entity =>
@@ -236,6 +254,7 @@ namespace EventsApp.Data
                       .WithMany(u => u.Stories)
                       .HasForeignKey(s => s.AuthorId)
                       .OnDelete(DeleteBehavior.Restrict);
+
             });
 
             builder.Entity<Conversation>(entity =>

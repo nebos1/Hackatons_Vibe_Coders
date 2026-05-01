@@ -8,6 +8,7 @@ using EventsApp.Services.Geocoding;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 
@@ -88,6 +89,7 @@ namespace EventsApp.Controllers
             var ev = await _db.Events
                 .AsNoTracking()
                 .Include(e => e.Organizer)
+                .Include(e => e.OrganizerProfile)
                 .Include(e => e.Images)
                 .Include(e => e.Likes)
                 .Include(e => e.Saves)
@@ -122,7 +124,9 @@ namespace EventsApp.Controllers
                 Latitude = ev.Latitude,
                 Longitude = ev.Longitude,
                 OrganizerId = ev.OrganizerId,
-                OrganizerName = ev.Organizer.UserName ?? string.Empty,
+                OrganizerName = ev.OrganizerProfile != null
+                    ? ev.OrganizerProfile.DisplayName
+                    : ev.Organizer.UserName ?? string.Empty,
                 ImageUrls = ev.Images.Select(i => i.ImageUrl).ToList(),
                 LikesCount = ev.Likes.Count,
                 SavesCount = ev.Saves.Count,
@@ -176,13 +180,21 @@ namespace EventsApp.Controllers
 
 
         [Authorize(Roles = GlobalConstants.Roles.Admin + "," + GlobalConstants.Roles.Organizer)]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
+            var profileGate = await RequireOrganizerPublicPageAsync();
+            if (profileGate != null)
+            {
+                return profileGate;
+            }
+
             var vm = new EventCreateEditViewModel
             {
                 CanEditApproval = User.IsInRole(GlobalConstants.Roles.Admin),
                 Cities = GetAllBgCities(),
-                CityCoordinatesMap = GetAllBgCitiesMap()
+                CityCoordinatesMap = GetAllBgCitiesMap(),
+                OrganizerProfiles = await GetOrganizerProfileOptionsAsync(),
+                OrganizerProfileId = await GetDefaultOrganizerProfileIdAsync(),
             };
             return View(vm);
         }
@@ -196,6 +208,18 @@ namespace EventsApp.Controllers
             var userId = _userManager.GetUserId(User)!;
             var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
 
+            var profileGate = await RequireOrganizerPublicPageAsync();
+            if (profileGate != null)
+            {
+                return profileGate;
+            }
+
+            var profile = await ResolveOrganizerProfileAsync(input.OrganizerProfileId);
+            if (!isAdmin && profile == null)
+            {
+                ModelState.AddModelError(nameof(input.OrganizerProfileId), "Choose an active public organizer page.");
+            }
+
             if (input.EndTime <= input.StartTime)
             {
                 ModelState.AddModelError(nameof(input.EndTime), "End time must be after start time.");
@@ -207,6 +231,7 @@ namespace EventsApp.Controllers
                 input.CanEditApproval = isAdmin;
                 input.Cities = GetAllBgCities();
                 input.CityCoordinatesMap = GetAllBgCitiesMap();
+                input.OrganizerProfiles = await GetOrganizerProfileOptionsAsync();
                 return View(input);
             }
 
@@ -217,10 +242,10 @@ namespace EventsApp.Controllers
                 City = input.City,
                 Address = input.Address,
                 OrganizerId = userId,
+                OrganizerProfileId = isAdmin ? input.OrganizerProfileId : profile!.Id,
                 StartTime = input.StartTime,
                 EndTime = input.EndTime,
                 Genre = input.Genre,
-                ImageUrl = input.ImageUrl, // fallback to URL if no upload
                 Latitude = input.Latitude,
                 Longitude = input.Longitude,
                 IsApproved = isAdmin && input.IsApproved,
@@ -327,10 +352,12 @@ namespace EventsApp.Controllers
                 EndTime = ev.EndTime,
                 Genre = ev.Genre,
                 ImageUrl = ev.ImageUrl,
+                OrganizerProfileId = ev.OrganizerProfileId,
                 Latitude = ev.Latitude,
                 Longitude = ev.Longitude,
                 IsApproved = ev.IsApproved,
                 CanEditApproval = isAdmin,
+                OrganizerProfiles = await GetOrganizerProfileOptionsAsync(),
             };
             return View(vm);
         }
@@ -354,6 +381,12 @@ namespace EventsApp.Controllers
                 return Forbid();
             }
 
+            var profile = await ResolveOrganizerProfileAsync(input.OrganizerProfileId);
+            if (!isAdmin && profile == null)
+            {
+                ModelState.AddModelError(nameof(input.OrganizerProfileId), "Choose an active public organizer page.");
+            }
+
             if (input.EndTime <= input.StartTime)
             {
                 ModelState.AddModelError(nameof(input.EndTime), "End time must be after start time.");
@@ -362,6 +395,7 @@ namespace EventsApp.Controllers
             if (!ModelState.IsValid)
             {
                 input.CanEditApproval = isAdmin;
+                input.OrganizerProfiles = await GetOrganizerProfileOptionsAsync();
                 return View(input);
             }
 
@@ -370,6 +404,7 @@ namespace EventsApp.Controllers
 
             ev.Title = input.Title;
             ev.Description = input.Description;
+            ev.OrganizerProfileId = isAdmin ? input.OrganizerProfileId : profile!.Id;
             ev.City = input.City;
             ev.Address = input.Address;
             ev.StartTime = input.StartTime;
@@ -404,11 +439,6 @@ namespace EventsApp.Controllers
                     _db.EventImages.Add(new EventImage { EventId = ev.Id, ImageUrl = uploadResult.Url });
                 }
             }
-            else if (!string.IsNullOrWhiteSpace(input.ImageUrl))
-            {
-                ev.ImageUrl = input.ImageUrl;
-            }
-
             if (isAdmin)
             {
                 ev.IsApproved = input.IsApproved;
@@ -702,6 +732,84 @@ namespace EventsApp.Controllers
 
             ViewBag.HasPreferences = prefs != null;
             return View(events);
+        }
+
+        private async Task<IActionResult?> RequireOrganizerPublicPageAsync()
+        {
+            if (User.IsInRole(GlobalConstants.Roles.Admin))
+            {
+                return null;
+            }
+
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Challenge();
+            }
+
+            var hasPublicPage = await _db.OrganizerProfiles
+                .AsNoTracking()
+                .AnyAsync(p => p.OwnerId == userId && p.IsActive);
+
+            if (hasPublicPage)
+            {
+                return null;
+            }
+
+            TempData["StatusMessage"] = "Create your public organizer page before publishing events.";
+            return RedirectToAction("Profile", "Organizer");
+        }
+
+        private async Task<IEnumerable<SelectListItem>> GetOrganizerProfileOptionsAsync()
+        {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Array.Empty<SelectListItem>();
+            }
+
+            return await _db.OrganizerProfiles
+                .AsNoTracking()
+                .Where(p => p.OwnerId == userId && p.IsActive)
+                .OrderByDescending(p => p.IsDefault)
+                .ThenBy(p => p.DisplayName)
+                .Select(p => new SelectListItem
+                {
+                    Value = p.Id.ToString(),
+                    Text = p.IsDefault ? p.DisplayName + " (default)" : p.DisplayName,
+                })
+                .ToListAsync();
+        }
+
+        private async Task<int?> GetDefaultOrganizerProfileIdAsync()
+        {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId)) return null;
+
+            return await _db.OrganizerProfiles
+                .AsNoTracking()
+                .Where(p => p.OwnerId == userId && p.IsActive)
+                .OrderByDescending(p => p.IsDefault)
+                .ThenBy(p => p.DisplayName)
+                .Select(p => (int?)p.Id)
+                .FirstOrDefaultAsync();
+        }
+
+        private async Task<OrganizerProfile?> ResolveOrganizerProfileAsync(int? profileId)
+        {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId)) return null;
+
+            var query = _db.OrganizerProfiles.Where(p => p.OwnerId == userId && p.IsActive);
+            if (profileId.HasValue)
+            {
+                return await query.FirstOrDefaultAsync(p => p.Id == profileId.Value);
+            }
+
+            return await query
+                .OrderByDescending(p => p.IsDefault)
+                .ThenBy(p => p.DisplayName)
+                .FirstOrDefaultAsync();
         }
     }
 }

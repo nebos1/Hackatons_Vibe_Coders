@@ -18,7 +18,7 @@
     </div>
 
     <div class="groove-form-panel">
-        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="Id" />
             <input type="hidden" asp-for="EventId" />
@@ -61,10 +61,19 @@
                 </div>
             </div>
 
+            @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+            {
+                <div class="mb-3">
+                    <label class="form-label">Current image</label>
+                    <div><img src="@Model.ImageUrl" alt="Current ticket" style="max-height:140px;border-radius:6px;" /></div>
+                    <input asp-for="ImageUrl" type="hidden" />
+                </div>
+            }
+
             <div class="mb-3">
-                <label asp-for="ImageUrl" class="form-label"></label>
-                <input asp-for="ImageUrl" class="form-control" placeholder="https://..." />
-                <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                <label asp-for="ImageFile" class="form-label"></label>
+                <input asp-for="ImageFile" class="form-control" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+                <span asp-validation-for="ImageFile" class="text-danger"></span>
             </div>
 
             <div class="form-check mb-3">

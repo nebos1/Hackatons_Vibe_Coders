@@ -1,6 +1,7 @@
 using EventsApp.Common;
 using EventsApp.Data;
 using EventsApp.Models;
+using EventsApp.Services;
 using EventsApp.ViewModels.Events;
 using EventsApp.ViewModels.Organizer;
 using EventsApp.ViewModels.Posts;
@@ -16,11 +17,16 @@ namespace EventsApp.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IMediaUploadService _mediaUpload;
 
-        public OrganizerController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+        public OrganizerController(
+            ApplicationDbContext db,
+            UserManager<ApplicationUser> userManager,
+            IMediaUploadService mediaUpload)
         {
             _db = db;
             _userManager = userManager;
+            _mediaUpload = mediaUpload;
         }
 
         public async Task<IActionResult> Dashboard()
@@ -240,61 +246,279 @@ namespace EventsApp.Controllers
             return View(vm);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Profile()
+        public async Task<IActionResult> Profiles()
         {
             var userId = _userManager.GetUserId(User)!;
+            await EnsureDefaultProfileFromOrganizerDataAsync(userId);
+
+            var profiles = await _db.OrganizerProfiles
+                .AsNoTracking()
+                .Where(p => p.OwnerId == userId)
+                .OrderByDescending(p => p.IsDefault)
+                .ThenBy(p => p.DisplayName)
+                .Select(p => new OrganizerProfileRowViewModel
+                {
+                    Id = p.Id,
+                    DisplayName = p.DisplayName,
+                    Tagline = p.Tagline,
+                    City = p.City,
+                    AvatarImageUrl = p.AvatarImageUrl,
+                    CoverImageUrl = p.CoverImageUrl,
+                    IsDefault = p.IsDefault,
+                    IsActive = p.IsActive,
+                    EventsCount = p.Events.Count,
+                    CreatedAt = p.CreatedAt,
+                })
+                .ToListAsync();
+
+            return View(new OrganizerProfileListViewModel { Profiles = profiles });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Profile(int? id)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            await EnsureDefaultProfileFromOrganizerDataAsync(userId);
+
+            if (id.HasValue)
+            {
+                var profile = await _db.OrganizerProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id && p.OwnerId == userId);
+                if (profile == null) return NotFound();
+                return View(ToProfileInput(profile, await GetApprovedStatusAsync(userId)));
+            }
+
+            var hasProfiles = await _db.OrganizerProfiles.AnyAsync(p => p.OwnerId == userId);
             var orgData = await _db.OrganizerData.AsNoTracking().FirstOrDefaultAsync(o => o.OrganizerId == userId);
 
-            var vm = orgData == null
-                ? new OrganizerProfileViewModel { OrganizationName = string.Empty }
-                : new OrganizerProfileViewModel
-                {
-                    OrganizationName = orgData.OrganizationName,
-                    Description = orgData.Description,
-                    PhoneNumber = orgData.PhoneNumber,
-                    Website = orgData.Website,
-                    CompanyNumber = orgData.CompanyNumber,
-                    Approved = orgData.Approved,
-                };
-
-            return View(vm);
+            return View(new OrganizerProfileViewModel
+            {
+                OrganizationName = string.Empty,
+                CompanyNumber = orgData?.CompanyNumber,
+                Approved = orgData?.Approved ?? false,
+                IsDefault = !hasProfiles,
+                IsActive = true,
+            });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Profile(OrganizerProfileViewModel input)
         {
+            var userId = _userManager.GetUserId(User)!;
+            var approved = await GetApprovedStatusAsync(userId);
+            input.Approved = approved;
+
             if (!ModelState.IsValid) return View(input);
 
-            var userId = _userManager.GetUserId(User)!;
-            var orgData = await _db.OrganizerData.FirstOrDefaultAsync(o => o.OrganizerId == userId);
+            var profile = input.Id.HasValue
+                ? await _db.OrganizerProfiles.FirstOrDefaultAsync(p => p.Id == input.Id && p.OwnerId == userId)
+                : null;
 
+            if (input.Id.HasValue && profile == null) return NotFound();
+
+            var isNew = profile == null;
+            profile ??= new OrganizerProfile { OwnerId = userId };
+
+            profile.DisplayName = input.OrganizationName.Trim();
+            profile.Tagline = string.IsNullOrWhiteSpace(input.Tagline) ? null : input.Tagline.Trim();
+            profile.Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
+            profile.City = string.IsNullOrWhiteSpace(input.City) ? null : input.City.Trim();
+            profile.PhoneNumber = string.IsNullOrWhiteSpace(input.PhoneNumber) ? null : input.PhoneNumber.Trim();
+            profile.Website = string.IsNullOrWhiteSpace(input.Website) ? null : input.Website.Trim();
+            profile.ContactEmail = string.IsNullOrWhiteSpace(input.ContactEmail) ? null : input.ContactEmail.Trim();
+            profile.InstagramUrl = string.IsNullOrWhiteSpace(input.InstagramUrl) ? null : input.InstagramUrl.Trim();
+            profile.FacebookUrl = string.IsNullOrWhiteSpace(input.FacebookUrl) ? null : input.FacebookUrl.Trim();
+            profile.TikTokUrl = string.IsNullOrWhiteSpace(input.TikTokUrl) ? null : input.TikTokUrl.Trim();
+            profile.BrandColor = string.IsNullOrWhiteSpace(input.BrandColor) ? null : input.BrandColor.Trim();
+            profile.IsActive = input.IsActive;
+
+            try
+            {
+                var avatar = await SaveOptionalImageAsync(input.AvatarFile, "organizers");
+                if (avatar != null) profile.AvatarImageUrl = avatar.Url;
+
+                var cover = await SaveOptionalImageAsync(input.CoverFile, "organizers");
+                if (cover != null) profile.CoverImageUrl = cover.Url;
+            }
+            catch (InvalidOperationException ex)
+            {
+                ModelState.AddModelError(string.Empty, ex.Message);
+                input.CurrentAvatarUrl = profile.AvatarImageUrl;
+                input.CurrentCoverUrl = profile.CoverImageUrl;
+                return View(input);
+            }
+
+            if (isNew)
+            {
+                _db.OrganizerProfiles.Add(profile);
+            }
+
+            var shouldBeDefault = input.IsDefault || !await _db.OrganizerProfiles.AnyAsync(p => p.OwnerId == userId && p.Id != profile.Id);
+            if (shouldBeDefault)
+            {
+                await ClearDefaultProfileAsync(userId);
+                profile.IsDefault = true;
+            }
+
+            await EnsureOrganizerDataAsync(userId, input, approved);
+            await _db.SaveChangesAsync();
+
+            TempData["StatusMessage"] = isNew ? "Public organizer page created." : "Public organizer page updated.";
+            return RedirectToAction(nameof(Profiles));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetDefaultProfile(int id)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var profile = await _db.OrganizerProfiles.FirstOrDefaultAsync(p => p.Id == id && p.OwnerId == userId);
+            if (profile == null) return NotFound();
+
+            await ClearDefaultProfileAsync(userId);
+            profile.IsDefault = true;
+            profile.IsActive = true;
+            await _db.SaveChangesAsync();
+            TempData["StatusMessage"] = $"{profile.DisplayName} is now your default organizer page.";
+            return RedirectToAction(nameof(Profiles));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteProfile(int id)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var profile = await _db.OrganizerProfiles
+                .Include(p => p.Events)
+                .FirstOrDefaultAsync(p => p.Id == id && p.OwnerId == userId);
+            if (profile == null) return NotFound();
+
+            if (profile.Events.Any())
+            {
+                profile.IsActive = false;
+                TempData["StatusMessage"] = "This page has events, so it was archived instead of deleted.";
+            }
+            else
+            {
+                _db.OrganizerProfiles.Remove(profile);
+                TempData["StatusMessage"] = "Public organizer page deleted.";
+            }
+
+            await _db.SaveChangesAsync();
+
+            if (!await _db.OrganizerProfiles.AnyAsync(p => p.OwnerId == userId && p.IsDefault))
+            {
+                var fallback = await _db.OrganizerProfiles
+                    .Where(p => p.OwnerId == userId && p.IsActive)
+                    .OrderBy(p => p.DisplayName)
+                    .FirstOrDefaultAsync();
+                if (fallback != null)
+                {
+                    fallback.IsDefault = true;
+                    await _db.SaveChangesAsync();
+                }
+            }
+
+            return RedirectToAction(nameof(Profiles));
+        }
+
+        private static OrganizerProfileViewModel ToProfileInput(OrganizerProfile profile, bool approved)
+        {
+            return new OrganizerProfileViewModel
+            {
+                Id = profile.Id,
+                OrganizationName = profile.DisplayName,
+                Tagline = profile.Tagline,
+                Description = profile.Description,
+                City = profile.City,
+                CurrentAvatarUrl = profile.AvatarImageUrl,
+                CurrentCoverUrl = profile.CoverImageUrl,
+                PhoneNumber = profile.PhoneNumber,
+                Website = profile.Website,
+                ContactEmail = profile.ContactEmail,
+                InstagramUrl = profile.InstagramUrl,
+                FacebookUrl = profile.FacebookUrl,
+                TikTokUrl = profile.TikTokUrl,
+                BrandColor = profile.BrandColor,
+                IsDefault = profile.IsDefault,
+                IsActive = profile.IsActive,
+                Approved = approved,
+            };
+        }
+
+        private async Task<MediaUploadResult?> SaveOptionalImageAsync(IFormFile? file, string folder)
+        {
+            if (file == null || file.Length == 0) return null;
+            var media = await _mediaUpload.SaveAsync(file, folder);
+            if (media?.MediaType != PostMediaType.Image)
+            {
+                throw new InvalidOperationException("Only image files are allowed here.");
+            }
+            return media;
+        }
+
+        private async Task EnsureDefaultProfileFromOrganizerDataAsync(string userId)
+        {
+            if (await _db.OrganizerProfiles.AnyAsync(p => p.OwnerId == userId)) return;
+
+            var orgData = await _db.OrganizerData.AsNoTracking().FirstOrDefaultAsync(o => o.OrganizerId == userId);
+            if (orgData == null) return;
+
+            _db.OrganizerProfiles.Add(new OrganizerProfile
+            {
+                OwnerId = userId,
+                DisplayName = orgData.OrganizationName,
+                Description = orgData.Description,
+                PhoneNumber = orgData.PhoneNumber,
+                Website = orgData.Website,
+                IsDefault = true,
+                IsActive = true,
+            });
+            await _db.SaveChangesAsync();
+        }
+
+        private async Task EnsureOrganizerDataAsync(string userId, OrganizerProfileViewModel input, bool approved)
+        {
+            var orgData = await _db.OrganizerData.FirstOrDefaultAsync(o => o.OrganizerId == userId);
             if (orgData == null)
             {
                 _db.OrganizerData.Add(new OrganizerData
                 {
                     OrganizerId = userId,
-                    OrganizationName = input.OrganizationName,
+                    OrganizationName = input.OrganizationName.Trim(),
                     Description = input.Description,
                     PhoneNumber = input.PhoneNumber,
                     Website = input.Website,
                     CompanyNumber = input.CompanyNumber,
-                    Approved = false,
+                    Approved = approved,
                 });
             }
-            else
+            else if (input.IsDefault)
             {
-                orgData.OrganizationName = input.OrganizationName;
+                orgData.OrganizationName = input.OrganizationName.Trim();
                 orgData.Description = input.Description;
                 orgData.PhoneNumber = input.PhoneNumber;
                 orgData.Website = input.Website;
                 orgData.CompanyNumber = input.CompanyNumber;
             }
+        }
 
-            await _db.SaveChangesAsync();
-            TempData["StatusMessage"] = "Profile saved.";
-            return RedirectToAction(nameof(Dashboard));
+        private async Task ClearDefaultProfileAsync(string userId)
+        {
+            var defaults = await _db.OrganizerProfiles.Where(p => p.OwnerId == userId && p.IsDefault).ToListAsync();
+            foreach (var item in defaults)
+            {
+                item.IsDefault = false;
+            }
+        }
+
+        private async Task<bool> GetApprovedStatusAsync(string userId)
+        {
+            return await _db.OrganizerData
+                .AsNoTracking()
+                .Where(o => o.OrganizerId == userId)
+                .Select(o => o.Approved)
+                .FirstOrDefaultAsync();
         }
     }
 }

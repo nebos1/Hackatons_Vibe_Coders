@@ -1,0 +1,99 @@
+@model OrganizerProfileListViewModel
+@{
+    ViewData["Title"] = "Public organizer pages";
+}
+
+<section class="groove-app-page account-overview-page">
+    <div class="groove-page-hero">
+        <div class="groove-page-hero__copy">
+            <span class="groove-stamp groove-stamp-teal">Organizer pages</span>
+            <h1>Switch between <span>public identities</span>.</h1>
+            <p>Create separate pages for brands, venues, recurring nights or collectives. Pick one when publishing an event.</p>
+        </div>
+        <div class="groove-page-actions">
+            <a asp-action="Profile" class="groove-button groove-button-dark">
+                <i class="bi bi-plus-lg"></i> New page
+            </a>
+            <a asp-action="Dashboard" class="groove-button groove-button-paper">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    @if (!Model.Profiles.Any())
+    {
+        <div class="groove-empty-card">
+            <i class="bi bi-person-badge"></i>
+            <h2 class="groove-panel-title">Create your first public page.</h2>
+            <p class="groove-panel-intro">You need at least one page before creating events.</p>
+            <a asp-action="Profile" class="groove-button groove-button-dark">
+                <i class="bi bi-plus-lg"></i> Create page
+            </a>
+        </div>
+    }
+    else
+    {
+        <div class="organizer-profile-grid">
+            @foreach (var profile in Model.Profiles)
+            {
+                var initial = string.IsNullOrWhiteSpace(profile.DisplayName) ? "?" : profile.DisplayName[..1].ToUpperInvariant();
+                <article class="organizer-profile-card">
+                    <div class="organizer-profile-card__cover" style="@(string.IsNullOrWhiteSpace(profile.CoverImageUrl) ? "" : $"background-image:url('{profile.CoverImageUrl}')")">
+                        @if (profile.IsDefault)
+                        {
+                            <span class="groove-status-badge groove-status-badge-success">Default</span>
+                        }
+                        @if (!profile.IsActive)
+                        {
+                            <span class="groove-status-badge groove-status-badge-muted">Archived</span>
+                        }
+                    </div>
+                    <div class="organizer-profile-card__body">
+                        <div class="organizer-profile-card__avatar">
+                            @if (!string.IsNullOrWhiteSpace(profile.AvatarImageUrl))
+                            {
+                                <img src="@profile.AvatarImageUrl" alt="@profile.DisplayName" />
+                            }
+                            else
+                            {
+                                <span>@initial</span>
+                            }
+                        </div>
+                        <h2>@profile.DisplayName</h2>
+                        @if (!string.IsNullOrWhiteSpace(profile.Tagline))
+                        {
+                            <p>@profile.Tagline</p>
+                        }
+                        <div class="organizer-profile-card__meta">
+                            @if (!string.IsNullOrWhiteSpace(profile.City))
+                            {
+                                <span><i class="bi bi-geo-alt"></i> @profile.City</span>
+                            }
+                            <span><i class="bi bi-calendar-event"></i> @profile.EventsCount events</span>
+                        </div>
+                        <div class="groove-form-actions">
+                            <a asp-action="Profile" asp-route-id="@profile.Id" class="groove-button groove-button-paper">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                            @if (!profile.IsDefault && profile.IsActive)
+                            {
+                                <form asp-action="SetDefaultProfile" asp-route-id="@profile.Id" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="groove-button groove-button-paper">
+                                        <i class="bi bi-pin-angle"></i> Make default
+                                    </button>
+                                </form>
+                            }
+                            <form asp-action="DeleteProfile" asp-route-id="@profile.Id" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="groove-button groove-button-paper">
+                                    <i class="bi bi-trash"></i> @(profile.EventsCount > 0 ? "Archive" : "Delete")
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>

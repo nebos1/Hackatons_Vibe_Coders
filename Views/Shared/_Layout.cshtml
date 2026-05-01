@@ -82,73 +82,23 @@
                 <div class="collapse navbar-collapse" id="mainNav">
                     @{
                         var isAuthed = User.Identity?.IsAuthenticated == true;
-                        var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
-                        var isOrganizer = User.IsInRole(GlobalConstants.Roles.Organizer);
-                        var isStaff = isAdmin || isOrganizer;
                     }
-                    <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                    <ul class="navbar-nav me-auto mb-2 mb-md-0 site-navbar__primary">
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Home" asp-action="Index">
-                                <i class="bi bi-compass"></i> Explore / Events
+                                <i class="bi bi-house-door"></i> Home
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Posts" asp-action="Index">
-                                <i class="bi bi-collection"></i> Feed
+                                <i class="bi bi-grid"></i> Feed
                             </a>
                         </li>
-                        @if (isStaff)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Events" asp-action="Index">Събития</a>
-                            </li>
-                        }
                         @if (isAuthed)
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Posts" asp-action="Create">
-                                    <i class="bi bi-plus-square"></i> Create Post
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a class="nav-link" asp-controller="Messages" asp-action="Index">
                                     <i class="bi bi-chat-dots"></i> Messages
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Index">
-                                    <i class="bi bi-person-circle"></i> Profile
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Events" asp-action="Recommended">
-                                    <i class="bi bi-stars"></i> Препоръчани
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Tickets" asp-action="MyTickets">
-                                    <i class="bi bi-ticket-perforated"></i> Моите билети
-                                </a>
-                            </li>
-                        }
-                        @if (isStaff)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Tickets" asp-action="Validate">
-                                    <i class="bi bi-qr-code-scan"></i> Валидиране
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Organizer" asp-action="Dashboard">
-                                    <i class="bi bi-person-badge"></i> Организатор
-                                </a>
-                            </li>
-                        }
-                        @if (isAdmin)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-warning" asp-controller="Admin" asp-action="Index">
-                                    <i class="bi bi-shield-check"></i> Админ
                                 </a>
                             </li>
                         }

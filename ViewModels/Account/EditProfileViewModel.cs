@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using EventsApp.Common;
+using Microsoft.AspNetCore.Http;
 
 namespace EventsApp.ViewModels.Account
 {
@@ -21,10 +22,10 @@ namespace EventsApp.ViewModels.Account
         [Display(Name = "Bio")]
         public string? Bio { get; set; }
 
-        [StringLength(GlobalConstants.User.ProfileImageUrlMaxLength)]
-        [Url]
-        [Display(Name = "Profile image URL")]
         public string? ProfileImageUrl { get; set; }
+
+        [Display(Name = "Profile image")]
+        public IFormFile? ProfileImageFile { get; set; }
 
         [Display(Name = "Created at")]
         public DateTime CreatedAt { get; set; }

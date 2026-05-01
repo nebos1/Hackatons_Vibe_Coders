@@ -52,17 +52,9 @@ namespace EventsApp.Controllers
                     ModelState.AddModelError(nameof(input.MediaFile), ex.Message);
                 }
             }
-            else if (!string.IsNullOrWhiteSpace(input.MediaUrl))
-            {
-                media = new MediaUploadResult
-                {
-                    Url = input.MediaUrl.Trim(),
-                    MediaType = LooksLikeVideoUrl(input.MediaUrl) ? PostMediaType.Video : PostMediaType.Image,
-                };
-            }
             else
             {
-                ModelState.AddModelError(nameof(input.MediaUrl), "Add an image/video URL or upload a file.");
+                ModelState.AddModelError(nameof(input.MediaFile), "Upload an image or video file.");
             }
 
             if (!ModelState.IsValid || media == null)

@@ -1,205 +1,236 @@
 @using EventsApp.ViewModels.Account
 @model AccountOverviewViewModel
 @{
-    ViewData["Title"] = "Моят профил";
+    ViewData["Title"] = "Account overview";
     var isAdmin = Model.Role == GlobalConstants.Roles.Admin;
     var isOrganizer = Model.Role == GlobalConstants.Roles.Organizer;
-    var initial = string.IsNullOrWhiteSpace(Model.UserName) ? "?" : Model.UserName[..1].ToUpperInvariant();
+    var displayName = !string.IsNullOrWhiteSpace(Model.UserName) ? Model.UserName : Model.Email;
+    var initial = string.IsNullOrWhiteSpace(displayName) ? "?" : displayName[..1].ToUpperInvariant();
     var roleClass = isAdmin ? "groove-status-badge-danger"
         : isOrganizer ? "groove-status-badge-success"
         : "groove-status-badge-muted";
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 }
 
-<section class="groove-app-page">
-    <div class="groove-page-grid groove-page-grid-2">
-        <article class="groove-paper-card">
-            <div class="groove-profile-hero">
-                <div class="groove-avatar">@initial</div>
-                <div>
-                    <span class="groove-stamp groove-stamp-red">Профил</span>
-                    <h1 class="groove-panel-title">@Model.UserName</h1>
-                    <p class="groove-panel-intro">@Model.Email</p>
-                    <div class="groove-inline-actions mt-3">
-                        <span class="groove-status-badge @roleClass">@Model.Role.ToRoleDisplay()</span>
-                        <span class="groove-badge"><i class="bi bi-calendar-check"></i> От @Model.CreatedAt.ToString("MMMM yyyy")</span>
+<section class="groove-app-page account-overview-page">
+    <article class="account-overview-hero">
+        <div class="account-overview-hero__identity">
+            <div class="groove-avatar">
+                @if (!string.IsNullOrWhiteSpace(Model.ProfileImageUrl))
+                {
+                    <img src="@Model.ProfileImageUrl" alt="@displayName" />
+                }
+                else
+                {
+                    <span>@initial</span>
+                }
+            </div>
+            <div>
+                <span class="groove-stamp groove-stamp-red">Account</span>
+                <h1>@displayName</h1>
+                <p>@Model.Email</p>
+                <div class="groove-inline-actions">
+                    <span class="groove-status-badge @roleClass">@Model.Role.ToRoleDisplay()</span>
+                    <span class="groove-badge"><i class="bi bi-calendar-check"></i> Since @Model.CreatedAt.ToString("MMMM yyyy")</span>
+                </div>
+            </div>
+        </div>
+        <div class="account-overview-hero__actions">
+            <a asp-action="EditProfile" class="groove-button groove-button-dark">
+                <i class="bi bi-person-gear"></i> Edit profile
+            </a>
+            @if (!string.IsNullOrWhiteSpace(currentUserId))
+            {
+                <a asp-controller="Profiles" asp-action="Details" asp-route-id="@currentUserId" class="groove-button groove-button-paper">
+                    <i class="bi bi-person-lines-fill"></i> Public profile
+                </a>
+            }
+            <a asp-controller="Posts" asp-action="Create" class="groove-button groove-button-paper">
+                <i class="bi bi-plus-square"></i> New post
+            </a>
+            <a asp-controller="Preferences" asp-action="Index" class="groove-button groove-button-paper">
+                <i class="bi bi-sliders"></i> Preferences
+            </a>
+        </div>
+    </article>
+
+    <section class="account-stat-strip">
+        <a asp-controller="Profiles" asp-action="Followers" asp-route-id="@currentUserId">
+            <strong>@Model.FollowersCount</strong>
+            <span>Followers</span>
+        </a>
+        <a asp-controller="Profiles" asp-action="Following" asp-route-id="@currentUserId">
+            <strong>@Model.FollowingCount</strong>
+            <span>Following</span>
+        </a>
+        <span>
+            <strong>@Model.PostsCount</strong>
+            <span>Posts</span>
+        </span>
+        <span>
+            <strong>@Model.SavedPostsCount</strong>
+            <span>Saved posts</span>
+        </span>
+        <span>
+            <strong>@Model.SavedEventsCount</strong>
+            <span>Saved events</span>
+        </span>
+        <span>
+            <strong>@Model.PurchasedTicketsCount</strong>
+            <span>Tickets</span>
+        </span>
+    </section>
+
+    <div class="account-overview-grid">
+        <main class="account-overview-main">
+            <section class="groove-page-section">
+                <div class="groove-section-bar">
+                    <div>
+                        <span class="groove-kicker">Your posts</span>
+                        <h2>What you have <span>published</span>.</h2>
+                    </div>
+                    <a asp-controller="Posts" asp-action="Create" class="groove-link">Create</a>
+                </div>
+                @if (Model.MyPosts.Any())
+                {
+                    <div class="social-post-list">
+                        @foreach (var post in Model.MyPosts)
+                        {
+                            <partial name="_PostCard" model="post" />
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="social-empty-panel">
+                        <i class="bi bi-journal-plus"></i>
+                        <span>You have not posted yet.</span>
+                    </div>
+                }
+            </section>
+
+            <section class="groove-page-section">
+                <div class="groove-section-bar">
+                    <div>
+                        <span class="groove-kicker">Saved</span>
+                        <h2>Posts you want to <span>keep</span>.</h2>
                     </div>
                 </div>
-            </div>
+                @if (Model.SavedPosts.Any())
+                {
+                    <div class="social-post-list">
+                        @foreach (var post in Model.SavedPosts)
+                        {
+                            <partial name="_PostCard" model="post" />
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="social-empty-panel">
+                        <i class="bi bi-bookmark"></i>
+                        <span>Saved posts will appear here.</span>
+                    </div>
+                }
+            </section>
+        </main>
 
-            <div class="groove-cta-row">
-                <a asp-action="EditProfile" class="groove-button groove-button-dark">
-                    <i class="bi bi-person-gear"></i> Редактирай профила
-                </a>
-                <a asp-controller="Tickets" asp-action="MyTickets" class="groove-button groove-button-paper">
-                    <i class="bi bi-ticket-perforated"></i> Моите билети
-                </a>
-                <a asp-controller="Preferences" asp-action="Index" class="groove-button groove-button-paper">
-                    <i class="bi bi-sliders"></i> Предпочитания
-                </a>
-            </div>
-        </article>
+        <aside class="account-overview-side">
+            <section class="social-side-panel">
+                <span class="groove-kicker">Quick actions</span>
+                <div class="account-link-list">
+                    <a asp-controller="Home" asp-action="Index"><i class="bi bi-house-door"></i> Home</a>
+                    <a asp-controller="Posts" asp-action="Index"><i class="bi bi-grid"></i> Feed</a>
+                    <a asp-controller="Messages" asp-action="Index"><i class="bi bi-chat-dots"></i> Messages</a>
+                    <a asp-controller="Tickets" asp-action="MyTickets"><i class="bi bi-ticket-perforated"></i> My tickets</a>
+                    <a asp-controller="Events" asp-action="Recommended"><i class="bi bi-stars"></i> Recommended events</a>
+                </div>
+            </section>
 
-        @if (isAdmin)
-        {
-            <article class="groove-highlight-card">
-                <span class="groove-kicker">Роля</span>
-                <h2 class="groove-panel-title">Админ <span>достъп</span>.</h2>
-                <p class="groove-panel-intro">Имаш пълен контрол над платформата, ролите и съдържанието.</p>
-                <div class="groove-cta-row">
-                    <a asp-controller="Admin" asp-action="Index" class="groove-button groove-button-dark">
-                        <i class="bi bi-shield-check"></i> Админ панел
-                    </a>
-                    <a asp-controller="Admin" asp-action="Users" class="groove-button groove-button-paper">
-                        <i class="bi bi-people"></i> Потребители
-                    </a>
-                    <a asp-controller="Admin" asp-action="Organizers" class="groove-button groove-button-paper">
-                        <i class="bi bi-person-badge"></i> Организатори
-                    </a>
-                </div>
-            </article>
-        }
-        else if (isOrganizer)
-        {
-            <article class="groove-highlight-card">
-                <span class="groove-kicker">Роля</span>
-                <h2 class="groove-panel-title">Организаторски <span>панел</span>.</h2>
-                <p class="groove-panel-intro">
-                    @if (!string.IsNullOrWhiteSpace(Model.OrganizationName))
-                    {
-                        <text>@Model.OrganizationName</text>
-                    }
-                    else
-                    {
-                        <text>Тук управляваш своите събития, публикации и билети.</text>
-                    }
-                </p>
-                <div class="groove-stat-grid mb-0">
-                    <article class="groove-stat-card">
-                        <span>Събития</span>
-                        <strong>@Model.EventsCount</strong>
-                    </article>
-                    <article class="groove-stat-card">
-                        <span>Публикации</span>
-                        <strong>@Model.PostsCount</strong>
-                    </article>
-                </div>
-                <div class="groove-cta-row">
-                    <a asp-controller="Organizer" asp-action="Dashboard" class="groove-button groove-button-dark">
-                        <i class="bi bi-speedometer2"></i> Организатор
-                    </a>
-                    <a asp-controller="Organizer" asp-action="Profile" class="groove-button groove-button-paper">
-                        <i class="bi bi-pencil"></i> Организаторски профил
-                    </a>
-                </div>
-            </article>
-        }
-        else if (!Model.HasApplied)
-        {
-            <article class="groove-highlight-card">
-                <span class="groove-kicker">Следваща стъпка</span>
-                <h2 class="groove-panel-title">Стани <span>организатор</span>.</h2>
-                <p class="groove-panel-intro">
-                    Кандидатствай, за да публикуваш събития и да продаваш билети през GrooveOn.
-                </p>
-                <div class="groove-cta-row">
-                    <a asp-action="Apply" class="groove-button groove-button-dark">
-                        <i class="bi bi-send"></i> Кандидатствай
-                    </a>
-                </div>
-            </article>
-        }
-        else
-        {
-            <article class="groove-highlight-card">
-                <span class="groove-kicker">Кандидатура</span>
-                <h2 class="groove-panel-title">Статус: <span>в изчакване</span>.</h2>
-                <p class="groove-panel-intro">
-                    Организация: @Model.OrganizationName
-                    @if (Model.ApplicationDate.HasValue)
-                    {
-                        <text> · подадена на @Model.ApplicationDate.Value.ToString("dd.MM.yyyy HH:mm")</text>
-                    }
-                </p>
-                <div class="groove-cta-row">
-                    <a asp-action="EditApplication" class="groove-button groove-button-paper">
-                        <i class="bi bi-pencil"></i> Редактирай кандидатурата
-                    </a>
-                </div>
-            </article>
-        }
-    </div>
-
-    <section class="groove-page-section">
-        <div class="groove-section-bar">
-            <div>
-                <span class="groove-kicker">Билети</span>
-                <h2>Последни <span>покупки</span>.</h2>
-            </div>
-            <a asp-controller="Tickets" asp-action="MyTickets" class="groove-link">Виж всички</a>
-        </div>
-
-        <div class="groove-info-card">
-            @if (Model.RecentTickets.Count == 0)
+            @if (isAdmin || isOrganizer)
             {
-                <p class="groove-panel-intro mb-0">Още нямаш закупени билети.</p>
+                <section class="social-side-panel">
+                    <span class="groove-kicker">Work tools</span>
+                    <div class="account-link-list">
+                        @if (isOrganizer)
+                        {
+                            <a asp-controller="Organizer" asp-action="Dashboard"><i class="bi bi-speedometer2"></i> Organizer dashboard</a>
+                            <a asp-controller="Organizer" asp-action="Profiles"><i class="bi bi-person-badge"></i> Public organizer pages</a>
+                        }
+                        <a asp-controller="Tickets" asp-action="Validate"><i class="bi bi-qr-code-scan"></i> Validate tickets</a>
+                        @if (isAdmin)
+                        {
+                            <a asp-controller="Admin" asp-action="Index"><i class="bi bi-shield-check"></i> Admin panel</a>
+                            <a asp-controller="Admin" asp-action="Users"><i class="bi bi-people"></i> Users</a>
+                        }
+                    </div>
+                </section>
+            }
+            else if (!Model.HasApplied)
+            {
+                <section class="social-side-panel account-promo-panel">
+                    <span class="groove-kicker">Organizer</span>
+                    <h3>Start publishing events.</h3>
+                    <p>Apply when you are ready to sell tickets and manage events through GrooveOn.</p>
+                    <a asp-action="Apply" class="groove-button groove-button-dark">
+                        <i class="bi bi-send"></i> Apply
+                    </a>
+                </section>
             }
             else
             {
-                <div class="groove-list-stack">
-                    @foreach (var t in Model.RecentTickets)
-                    {
-                        var statusClass = t.IsUsed ? "groove-status-badge-muted" : "groove-status-badge-success";
-                        var statusText = t.IsUsed ? "Използван" : "Валиден";
-
-                        <article class="groove-list-item">
-                            <div>
-                                <h3>@t.EventTitle</h3>
-                                <p>@t.TicketName</p>
-                                <p class="groove-list-meta mt-2">@t.Address, @t.City · @t.StartTime.ToString("dd.MM.yyyy HH:mm")</p>
-                            </div>
-                            <div class="groove-list-actions">
-                                <span class="groove-status-badge @statusClass">@statusText</span>
-                                <a asp-controller="Tickets" asp-action="Details" asp-route-id="@t.Id" class="groove-button groove-button-paper">
-                                    <i class="bi bi-eye"></i> Детайли
-                                </a>
-                            </div>
-                        </article>
-                    }
-                </div>
+                <section class="social-side-panel account-promo-panel">
+                    <span class="groove-kicker">Application</span>
+                    <h3>Pending review.</h3>
+                    <p>@Model.OrganizationName</p>
+                    <a asp-action="EditApplication" class="groove-link">Edit application</a>
+                </section>
             }
-        </div>
-    </section>
 
-    <section class="groove-page-section">
-        <div class="groove-section-bar">
-            <div>
-                <span class="groove-kicker">Навигация</span>
-                <h2>Бързи <span>връзки</span>.</h2>
-            </div>
-        </div>
+            <section class="social-side-panel">
+                <div class="social-side-panel__head">
+                    <span class="groove-kicker">Saved events</span>
+                    <a asp-controller="Home" asp-action="Index" class="groove-link">Explore</a>
+                </div>
+                @if (Model.SavedEvents.Any())
+                {
+                    @foreach (var ev in Model.SavedEvents)
+                    {
+                        <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="social-event-mini">
+                            <span>@ev.StartTime.ToString("dd MMM")</span>
+                            <strong>@ev.Title</strong>
+                            <small>@ev.City</small>
+                        </a>
+                    }
+                }
+                else
+                {
+                    <div class="social-empty-inline">Saved events will appear here.</div>
+                }
+            </section>
 
-        <div class="groove-mini-grid">
-            <article class="groove-mini-card">
-                <h3>Начало</h3>
-                <p>Разгледай нови събития и картата на сцената.</p>
-                <div class="groove-cta-row">
-                    <a asp-controller="Home" asp-action="Index" class="groove-link">Отвори</a>
+            <section class="social-side-panel">
+                <div class="social-side-panel__head">
+                    <span class="groove-kicker">Tickets</span>
+                    <a asp-controller="Tickets" asp-action="MyTickets" class="groove-link">All</a>
                 </div>
-            </article>
-            <article class="groove-mini-card">
-                <h3>Поток</h3>
-                <p>Виж какво публикуват организатори и посетители.</p>
-                <div class="groove-cta-row">
-                    <a asp-controller="Posts" asp-action="Index" class="groove-link">Отвори</a>
-                </div>
-            </article>
-            <article class="groove-mini-card">
-                <h3>Препоръчани</h3>
-                <p>Подбор на събития според твоите предпочитания.</p>
-                <div class="groove-cta-row">
-                    <a asp-controller="Events" asp-action="Recommended" class="groove-link">Отвори</a>
-                </div>
-            </article>
-        </div>
-    </section>
+                @if (Model.RecentTickets.Count == 0)
+                {
+                    <div class="social-empty-inline">No purchased tickets yet.</div>
+                }
+                else
+                {
+                    <div class="account-ticket-list">
+                        @foreach (var t in Model.RecentTickets)
+                        {
+                            <a asp-controller="Tickets" asp-action="Details" asp-route-id="@t.Id">
+                                <strong>@t.EventTitle</strong>
+                                <small>@t.StartTime.ToString("dd.MM.yyyy HH:mm") · @t.City</small>
+                            </a>
+                        }
+                    </div>
+                }
+            </section>
+        </aside>
+    </div>
 </section>

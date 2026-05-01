@@ -1,6 +1,7 @@
 using EventsApp.Common;
 using EventsApp.Data;
 using EventsApp.Models;
+using EventsApp.Services;
 using EventsApp.ViewModels.Account;
 using EventsApp.ViewModels.Events;
 using EventsApp.ViewModels.Posts;
@@ -17,11 +18,13 @@ namespace EventsApp.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IMediaUploadService _mediaUpload;
 
-        public AccountController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+        public AccountController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IMediaUploadService mediaUpload)
         {
             _db = db;
             _userManager = userManager;
+            _mediaUpload = mediaUpload;
         }
 
         public async Task<IActionResult> Index()
@@ -60,11 +63,41 @@ namespace EventsApp.Controllers
                 MaxDistanceKm = preferences?.MaxDistanceKm,
             };
 
-            if (role == GlobalConstants.Roles.Organizer)
-            {
-                vm.EventsCount = await _db.Events.CountAsync(e => e.OrganizerId == user.Id);
-                vm.PostsCount = await _db.Posts.CountAsync(p => p.OrganizerId == user.Id);
-            }
+            vm.EventsCount = await _db.Events.CountAsync(e => e.OrganizerId == user.Id);
+            vm.PostsCount = await _db.Posts.CountAsync(p => p.OrganizerId == user.Id);
+            vm.FollowersCount = await _db.Follows.CountAsync(f => f.FollowingId == user.Id);
+            vm.FollowingCount = await _db.Follows.CountAsync(f => f.FollowerId == user.Id);
+            vm.SavedPostsCount = await _db.PostSaves.CountAsync(s => s.UserId == user.Id);
+            vm.SavedEventsCount = await _db.EventSaves.CountAsync(s => s.UserId == user.Id);
+            vm.GoingEventsCount = await _db.EventAttendances.CountAsync(a => a.UserId == user.Id && a.Status == EventAttendanceStatus.Going);
+
+            vm.MyPosts = await _db.Posts
+                .AsNoTracking()
+                .Where(p => p.OrganizerId == user.Id)
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(4)
+                .Select(p => new PostCardViewModel
+                {
+                    Id = p.Id,
+                    OrganizerId = p.OrganizerId,
+                    OrganizerName = p.Organizer.OrganizerData != null && p.Organizer.OrganizerData.Approved
+                        ? p.Organizer.OrganizerData.OrganizationName
+                        : p.Organizer.UserName ?? string.Empty,
+                    Content = p.Content,
+                    CreatedAt = p.CreatedAt,
+                    EventId = p.EventId,
+                    EventTitle = p.Event != null ? p.Event.Title : null,
+                    FirstMediaUrl = p.Images.Select(i => i.ImageUrl).FirstOrDefault(),
+                    FirstMediaType = p.Images.Select(i => i.MediaType).FirstOrDefault(),
+                    LikesCount = p.Likes.Count,
+                    CommentsCount = p.Comments.Count,
+                    SavesCount = p.Saves.Count,
+                    CurrentUserLiked = p.Likes.Any(l => l.UserId == user.Id),
+                    CurrentUserSaved = p.Saves.Any(s => s.UserId == user.Id),
+                    AuthorImageUrl = p.Organizer.ProfileImageUrl,
+                    AuthorIsOrganizer = p.Organizer.OrganizerData != null && p.Organizer.OrganizerData.Approved,
+                })
+                .ToListAsync();
 
             vm.LikedEvents = await _db.EventLikes
                 .AsNoTracking()
@@ -121,6 +154,66 @@ namespace EventsApp.Controllers
                     CurrentUserSaved = l.Post.Saves.Any(s => s.UserId == user.Id),
                     AuthorImageUrl = l.Post.Organizer.ProfileImageUrl,
                     AuthorIsOrganizer = l.Post.Organizer.OrganizerData != null && l.Post.Organizer.OrganizerData.Approved,
+                })
+                .ToListAsync();
+
+            vm.SavedPosts = await _db.PostSaves
+                .AsNoTracking()
+                .Where(s => s.UserId == user.Id)
+                .OrderByDescending(s => s.CreatedAt)
+                .Take(4)
+                .Select(s => new PostCardViewModel
+                {
+                    Id = s.PostId,
+                    OrganizerId = s.Post.OrganizerId,
+                    OrganizerName = s.Post.Organizer.OrganizerData != null && s.Post.Organizer.OrganizerData.Approved
+                        ? s.Post.Organizer.OrganizerData.OrganizationName
+                        : s.Post.Organizer.UserName ?? string.Empty,
+                    Content = s.Post.Content,
+                    CreatedAt = s.Post.CreatedAt,
+                    EventId = s.Post.EventId,
+                    EventTitle = s.Post.Event != null ? s.Post.Event.Title : null,
+                    FirstMediaUrl = s.Post.Images.Select(i => i.ImageUrl).FirstOrDefault(),
+                    FirstMediaType = s.Post.Images.Select(i => i.MediaType).FirstOrDefault(),
+                    LikesCount = s.Post.Likes.Count,
+                    CommentsCount = s.Post.Comments.Count,
+                    SavesCount = s.Post.Saves.Count,
+                    CurrentUserLiked = s.Post.Likes.Any(l => l.UserId == user.Id),
+                    CurrentUserSaved = true,
+                    AuthorImageUrl = s.Post.Organizer.ProfileImageUrl,
+                    AuthorIsOrganizer = s.Post.Organizer.OrganizerData != null && s.Post.Organizer.OrganizerData.Approved,
+                })
+                .ToListAsync();
+
+            vm.SavedEvents = await _db.EventSaves
+                .AsNoTracking()
+                .Where(s => s.UserId == user.Id &&
+                    (s.Event.IsApproved || role == GlobalConstants.Roles.Admin || s.Event.OrganizerId == user.Id))
+                .OrderByDescending(s => s.CreatedAt)
+                .Take(4)
+                .Select(s => new EventCardViewModel
+                {
+                    Id = s.EventId,
+                    Title = s.Event.Title,
+                    ImageUrl = s.Event.ImageUrl,
+                    Address = s.Event.Address,
+                    City = s.Event.City,
+                    StartTime = s.Event.StartTime,
+                    Genre = s.Event.Genre,
+                    IsApproved = s.Event.IsApproved,
+                    OrganizerId = s.Event.OrganizerId,
+                    OrganizerName = s.Event.Organizer.UserName ?? string.Empty,
+                    LikesCount = s.Event.Likes.Count,
+                    CommentsCount = s.Event.Comments.Count,
+                    SavesCount = s.Event.Saves.Count,
+                    GoingCount = s.Event.Attendances.Count(a => a.Status == EventAttendanceStatus.Going),
+                    InterestedCount = s.Event.Attendances.Count(a => a.Status == EventAttendanceStatus.Interested),
+                    CurrentUserLiked = s.Event.Likes.Any(l => l.UserId == user.Id),
+                    CurrentUserSaved = true,
+                    CurrentUserAttendanceStatus = s.Event.Attendances
+                        .Where(a => a.UserId == user.Id)
+                        .Select(a => (EventAttendanceStatus?)a.Status)
+                        .FirstOrDefault(),
                 })
                 .ToListAsync();
 
@@ -182,7 +275,23 @@ namespace EventsApp.Controllers
             user.UserName = input.UserName;
             user.PhoneNumber = input.PhoneNumber;
             user.Bio = input.Bio;
-            user.ProfileImageUrl = input.ProfileImageUrl;
+            if (input.ProfileImageFile != null && input.ProfileImageFile.Length > 0)
+            {
+                try
+                {
+                    var media = await _mediaUpload.SaveAsync(input.ProfileImageFile, "profiles");
+                    user.ProfileImageUrl = media?.Url;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    ModelState.AddModelError(nameof(input.ProfileImageFile), ex.Message);
+                    return View(input);
+                }
+            }
+            else
+            {
+                user.ProfileImageUrl = input.ProfileImageUrl;
+            }
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)

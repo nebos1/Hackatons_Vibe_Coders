@@ -30,6 +30,10 @@ namespace EventsApp.Models
 
         public ApplicationUser Organizer { get; set; } = null!;
 
+        public int? OrganizerProfileId { get; set; }
+
+        public OrganizerProfile? OrganizerProfile { get; set; }
+
         [Required]
         [MinLength(GlobalConstants.Event.TitleMinLength)]
         [MaxLength(GlobalConstants.Event.TitleMaxLength)]

@@ -23,6 +23,14 @@
             <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
             <div class="mb-3">
+                <label asp-for="OrganizerProfileId" class="form-label"></label>
+                <select asp-for="OrganizerProfileId" asp-items="Model.OrganizerProfiles" class="form-select">
+                    <option value="">-- Choose public page --</option>
+                </select>
+                <span asp-validation-for="OrganizerProfileId" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
                 <label asp-for="Title" class="form-label"></label>
                 <input asp-for="Title" class="form-control" />
                 <span asp-validation-for="Title" class="text-danger small"></span>
@@ -106,12 +114,6 @@
                 <input asp-for="Photo" class="form-control" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
                 <span asp-validation-for="Photo" class="text-danger small"></span>
                 <div class="form-text">JPG, PNG, WebP или GIF, до 5 MB.</div>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="ImageUrl" class="form-label"></label>
-                <input asp-for="ImageUrl" class="form-control" placeholder="https://..." />
-                <span asp-validation-for="ImageUrl" class="text-danger small"></span>
             </div>
 
             @if (Model.CanEditApproval)

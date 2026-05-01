@@ -1,40 +1,77 @@
 @model OrganizerProfileViewModel
 @{
-    ViewData["Title"] = "Организаторски профил";
+    ViewData["Title"] = Model.Id.HasValue ? "Edit public organizer page" : "New public organizer page";
     var badgeClass = Model.Approved ? "groove-status-badge-success" : "groove-status-badge-warning";
-    var badgeText = Model.Approved ? "Одобрен" : "Чака одобрение";
+    var badgeText = Model.Approved ? "Approved organizer" : "Waiting approval";
 }
 
 <section class="groove-app-page groove-form-shell">
     <div class="groove-page-hero">
         <div class="groove-page-hero__copy">
-            <span class="groove-stamp groove-stamp-yellow">Организатор</span>
-            <h1>Профил на <span>организацията</span>.</h1>
-            <p>Това е публичната основа на твоята организаторска идентичност в платформата.</p>
+            <span class="groove-stamp groove-stamp-yellow">Public page</span>
+            <h1>@(Model.Id.HasValue ? "Edit" : "Create") <span>organizer page</span>.</h1>
+            <p>This is the public identity people see on events. You can keep several pages and choose one when publishing.</p>
         </div>
         <div class="groove-page-actions">
             <span class="groove-status-badge @badgeClass">@badgeText</span>
-            <a asp-action="Dashboard" class="groove-button groove-button-paper">
-                <i class="bi bi-arrow-left"></i> Към таблото
+            <a asp-action="Profiles" class="groove-button groove-button-paper">
+                <i class="bi bi-arrow-left"></i> All pages
             </a>
         </div>
     </div>
 
     <div class="groove-form-panel">
-        <form asp-action="Profile" method="post">
+        <form asp-action="Profile" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
+            <input asp-for="Id" type="hidden" />
+            <input asp-for="CurrentAvatarUrl" type="hidden" />
+            <input asp-for="CurrentCoverUrl" type="hidden" />
             <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
+            <div class="groove-form-grid">
+                <div class="mb-3">
+                    <label asp-for="OrganizationName" class="form-label"></label>
+                    <input asp-for="OrganizationName" class="form-control" placeholder="Club name, collective, promoter..." />
+                    <span asp-validation-for="OrganizationName" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="City" class="form-label"></label>
+                    <input asp-for="City" class="form-control" placeholder="Sofia, Plovdiv..." />
+                    <span asp-validation-for="City" class="text-danger small"></span>
+                </div>
+            </div>
+
             <div class="mb-3">
-                <label asp-for="OrganizationName" class="form-label"></label>
-                <input asp-for="OrganizationName" class="form-control" />
-                <span asp-validation-for="OrganizationName" class="text-danger small"></span>
+                <label asp-for="Tagline" class="form-label"></label>
+                <input asp-for="Tagline" class="form-control" placeholder="Underground techno nights, live jazz sessions..." />
+                <span asp-validation-for="Tagline" class="text-danger small"></span>
             </div>
 
             <div class="mb-3">
                 <label asp-for="Description" class="form-label"></label>
-                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                <textarea asp-for="Description" class="form-control" rows="5"></textarea>
                 <span asp-validation-for="Description" class="text-danger small"></span>
+            </div>
+
+            <div class="groove-form-grid">
+                <div class="mb-3">
+                    <label asp-for="AvatarFile" class="form-label"></label>
+                    @if (!string.IsNullOrWhiteSpace(Model.CurrentAvatarUrl))
+                    {
+                        <div class="mb-2"><img src="@Model.CurrentAvatarUrl" alt="Current profile" style="width:88px;height:88px;object-fit:cover;border-radius:50%;" /></div>
+                    }
+                    <input asp-for="AvatarFile" class="form-control" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+                    <span asp-validation-for="AvatarFile" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="CoverFile" class="form-label"></label>
+                    @if (!string.IsNullOrWhiteSpace(Model.CurrentCoverUrl))
+                    {
+                        <div class="mb-2"><img src="@Model.CurrentCoverUrl" alt="Current cover" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;" /></div>
+                    }
+                    <input asp-for="CoverFile" class="form-control" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+                    <span asp-validation-for="CoverFile" class="text-danger small"></span>
+                </div>
             </div>
 
             <div class="groove-form-grid">
@@ -44,28 +81,70 @@
                     <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
                 </div>
                 <div class="mb-3">
-                    <label asp-for="Website" class="form-label"></label>
-                    <input asp-for="Website" class="form-control" placeholder="https://..." />
-                    <span asp-validation-for="Website" class="text-danger small"></span>
+                    <label asp-for="ContactEmail" class="form-label"></label>
+                    <input asp-for="ContactEmail" class="form-control" />
+                    <span asp-validation-for="ContactEmail" class="text-danger small"></span>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label asp-for="CompanyNumber" class="form-label"></label>
-                <input asp-for="CompanyNumber" class="form-control" />
-                <span asp-validation-for="CompanyNumber" class="text-danger small"></span>
+                <label asp-for="Website" class="form-label"></label>
+                <input asp-for="Website" class="form-control" placeholder="https://..." />
+                <span asp-validation-for="Website" class="text-danger small"></span>
             </div>
 
-            <div class="groove-note mb-3">
-                <strong>Важно</strong>
-                Статусът на одобрение се управлява от администратор и не може да се променя оттук.
+            <div class="groove-form-grid groove-form-grid-3">
+                <div class="mb-3">
+                    <label asp-for="InstagramUrl" class="form-label"></label>
+                    <input asp-for="InstagramUrl" class="form-control" placeholder="https://..." />
+                    <span asp-validation-for="InstagramUrl" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="FacebookUrl" class="form-label"></label>
+                    <input asp-for="FacebookUrl" class="form-control" placeholder="https://..." />
+                    <span asp-validation-for="FacebookUrl" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="TikTokUrl" class="form-label"></label>
+                    <input asp-for="TikTokUrl" class="form-control" placeholder="https://..." />
+                    <span asp-validation-for="TikTokUrl" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="groove-form-grid">
+                <div class="mb-3">
+                    <label asp-for="BrandColor" class="form-label"></label>
+                    <input asp-for="BrandColor" class="form-control" type="color" value="@(string.IsNullOrWhiteSpace(Model.BrandColor) ? "#0f766e" : Model.BrandColor)" />
+                    <span asp-validation-for="BrandColor" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="CompanyNumber" class="form-label"></label>
+                    <input asp-for="CompanyNumber" class="form-control" />
+                    <span asp-validation-for="CompanyNumber" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="groove-form-grid">
+                <label class="form-check">
+                    <input asp-for="IsDefault" class="form-check-input" />
+                    <span class="form-check-label">Use as default page</span>
+                </label>
+                <label class="form-check">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <span class="form-check-label">Active and selectable</span>
+                </label>
+            </div>
+
+            <div class="groove-note my-3">
+                <strong>Required</strong>
+                At least one active public page is required before an organizer can create events.
             </div>
 
             <div class="groove-form-actions">
                 <button type="submit" class="groove-button groove-button-dark">
-                    <i class="bi bi-check-lg"></i> Запази профила
+                    <i class="bi bi-check-lg"></i> Save page
                 </button>
-                <a asp-action="Dashboard" class="groove-button groove-button-paper">Отказ</a>
+                <a asp-action="Profiles" class="groove-button groove-button-paper">Cancel</a>
             </div>
         </form>
     </div>

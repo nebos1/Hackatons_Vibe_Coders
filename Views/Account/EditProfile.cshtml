@@ -18,7 +18,7 @@
     </div>
 
     <div class="groove-form-panel">
-        <form asp-action="EditProfile" method="post">
+        <form asp-action="EditProfile" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
@@ -42,9 +42,14 @@
                     <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
                 </div>
                 <div class="mb-3">
-                    <label asp-for="ProfileImageUrl" class="form-label"></label>
-                    <input asp-for="ProfileImageUrl" class="form-control" />
-                    <span asp-validation-for="ProfileImageUrl" class="text-danger small"></span>
+                    <label asp-for="ProfileImageFile" class="form-label"></label>
+                    @if (!string.IsNullOrWhiteSpace(Model.ProfileImageUrl))
+                    {
+                        <div class="mb-2"><img src="@Model.ProfileImageUrl" alt="Current profile" style="width:88px;height:88px;object-fit:cover;border-radius:50%;" /></div>
+                    }
+                    <input asp-for="ProfileImageFile" class="form-control" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+                    <input asp-for="ProfileImageUrl" type="hidden" />
+                    <span asp-validation-for="ProfileImageFile" class="text-danger small"></span>
                 </div>
             </div>
 

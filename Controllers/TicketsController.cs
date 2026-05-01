@@ -16,15 +16,18 @@ namespace EventsApp.Controllers
         private readonly ApplicationDbContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ITicketDocumentService _docs;
+        private readonly IMediaUploadService _mediaUpload;
 
         public TicketsController(
             ApplicationDbContext db,
             UserManager<ApplicationUser> userManager,
-            ITicketDocumentService docs)
+            ITicketDocumentService docs,
+            IMediaUploadService mediaUpload)
         {
             _db = db;
             _userManager = userManager;
             _docs = docs;
+            _mediaUpload = mediaUpload;
         }
 
         // ---------- ORGANIZER MANAGEMENT ----------
@@ -118,9 +121,10 @@ namespace EventsApp.Controllers
                 Price = input.Price,
                 QuantityTotal = input.QuantityTotal,
                 QuantityRemaining = input.QuantityRemaining ?? input.QuantityTotal,
-                ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim(),
                 IsActive = input.IsActive,
             };
+
+            await ApplyTicketImageAsync(ticket, input);
 
             _db.Tickets.Add(ticket);
             await _db.SaveChangesAsync();
@@ -195,7 +199,7 @@ namespace EventsApp.Controllers
             ticket.Price = input.Price;
             ticket.QuantityTotal = input.QuantityTotal;
             ticket.QuantityRemaining = remaining;
-            ticket.ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim();
+            await ApplyTicketImageAsync(ticket, input);
             ticket.IsActive = input.IsActive;
 
             await _db.SaveChangesAsync();
@@ -482,6 +486,19 @@ namespace EventsApp.Controllers
 
             input.Price = 0m;
             ModelState.Remove(nameof(input.Price));
+        }
+
+        private async Task ApplyTicketImageAsync(Ticket ticket, TicketCreateEditViewModel input)
+        {
+            if (input.ImageFile == null || input.ImageFile.Length == 0) return;
+
+            var media = await _mediaUpload.SaveAsync(input.ImageFile, "tickets");
+            if (media?.MediaType != PostMediaType.Image)
+            {
+                throw new InvalidOperationException("Only image files are allowed for tickets.");
+            }
+
+            ticket.ImageUrl = media.Url;
         }
     }
 }

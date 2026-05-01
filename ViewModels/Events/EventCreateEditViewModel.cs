@@ -40,10 +40,9 @@ namespace EventsApp.ViewModels.Events
         [Required]
         public EventGenre Genre { get; set; }
 
+        [Display(Name = "Organizer page")]
+        public int? OrganizerProfileId { get; set; }
 
-        [Url]
-        [StringLength(GlobalConstants.Event.ImageUrlMaxLength)]
-        [Display(Name = "Image URL")]
         public string? ImageUrl { get; set; }
 
         [Display(Name = "Upload Photo")]
@@ -66,5 +65,7 @@ namespace EventsApp.ViewModels.Events
         public List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> Cities { get; set; } = new();
         // Map city name -> "lat,lng" for client-side bounds
         public Dictionary<string, string> CityCoordinatesMap { get; set; } = new();
+
+        public IEnumerable<SelectListItem> OrganizerProfiles { get; set; } = Array.Empty<SelectListItem>();
     }
 }

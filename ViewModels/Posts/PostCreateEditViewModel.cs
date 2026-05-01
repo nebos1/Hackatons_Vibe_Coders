@@ -19,8 +19,6 @@ namespace EventsApp.ViewModels.Posts
         [Display(Name = "Photo or video")]
         public IFormFile? MediaFile { get; set; }
 
-        [Display(Name = "Or image URL")]
-        [StringLength(GlobalConstants.Post.ImageUrlMaxLength)]
         public string? ImageUrl { get; set; }
 
         public string? CurrentMediaUrl { get; set; }

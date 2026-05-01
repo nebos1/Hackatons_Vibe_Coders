@@ -14,18 +14,82 @@
             : (!string.IsNullOrWhiteSpace(currentUser?.UserName)
                 ? currentUser!.UserName
                 : (!string.IsNullOrWhiteSpace(currentUser?.Email) ? currentUser!.Email : "Профил"));
-        <li class="nav-item">
-            <a class="nav-link" asp-controller="Account" asp-action="Index">
+        var currentUserId = currentUser?.Id;
+        <li class="nav-item dropdown site-account-menu">
+            <a class="nav-link dropdown-toggle" href="#" id="accountMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bi bi-person-circle"></i> @displayName
             </a>
-        </li>
-        <li class="nav-item">
-            <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout"
-                  asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })" method="post">
-                <button type="submit" class="nav-link btn btn-link text-light notranslate">
-                    <i class="bi bi-box-arrow-right"></i> Logout
-                </button>
-            </form>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountMenu">
+                <li>
+                    <a class="dropdown-item" asp-controller="Account" asp-action="Index">
+                        <i class="bi bi-columns-gap"></i> Overview
+                    </a>
+                </li>
+                @if (!string.IsNullOrWhiteSpace(currentUserId))
+                {
+                    <li>
+                        <a class="dropdown-item" asp-controller="Profiles" asp-action="Details" asp-route-id="@currentUserId">
+                            <i class="bi bi-person-lines-fill"></i> Public profile
+                        </a>
+                    </li>
+                }
+                <li>
+                    <a class="dropdown-item" asp-controller="Posts" asp-action="Create">
+                        <i class="bi bi-plus-square"></i> Create post
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" asp-controller="Stories" asp-action="Create">
+                        <i class="bi bi-camera"></i> Story
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" asp-controller="Events" asp-action="Recommended">
+                        <i class="bi bi-stars"></i> Recommended
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" asp-controller="Tickets" asp-action="MyTickets">
+                        <i class="bi bi-ticket-perforated"></i> My tickets
+                    </a>
+                </li>
+                @if (User.IsInRole(EventsApp.Common.GlobalConstants.Roles.Organizer) || User.IsInRole(EventsApp.Common.GlobalConstants.Roles.Admin))
+                {
+                    <li><hr class="dropdown-divider" /></li>
+                    <li>
+                        <a class="dropdown-item" asp-controller="Organizer" asp-action="Dashboard">
+                            <i class="bi bi-speedometer2"></i> Organizer dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" asp-controller="Organizer" asp-action="Profiles">
+                            <i class="bi bi-person-badge"></i> Public organizer pages
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" asp-controller="Tickets" asp-action="Validate">
+                            <i class="bi bi-qr-code-scan"></i> Validate tickets
+                        </a>
+                    </li>
+                }
+                @if (User.IsInRole(EventsApp.Common.GlobalConstants.Roles.Admin))
+                {
+                    <li>
+                        <a class="dropdown-item" asp-controller="Admin" asp-action="Index">
+                            <i class="bi bi-shield-check"></i> Admin
+                        </a>
+                    </li>
+                }
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                    <form asp-area="Identity" asp-page="/Account/Logout"
+                          asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })" method="post">
+                        <button type="submit" class="dropdown-item notranslate">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </button>
+                    </form>
+                </li>
+            </ul>
         </li>
     }
     else

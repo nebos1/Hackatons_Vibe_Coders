@@ -377,15 +377,6 @@ namespace EventsApp.Controllers
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(input.ImageUrl))
-            {
-                return new MediaUploadResult
-                {
-                    Url = input.ImageUrl,
-                    MediaType = LooksLikeVideoUrl(input.ImageUrl) ? PostMediaType.Video : PostMediaType.Image,
-                };
-            }
-
             return null;
         }
 

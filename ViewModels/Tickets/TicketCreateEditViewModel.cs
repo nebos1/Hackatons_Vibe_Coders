@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using EventsApp.Common;
+using Microsoft.AspNetCore.Http;
 
 namespace EventsApp.ViewModels.Tickets
 {
@@ -35,9 +36,10 @@ namespace EventsApp.ViewModels.Tickets
         [Display(Name = "Remaining (defaults to total)")]
         public int? QuantityRemaining { get; set; }
 
-        [StringLength(GlobalConstants.Ticket.ImageUrlMaxLength)]
-        [Display(Name = "Image URL")]
         public string? ImageUrl { get; set; }
+
+        [Display(Name = "Ticket image")]
+        public IFormFile? ImageFile { get; set; }
 
         [Display(Name = "Active")]
         public bool IsActive { get; set; } = true;

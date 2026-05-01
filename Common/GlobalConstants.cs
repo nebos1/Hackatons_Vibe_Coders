@@ -25,9 +25,14 @@ namespace EventsApp.Common
         {
             public const int OrganizationNameMinLength = 2;
             public const int OrganizationNameMaxLength = 100;
+            public const int TaglineMaxLength = 140;
+            public const int CityMaxLength = 80;
             public const int DescriptionMaxLength = 1000;
             public const int PhoneNumberMaxLength = 30;
             public const int WebsiteMaxLength = 200;
+            public const int ContactEmailMaxLength = 120;
+            public const int SocialUrlMaxLength = 200;
+            public const int BrandColorMaxLength = 16;
             public const int CompanyNumberMaxLength = 50;
         }
 

@@ -5,27 +5,19 @@
     var isSignedIn = User.Identity?.IsAuthenticated == true;
 }
 
-<section class="groove-feed-page social-feed-page">
-    <div class="social-feed-hero">
+<section class="groove-feed-page social-feed-page social-feed-page--stream">
+    <header class="social-feed-topbar">
         <div>
-            <span class="groove-stamp groove-stamp-teal">Evento Social</span>
-            <h1>Discover events, people and organizers.</h1>
-            <p>
-                A personalized feed with fresh events, organizer posts, stories and activity from people you follow.
-            </p>
+            <span class="groove-stamp groove-stamp-teal">Feed</span>
+            <h1>Latest from the scene.</h1>
         </div>
-        <div class="social-feed-hero__actions">
-            @if (isSignedIn)
-            {
-                <a asp-action="Create" class="groove-button groove-button-dark">
-                    <i class="bi bi-plus-lg"></i> Create post
-                </a>
-                <a asp-controller="Stories" asp-action="Create" class="groove-button groove-button-paper">
-                    <i class="bi bi-camera"></i> Story
-                </a>
-            }
-        </div>
-    </div>
+        @if (isSignedIn)
+        {
+            <a asp-controller="Account" asp-action="Index" class="groove-button groove-button-paper">
+                <i class="bi bi-columns-gap"></i> Account overview
+            </a>
+        }
+    </header>
 
     <section class="social-stories-strip" aria-label="Active stories">
         @if (isSignedIn)
@@ -34,7 +26,7 @@
                 <form asp-controller="Stories" asp-action="Create" asp-route-returnUrl="@returnUrl" method="post" enctype="multipart/form-data">
                     @Html.AntiForgeryToken()
                     <div class="social-story-card__plus"><i class="bi bi-plus-lg"></i></div>
-                    <input type="url" name="MediaUrl" placeholder="Image/video URL" />
+                    <input type="file" name="MediaFile" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime" />
                     <input type="text" name="Caption" placeholder="Caption" maxlength="280" />
                     <button type="submit">Post story</button>
                 </form>
@@ -72,65 +64,37 @@
         }
     </section>
 
-    <div class="social-feed-shell">
+    <div class="social-feed-shell social-feed-shell--stream">
         <main class="social-feed-main">
-            <section class="social-feed-section">
-                <div class="social-section-heading">
-                    <div>
-                        <span class="groove-kicker">Recommended for you</span>
-                        <h2>Based on your interests.</h2>
+            @if (Model.FriendsActivity.Any())
+            {
+                <section class="social-feed-section social-feed-section--stream">
+                    <div class="social-section-heading social-section-heading--compact">
+                        <div>
+                            <span class="groove-kicker">Following</span>
+                            <h2>People you follow.</h2>
+                        </div>
                     </div>
-                    @if (!Model.HasPersonalSignals && isSignedIn)
-                    {
-                        <a asp-controller="Preferences" asp-action="Edit" class="groove-link">Tune interests</a>
-                    }
-                </div>
-                @if (Model.RecommendedEvents.Any())
-                {
-                    <div class="social-card-grid">
-                        @foreach (var ev in Model.RecommendedEvents)
+                    <div class="social-post-list social-post-list--stream">
+                        @foreach (var post in Model.FriendsActivity)
                         {
-                            <partial name="_EventCard" model="ev" />
+                            <partial name="_PostCard" model="post" />
                         }
                     </div>
-                }
-                else
-                {
-                    <div class="groove-empty-card">
-                        <i class="bi bi-stars"></i>
-                        <h2 class="groove-panel-title">No recommendations yet.</h2>
-                        <p class="groove-panel-intro">Like, save and open events to shape your feed.</p>
-                    </div>
-                }
-            </section>
+                </section>
+            }
 
-            <section class="social-feed-section">
-                <div class="social-section-heading">
+            <section class="social-feed-section social-feed-section--stream">
+                <div class="social-section-heading social-section-heading--compact">
                     <div>
-                        <span class="groove-kicker">Trending events</span>
-                        <h2>What is picking up speed.</h2>
-                    </div>
-                    <a asp-controller="Home" asp-action="Index" class="groove-link">Explore all</a>
-                </div>
-                <div class="social-card-grid">
-                    @foreach (var ev in Model.TrendingEvents)
-                    {
-                        <partial name="_EventCard" model="ev" />
-                    }
-                </div>
-            </section>
-
-            <section class="social-feed-section">
-                <div class="social-section-heading">
-                    <div>
-                        <span class="groove-kicker">Friends activity</span>
-                        <h2>Posts from people you follow.</h2>
+                        <span class="groove-kicker">Posts</span>
+                        <h2>Organizer updates and fresh posts.</h2>
                     </div>
                 </div>
-                @if (Model.FriendsActivity.Any())
+                @if (Model.OrganizerPosts.Any())
                 {
-                    <div class="social-post-list">
-                        @foreach (var post in Model.FriendsActivity)
+                    <div class="social-post-list social-post-list--stream">
+                        @foreach (var post in Model.OrganizerPosts)
                         {
                             <partial name="_PostCard" model="post" />
                         }
@@ -139,32 +103,47 @@
                 else
                 {
                     <div class="social-empty-panel">
-                        <i class="bi bi-people"></i>
-                        <span>Follow users or organizers to fill this section.</span>
+                        <i class="bi bi-journal-text"></i>
+                        <span>No posts yet.</span>
                     </div>
                 }
             </section>
-
-            <section class="social-feed-section">
-                <div class="social-section-heading">
-                    <div>
-                        <span class="groove-kicker">Posts from organizers</span>
-                        <h2>Updates, lineups and behind the scenes.</h2>
-                    </div>
-                </div>
-                <div class="social-post-list">
-                    @foreach (var post in Model.OrganizerPosts)
-                    {
-                        <partial name="_PostCard" model="post" />
-                    }
-                </div>
-            </section>
         </main>
 
-        <aside class="social-feed-aside">
+        <aside class="social-feed-aside social-feed-aside--overview">
+            <section class="social-side-panel social-side-panel--quick">
+                <div class="social-side-panel__head">
+                    <span class="groove-kicker">Events</span>
+                    <a asp-controller="Home" asp-action="Index" class="groove-link">All</a>
+                </div>
+                @foreach (var ev in Model.RecommendedEvents.Take(3))
+                {
+                    <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="social-event-mini">
+                        <span>@ev.StartTime.ToString("dd MMM")</span>
+                        <strong>@ev.Title</strong>
+                        <small>@ev.City</small>
+                    </a>
+                }
+            </section>
+
+            <section class="social-side-panel social-side-panel--quick">
+                <div class="social-side-panel__head">
+                    <span class="groove-kicker">Trending</span>
+                    <a asp-controller="Events" asp-action="Recommended" class="groove-link">More</a>
+                </div>
+                @foreach (var ev in Model.TrendingEvents.Take(3))
+                {
+                    <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="social-event-mini">
+                        <span><i class="bi bi-fire"></i></span>
+                        <strong>@ev.Title</strong>
+                        <small>@ev.GoingCount going · @ev.InterestedCount interested</small>
+                    </a>
+                }
+            </section>
+
             <section class="social-side-panel">
                 <span class="groove-kicker">Suggested profiles</span>
-                @foreach (var profile in Model.SuggestedProfiles)
+                @foreach (var profile in Model.SuggestedProfiles.Take(5))
                 {
                     var profileInitial = string.IsNullOrWhiteSpace(profile.DisplayName) ? "?" : profile.DisplayName[..1].ToUpperInvariant();
                     <article class="social-profile-row">

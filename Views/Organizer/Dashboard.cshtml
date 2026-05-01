@@ -23,6 +23,7 @@
     var maxTopSold = Model.TopByTicketsSold.Count > 0 ? Model.TopByTicketsSold.Max(t => t.Sold) : 1;
     var maxTopRev = Model.TopByRevenue.Count > 0 ? Model.TopByRevenue.Max(t => t.Revenue) : 1m;
     var maxCityCount = Model.CityBreakdown.Count > 0 ? Model.CityBreakdown.Max(c => c.Count) : 1;
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 }
 
 <section class="groove-app-page">
@@ -38,6 +39,12 @@
                 <a asp-action="Profile" class="groove-button groove-button-dark">
                     <i class="bi bi-pencil-square"></i> <span data-i18n="org.setup.btn">Попълни профила</span>
                 </a>
+                @if (!string.IsNullOrWhiteSpace(currentUserId))
+                {
+                    <a asp-controller="Profiles" asp-action="Details" asp-route-id="@currentUserId" class="groove-button groove-button-paper">
+                        <i class="bi bi-person-lines-fill"></i> Public profile
+                    </a>
+                }
             </div>
         </div>
     }
@@ -84,6 +91,12 @@
                 <a asp-action="Profile" class="groove-button groove-button-paper">
                     <i class="bi bi-person-gear"></i> <span data-i18n="org.editprofile">Редактирай профила</span>
                 </a>
+                @if (!string.IsNullOrWhiteSpace(currentUserId))
+                {
+                    <a asp-controller="Profiles" asp-action="Details" asp-route-id="@currentUserId" class="groove-button groove-button-paper">
+                        <i class="bi bi-person-lines-fill"></i> Public profile
+                    </a>
+                }
             </div>
         </div>
 

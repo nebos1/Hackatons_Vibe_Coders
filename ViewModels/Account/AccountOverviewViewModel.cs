@@ -23,6 +23,11 @@ namespace EventsApp.ViewModels.Account
 
         public int EventsCount { get; set; }
         public int PostsCount { get; set; }
+        public int FollowersCount { get; set; }
+        public int FollowingCount { get; set; }
+        public int SavedPostsCount { get; set; }
+        public int SavedEventsCount { get; set; }
+        public int GoingEventsCount { get; set; }
 
         public bool HasPreferences { get; set; }
         public EventGenre? PreferredGenre { get; set; }
@@ -32,6 +37,9 @@ namespace EventsApp.ViewModels.Account
 
         public IReadOnlyList<EventCardViewModel> LikedEvents { get; set; } = Array.Empty<EventCardViewModel>();
         public IReadOnlyList<PostCardViewModel> LikedPosts { get; set; } = Array.Empty<PostCardViewModel>();
+        public IReadOnlyList<PostCardViewModel> MyPosts { get; set; } = Array.Empty<PostCardViewModel>();
+        public IReadOnlyList<PostCardViewModel> SavedPosts { get; set; } = Array.Empty<PostCardViewModel>();
+        public IReadOnlyList<EventCardViewModel> SavedEvents { get; set; } = Array.Empty<EventCardViewModel>();
 
         public int PurchasedTicketsCount { get; set; }
         public IReadOnlyList<MyTicketRowViewModel> RecentTickets { get; set; } = Array.Empty<MyTicketRowViewModel>();

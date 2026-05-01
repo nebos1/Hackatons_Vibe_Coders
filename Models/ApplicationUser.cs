@@ -25,6 +25,7 @@ namespace EventsApp.Models
             this.Stories = new HashSet<Story>();
             this.SentMessages = new HashSet<Message>();
             this.UserActivities = new HashSet<UserActivity>();
+            this.OrganizerProfiles = new HashSet<OrganizerProfile>();
         }
 
         [Required]
@@ -43,6 +44,8 @@ namespace EventsApp.Models
         public string? Bio { get; set; }
 
         public OrganizerData? OrganizerData { get; set; }
+
+        public ICollection<OrganizerProfile> OrganizerProfiles { get; set; }
 
         public UserPreferences? UserPreferences { get; set; }
 
