@@ -6,119 +6,131 @@
         || (!string.IsNullOrWhiteSpace(currentUserId) && Model.OrganizerId == currentUserId);
     var likeAction = Model.CurrentUserLiked ? "Unlike" : "Like";
     var saveAction = Model.CurrentUserSaved ? "Unsave" : "Save";
-    var likeTitle = Model.CurrentUserLiked ? "Unlike" : "Like";
-    var saveTitle = Model.CurrentUserSaved ? "Remove from saved" : "Save";
     var shareUrl = Url.Action("Details", "Events", new { id = Model.Id }, Context.Request.Scheme) ?? string.Empty;
+    var heat = Model.GoingCount * 2 + Model.InterestedCount + Model.LikesCount + Model.CommentsCount + Model.SavesCount;
+    var isHot = heat >= 8;
+    var organizerInitial = !string.IsNullOrWhiteSpace(Model.OrganizerName) ? Model.OrganizerName.Trim()[..1].ToUpper() : "?";
 }
 
-<div class="card h-100 shadow-sm event-card social-event-card" data-event-id="@Model.Id">
-    @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
-    {
-        <img src="@Model.ImageUrl" class="card-img-top card-img-top-fixed" alt="@Model.Title" />
-    }
-    else
-    {
-        <div class="card-img-top-fixed d-flex align-items-center justify-content-center text-muted">
-            <i class="bi bi-calendar-event" style="font-size: 2rem;"></i>
+<div class="card event-card evt-card" data-event-id="@Model.Id">
+    <div class="evt-card__media">
+        @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+        {
+            <img src="@Model.ImageUrl" alt="@Model.Title" />
+        }
+        else
+        {
+            <div class="evt-card__media-fallback"><i class="bi bi-calendar-event"></i></div>
+        }
+
+        @if (!Model.IsApproved)
+        {
+            <span class="evt-card__chip evt-card__chip--pending" data-i18n="event.status.pending">Pending</span>
+        }
+        else if (isHot)
+        {
+            <span class="evt-card__chip evt-card__chip--hot"><i class="bi bi-fire"></i> Hot</span>
+        }
+        else
+        {
+            <span class="evt-card__chip" data-i18n="genre.@Model.Genre">@Model.Genre.GetDisplayName()</span>
+        }
+
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            var saveOnClass = Model.CurrentUserSaved ? "is-saved" : "";
+            var saveIcon = Model.CurrentUserSaved ? "bi-bookmark-fill" : "bi-bookmark";
+            <form asp-controller="Events" asp-action="@saveAction" asp-route-id="@Model.Id"
+                  asp-route-returnUrl="@returnUrl" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <button class="evt-card__save @saveOnClass" type="submit" title="Save">
+                    <i class="bi @saveIcon"></i>
+                </button>
+            </form>
+        }
+    </div>
+
+    <div class="evt-card__body">
+        <div class="evt-card__heading">
+            <h3 class="evt-card__title">
+                <a asp-controller="Events" asp-action="Details" asp-route-id="@Model.Id">@Model.Title</a>
+            </h3>
+            <span class="evt-card__price evt-card__price--free" data-i18n="event.price.free">FREE</span>
         </div>
-    }
-    <div class="card-body d-flex flex-column">
-        <div class="mb-2">
-            <span class="badge bg-secondary event-genre-badge" data-i18n="genre.@Model.Genre">@Model.Genre.GetDisplayName()</span>
-            @if (!Model.IsApproved)
+
+        <div class="evt-card__meta">
+            <span><i class="bi bi-geo-alt"></i> @Model.City</span>
+            <span><i class="bi bi-clock"></i> @Model.StartTime.ToString("dd.MM HH:mm")</span>
+            @if (heat > 0)
             {
-                <span class="badge bg-warning text-dark event-genre-badge" data-i18n="event.status.pending">Pending</span>
+                <span class="evt-card__rating" title="Heat">
+                    <i class="bi bi-fire"></i> @heat
+                </span>
             }
         </div>
 
-        <h5 class="card-title">@Model.Title</h5>
-        <a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OrganizerId" class="small text-muted text-decoration-none mb-2">
-            <i class="bi bi-person-badge"></i> @Model.OrganizerName
+        <a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OrganizerId" class="evt-card__organizer">
+            <span class="evt-card__organizer-avatar">@organizerInitial</span>
+            <span>@Model.OrganizerName</span>
         </a>
-        <p class="card-text text-muted mb-1">
-            <i class="bi bi-geo-alt"></i> @Model.Address, @Model.City
-        </p>
-        <p class="card-text text-muted small mb-2">
-            <i class="bi bi-clock"></i> @Model.StartTime.ToString("dd.MM.yyyy HH:mm")
-        </p>
 
-        <div class="social-card-actions mt-auto">
-            <div class="social-card-actions__primary">
-                @if (User.Identity?.IsAuthenticated == true)
-                {
-                    var btnClass = Model.CurrentUserLiked ? "btn-danger" : "btn-outline-danger";
-                    var iconClass = Model.CurrentUserLiked ? "bi-heart-fill" : "bi-heart";
-                    <form asp-controller="Events" asp-action="@likeAction" asp-route-id="@Model.Id"
-                          asp-route-returnUrl="@returnUrl" method="post" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <button class="btn btn-sm @btnClass" type="submit" title="@likeTitle">
-                            <i class="bi @iconClass"></i> @Model.LikesCount
-                        </button>
-                    </form>
-
-                    var saveClass = Model.CurrentUserSaved ? "btn-dark" : "btn-outline-dark";
-                    var saveIcon = Model.CurrentUserSaved ? "bi-bookmark-fill" : "bi-bookmark";
-                    <form asp-controller="Events" asp-action="@saveAction" asp-route-id="@Model.Id"
-                          asp-route-returnUrl="@returnUrl" method="post" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <button class="btn btn-sm @saveClass" type="submit" title="@saveTitle">
-                            <i class="bi @saveIcon"></i> @Model.SavesCount
-                        </button>
-                    </form>
-                }
-                else
-                {
-                    <span class="small text-muted"><i class="bi bi-heart"></i> @Model.LikesCount</span>
-                    <span class="small text-muted"><i class="bi bi-bookmark"></i> @Model.SavesCount</span>
-                }
-
-                <a asp-controller="Events" asp-action="Details" asp-route-id="@Model.Id" asp-fragment="comments" class="btn btn-sm btn-outline-secondary" title="Comments">
-                    <i class="bi bi-chat"></i> @Model.CommentsCount
-                </a>
-                <button class="btn btn-sm btn-outline-secondary social-share-button" type="button" data-share-url="@shareUrl" data-share-title="@Model.Title" title="Share">
-                    <i class="bi bi-share"></i>
-                </button>
-            </div>
-
+        <div class="evt-card__actions">
             @if (User.Identity?.IsAuthenticated == true)
             {
-                <div class="social-card-actions__secondary">
-                    @{
-                        var goingClass = Model.CurrentUserAttendanceStatus == EventAttendanceStatus.Going ? "btn-success" : "btn-outline-success";
-                        var interestedClass = Model.CurrentUserAttendanceStatus == EventAttendanceStatus.Interested ? "btn-warning" : "btn-outline-warning";
-                    }
-                    <form asp-controller="Events" asp-action="Attendance" asp-route-id="@Model.Id" asp-route-status="@EventAttendanceStatus.Going"
-                          asp-route-returnUrl="@returnUrl" method="post" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <button class="btn btn-sm @goingClass" type="submit">
-                            <i class="bi bi-check2-circle"></i> <span data-i18n="event.action.going">Going</span> @Model.GoingCount
-                        </button>
-                    </form>
-                    <form asp-controller="Events" asp-action="Attendance" asp-route-id="@Model.Id" asp-route-status="@EventAttendanceStatus.Interested"
-                          asp-route-returnUrl="@returnUrl" method="post" class="d-inline">
-                        @Html.AntiForgeryToken()
-                        <button class="btn btn-sm @interestedClass" type="submit">
-                            <i class="bi bi-star"></i> <span data-i18n="event.action.interested">Interested</span> @Model.InterestedCount
-                        </button>
-                    </form>
-                </div>
+                var likedCls = Model.CurrentUserLiked ? "is-on-liked" : "";
+                var likeIcon = Model.CurrentUserLiked ? "bi-heart-fill" : "bi-heart";
+                <form asp-controller="Events" asp-action="@likeAction" asp-route-id="@Model.Id"
+                      asp-route-returnUrl="@returnUrl" method="post" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <button class="evt-card__action @likedCls" type="submit" title="Like">
+                        <i class="bi @likeIcon"></i> @Model.LikesCount
+                    </button>
+                </form>
+
+                var goingCls = Model.CurrentUserAttendanceStatus == EventAttendanceStatus.Going ? "is-on-going" : "";
+                <form asp-controller="Events" asp-action="Attendance" asp-route-id="@Model.Id"
+                      asp-route-status="@EventAttendanceStatus.Going" asp-route-returnUrl="@returnUrl"
+                      method="post" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <button class="evt-card__action @goingCls" type="submit" title="Going">
+                        <i class="bi bi-check2-circle"></i> @Model.GoingCount
+                    </button>
+                </form>
+
+                var interestedCls = Model.CurrentUserAttendanceStatus == EventAttendanceStatus.Interested ? "is-on-interested" : "";
+                <form asp-controller="Events" asp-action="Attendance" asp-route-id="@Model.Id"
+                      asp-route-status="@EventAttendanceStatus.Interested" asp-route-returnUrl="@returnUrl"
+                      method="post" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <button class="evt-card__action @interestedCls" type="submit" title="Interested">
+                        <i class="bi bi-star"></i> @Model.InterestedCount
+                    </button>
+                </form>
+            }
+            else
+            {
+                <span class="evt-card__action"><i class="bi bi-heart"></i> @Model.LikesCount</span>
+                <span class="evt-card__action"><i class="bi bi-check2-circle"></i> @Model.GoingCount</span>
             }
 
-            <div class="social-card-actions__manage">
-                <a asp-controller="Events" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-primary" data-i18n="event.action.details">Details</a>
-                @if (canManage)
-                {
-                    <a asp-controller="Events" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary" title="Edit">
-                        <i class="bi bi-pencil"></i>
-                    </a>
-                    <a asp-controller="Tickets" asp-action="Manage" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-success" title="Tickets">
-                        <i class="bi bi-ticket-perforated"></i>
-                    </a>
-                    <a asp-controller="Events" asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-danger" title="Delete">
-                        <i class="bi bi-trash"></i>
-                    </a>
-                }
-            </div>
+            <a asp-controller="Events" asp-action="Details" asp-route-id="@Model.Id" class="evt-card__cta">
+                <span data-i18n="event.action.details">Виж</span>
+                <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
+
+        @if (canManage)
+        {
+            <div class="evt-card__actions" style="border-top:none;padding-top:0;margin-top:-2px;">
+                <span class="text-muted small" style="margin-right:auto;">
+                    <i class="bi bi-shield-check"></i> @{ var lbl = "Управление"; }<span data-i18n="card.manage">@lbl</span>
+                </span>
+                <div class="evt-card__manage">
+                    <a asp-controller="Events" asp-action="Edit" asp-route-id="@Model.Id" title="Edit"><i class="bi bi-pencil"></i></a>
+                    <a asp-controller="Tickets" asp-action="Manage" asp-route-id="@Model.Id" title="Tickets"><i class="bi bi-ticket-perforated"></i></a>
+                    <a asp-controller="Events" asp-action="Delete" asp-route-id="@Model.Id" class="is-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                </div>
+            </div>
+        }
     </div>
 </div>

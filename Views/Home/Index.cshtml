@@ -30,7 +30,7 @@
     var trendingEvents = Model.Events
         .OrderByDescending(e => e.GoingCount * 2 + e.InterestedCount + e.LikesCount + e.CommentsCount + e.SavesCount)
         .ThenBy(e => e.StartTime)
-        .Take(4)
+        .Take(5)
         .ToList();
 }
 
@@ -38,216 +38,244 @@
     <script id="home-events-data" type="application/json">@Html.Raw(dataJson)</script>
     <partial name="_GoogleMapsLoader" />
     <script src="~/js/home-map.js" asp-append-version="true"></script>
+    <script>
+        document.body.classList.add('evt-home-bg');
+    </script>
 }
 
-<div class="groove-home">
-    <div class="groove-marquee" aria-hidden="true">
-        <div>
-            <span data-i18n="marquee.live">★ Живи нощи</span><span data-i18n="marquee.diary">★ Дневник</span><span data-i18n="marquee.map">★ Карта на България</span><span data-i18n="marquee.tickets">★ Свежи билети</span><span>★ Техно</span><span>★ House</span><span>★ Jazz</span><span data-i18n="marquee.nearme">★ Около мен</span>
-            <span data-i18n="marquee.live">★ Живи нощи</span><span data-i18n="marquee.diary">★ Дневник</span><span data-i18n="marquee.map">★ Карта на България</span><span data-i18n="marquee.tickets">★ Свежи билети</span><span>★ Техно</span><span>★ House</span><span>★ Jazz</span><span data-i18n="marquee.nearme">★ Около мен</span>
+<div class="evt-shell">
+
+    <div class="evt-marquee" aria-hidden="true">
+        <div class="evt-marquee__track">
+            <span>★ Live nights</span><span>★ Дневник на града</span><span>★ Карта на България</span><span>★ Свежи билети</span><span>★ Techno</span><span>★ House</span><span>★ Jazz</span><span>★ Около мен</span>
+            <span>★ Live nights</span><span>★ Дневник на града</span><span>★ Карта на България</span><span>★ Свежи билети</span><span>★ Techno</span><span>★ House</span><span>★ Jazz</span><span>★ Около мен</span>
         </div>
     </div>
 
-    <section class="groove-hero">
-        <div class="groove-hero__copy">
-            <div class="groove-stamp-row">
-                <span class="groove-stamp groove-stamp-teal" data-i18n="home.stamp">Evento</span>
-                <span class="groove-hand-note" data-i18n="home.live">на живо</span>
-            </div>
-            <h1 data-i18n-html="home.hero.h1">Дневник за най-<span>шумните</span> нощи в България.</h1>
-            <p data-i18n="home.hero.p">
-                Evento е част скрапбук, част карта, част бюро за събития. Организаторите движат сцената,
-                слушателите намират точната вечер, а всеки град получава своите карфици.
+    <section class="evt-hero">
+        <div class="evt-hero__copy">
+            <span class="evt-hero__brand">
+                <span class="evt-hero__brand-dot"><i class="bi bi-stars"></i></span>
+                <span class="notranslate" translate="no">Evento</span>
+                <span data-i18n="home.live">· на живо</span>
+            </span>
+
+            <h1 class="evt-hero__title" data-i18n-html="home.hero.h1">
+                Find. Feel. <em>Go.</em>
+            </h1>
+
+            <p class="evt-hero__lead" data-i18n="home.hero.p">
+                Открий следващото си нощно изживяване — живи концерти, фестивали и партита из цяла България.
+                Една карта, едно търсене, всичко в един бийт.
             </p>
 
-            <form id="home-smart-search-form" class="groove-smart-search" autocomplete="off">
-                @Html.AntiForgeryToken()
-                <label class="groove-smart-search__field" for="home-smart-search-input">
-                    <i class="bi bi-stars groove-smart-search__icon" aria-hidden="true"></i>
-                    <input id="home-smart-search-input" type="text" name="q"
-                           data-i18n-placeholder="home.search.placeholder"
-                           placeholder="техно тази вечер в София · джаз през уикенда · около мен" />
-                </label>
-                <button class="groove-button groove-button-red groove-smart-search__submit" type="submit">
-                    <i class="bi bi-stars"></i> <span data-i18n="home.search.btn">Smart търсене</span>
-                </button>
-                <button id="home-smart-clear" class="groove-button groove-button-paper groove-smart-search__clear" type="button" data-i18n="home.clear">
-                    Изчисти
-                </button>
-                <div class="groove-smart-search__status"><span id="home-search-status"></span></div>
-            </form>
-
-            <div class="modern-search-chips" aria-label="Quick event filters">
-                <a asp-action="Index" asp-route-dateFrom="@DateTime.UtcNow.ToString("yyyy-MM-dd")">Today</a>
-                <a asp-action="Index" asp-route-dateFrom="@DateTime.UtcNow.AddDays(2).ToString("yyyy-MM-dd")">This weekend</a>
-                <a asp-action="Index" asp-route-search="concert">Concerts</a>
-                <a asp-action="Index" asp-route-search="theatre">Theatre</a>
-                <a asp-action="Index" asp-route-search="festival">Festivals</a>
-                <a asp-action="Index" asp-route-search="free">Free events</a>
-                <a asp-action="Index" asp-route-search="family">Family</a>
+            <div class="evt-hero__cta">
+                <a asp-controller="Events" asp-action="Recommended" class="evt-btn evt-btn-primary">
+                    <i class="bi bi-compass"></i>
+                    <span data-i18n="home.viewmap">Препоръчани събития</span>
+                </a>
+                <a asp-controller="Posts" asp-action="Index" class="evt-btn evt-btn-ghost">
+                    <i class="bi bi-grid"></i>
+                    <span data-i18n="home.openfeed">Отвори потока</span>
+                </a>
             </div>
 
-            <div class="groove-hero__actions">
-                <a href="#event-map" class="groove-button groove-button-dark" data-i18n="home.viewmap">Виж картата</a>
-                <a asp-controller="Posts" asp-action="Index" class="groove-button groove-button-paper" data-i18n="home.openfeed">Отвори потока</a>
-                @if (User.Identity?.IsAuthenticated == true)
-                {
-                    <a asp-controller="Events" asp-action="Recommended" class="groove-button groove-button-paper" data-i18n="nav.recommended">Препоръчани</a>
-                }
-            </div>
-            <div class="groove-stats">
+            <div class="evt-hero__stats">
                 <span><strong>@Model.Events.Count</strong> <span data-i18n="home.stats.nights">записани нощи</span></span>
                 <span><strong>@visibleCityCount</strong> <span data-i18n="home.stats.cities">града</span></span>
-                <span><strong>@Model.MapMarkers.Count</strong> <span data-i18n="home.stats.pins">карфици</span></span>
+                <span><strong id="home-event-count">@Model.MapMarkers.Count</strong> <span data-i18n="home.stats.pins">карфици</span></span>
             </div>
         </div>
 
-        <div class="groove-hero__media">
-            <div class="groove-photo-card">
-                <img src="@Url.Content("~/img/groove/crowd-doodle.png")" alt="Публика на концерт" />
-            </div>
-            <img class="groove-cassette" src="@Url.Content("~/img/groove/cassette-doodle.png")" alt="" aria-hidden="true" />
-        </div>
-    </section>
+        <div class="evt-hero__map" id="event-map">
+            <span class="evt-hero__map-badge">
+                <i class="bi bi-broadcast"></i>
+                <span data-i18n="@(hasRealMapPins ? "home.map.live" : "home.map.empty")">@(hasRealMapPins ? "жива карта" : "празна карта")</span>
+            </span>
+            <span class="evt-hero__map-badge evt-hero__map-badge--right notranslate" translate="no">google maps</span>
 
-    <section id="event-map" class="groove-section groove-map-section home-results-section">
-        <div class="home-results-heading">
-            <div>
-                <span class="groove-stamp groove-stamp-teal">Smart search result area</span>
-                <h2>Results for your next event</h2>
-            </div>
-            <div class="home-results-tools">
-                <button type="button"><i class="bi bi-calendar3"></i> Date</button>
-                <button type="button"><i class="bi bi-crosshair"></i> Distance</button>
-            </div>
-        </div>
-        <div class="groove-map-copy">
-            <span class="groove-stamp groove-stamp-teal" data-i18n="home.map.stamp">Картата</span>
-            <h2><span id="home-event-count">@Model.MapMarkers.Count</span> <span data-i18n="home.map.pins">карфици,</span> <span>@visibleCityCount <span data-i18n="home.map.cities">града</span></span>.</h2>
-            <p data-i18n="home.map.p">
-                Когато организаторите добавят събития с координати, те се появяват тук на момента.
-                Кликни върху карфица, за да видиш детайлите.
-            </p>
-            <button id="use-my-location" class="groove-link" type="button">
-                <i class="bi bi-crosshair"></i> <span data-i18n="home.geo.btn">Покажи моето местоположение</span>
-            </button>
-            <div id="geo-status" class="small text-muted mt-1"></div>
-        </div>
-        <div class="groove-map-frame">
-            <span class="groove-map-badge groove-map-badge-left" data-i18n="@(hasRealMapPins ? "home.map.live" : "home.map.empty")">@(hasRealMapPins ? "жива карта" : "празна карта")</span>
-            <span class="groove-map-badge groove-map-badge-right">google maps</span>
             <div id="events-map" class="notranslate" translate="no" data-no-i18n="true">
                 <div class="map-loading-state">
-                    <i class="bi bi-map"></i>
-                    <span>Loading map...</span>
+                    <i class="bi bi-map" style="font-size:1.6rem;"></i>
+                    <span>Loading map…</span>
                 </div>
             </div>
-            <div id="home-no-results" class="alert alert-warning mt-2" style="display:none;" data-i18n="home.noresults">Няма събития, отговарящи на търсенето.</div>
-        </div>
-        <aside class="home-results-list">
-            <div class="home-results-list__head">
-                <span class="groove-stamp groove-stamp-teal" data-i18n="home.trending.stamp">Най-нашумели</span>
-                <h3 data-i18n="home.trending.title">Събития, които хората следят</h3>
-            </div>
-            <div class="home-results-list__toolbar">
-                <button type="button" class="is-active" data-i18n="home.trending.tab.trend">Тренд</button>
-                <button type="button" data-i18n="home.trending.tab.weekend">Този уикенд</button>
-                <button type="button" data-i18n="home.trending.tab.nearby">Наблизо</button>
-            </div>
-            @foreach (var ev in trendingEvents)
-            {
-                var heat = ev.GoingCount * 2 + ev.InterestedCount + ev.LikesCount + ev.CommentsCount + ev.SavesCount;
 
-                <article class="home-result-row home-result-row--trending" data-show-on-map="@ev.Id" tabindex="0">
-                    <span class="home-result-row__media">
-                        @if (!string.IsNullOrWhiteSpace(ev.ImageUrl))
-                        {
-                            <img src="@ev.ImageUrl" alt="@ev.Title" />
-                        }
-                        else
-                        {
-                            <span><i class="bi bi-calendar-event"></i></span>
-                        }
-                    </span>
-                    <div class="home-result-row__body">
-                        <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id">@ev.Title</a>
-                        <small>@ev.City · @ev.StartTime.ToString("dd.MM HH:mm")</small>
-                        <span class="home-result-row__meta">
-                            <i class="bi bi-fire"></i>
-                            @if (heat == 0)
-                            {
-                                <span data-i18n="home.trending.new">ново</span>
-                            }
-                            else
-                            {
-                                <span>@heat</span> <span data-i18n="home.trending.reactions">реакции</span>
-                            }
-                        </span>
-                    </div>
-                    <span class="home-result-row__heat">#@(trendingEvents.IndexOf(ev) + 1)</span>
-                </article>
-            }
-        </aside>
+            <div id="geo-status" class="evt-geo-status"></div>
+
+            <button id="use-my-location" type="button" class="evt-hero__map-locate">
+                <i class="bi bi-crosshair"></i>
+                <span data-i18n="home.geo.btn">Около мен</span>
+            </button>
+        </div>
     </section>
 
-    <section class="groove-section">
-        <div class="groove-section-heading">
+    <form id="home-smart-search-form" class="evt-search-panel" autocomplete="off">
+        @Html.AntiForgeryToken()
+
+        <div class="evt-search-tabs" role="tablist">
+            <button type="button" class="evt-search-tab is-active" data-search-tab="events">
+                <i class="bi bi-calendar-event"></i> <span data-i18n="search.tab.events">Събития</span>
+            </button>
+            <button type="button" class="evt-search-tab" data-search-tab="tonight">
+                <i class="bi bi-moon-stars"></i> <span data-i18n="search.tab.tonight">Тази вечер</span>
+            </button>
+            <button type="button" class="evt-search-tab" data-search-tab="weekend">
+                <i class="bi bi-stars"></i> <span data-i18n="search.tab.weekend">Уикенд</span>
+            </button>
+            <button type="button" class="evt-search-tab" data-search-tab="nearby">
+                <i class="bi bi-geo-alt"></i> <span data-i18n="search.tab.nearby">Около мен</span>
+            </button>
+        </div>
+
+        <div class="evt-search-row">
+            <div class="evt-search-field">
+                <span data-i18n="search.field.what">Какво търсиш</span>
+                <input id="home-smart-search-input" type="text" name="q"
+                       data-i18n-placeholder="home.search.placeholder"
+                       placeholder="техно тази вечер в София · джаз през уикенда" />
+            </div>
+            <div class="evt-search-field">
+                <span data-i18n="search.field.where">Град</span>
+                <select form="home-events-filter" name="city">
+                    <option value="" data-i18n="filter.allcities">Всички градове</option>
+                    @foreach (var c in Model.Cities)
+                    {
+                        <option value="@c" selected="@(Model.City == c)">@c</option>
+                    }
+                </select>
+            </div>
+            <div class="evt-search-field">
+                <span data-i18n="search.field.when">Дата</span>
+                <input type="date" form="home-events-filter" name="dateFrom" value="@Model.DateFrom?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="evt-search-field">
+                <span data-i18n="search.field.genre">Жанр</span>
+                <select form="home-events-filter" name="genre">
+                    <option value="" data-i18n="filter.allgenres">Всички жанрове</option>
+                    @foreach (var g in Enum.GetValues<EventGenre>())
+                    {
+                        <option value="@((int)g)" selected="@(Model.Genre == g)" data-i18n="genre.@g">@g.GetDisplayName()</option>
+                    }
+                </select>
+            </div>
+            <button class="evt-search-submit" type="submit">
+                <i class="bi bi-stars"></i>
+                <span data-i18n="home.search.btn">Smart търси</span>
+            </button>
+        </div>
+
+        <div class="evt-search-status">
+            <span id="home-search-status"></span>
+            <button id="home-smart-clear" class="evt-chip" type="button" data-i18n="home.clear" style="display:none;">Изчисти</button>
+        </div>
+    </form>
+
+    <section class="evt-section">
+        <div class="evt-section__head">
             <div>
-                <span class="groove-stamp groove-stamp-red" data-i18n="home.events.stamp">Бюро за събития</span>
-                <h2 data-i18n="@(hasRealEvents ? "home.events.title" : "home.events.empty")">@(hasRealEvents ? "Събития" : "Все още няма публикувани събития")</h2>
+                <h2 class="evt-section__title" data-i18n="home.events.discover">Открий своята вечер</h2>
+                <p class="evt-section__sub" data-i18n="home.events.discover.sub">Подбрани събития, фестивали и партита около теб.</p>
+            </div>
+
+            <form id="home-events-filter" method="get" class="evt-toolbar" style="gap:8px;">
+                <input type="hidden" name="search" value="@Model.Search" />
+                <div class="evt-sort">
+                    <i class="bi bi-arrow-down-up"></i>
+                    <select name="sort" onchange="this.form.submit()">
+                        <option data-i18n="sort.recent">Recently added</option>
+                        <option data-i18n="sort.soon">Starting soon</option>
+                        <option data-i18n="sort.popular">Most popular</option>
+                    </select>
+                </div>
+                <button type="submit" class="evt-btn evt-btn-ghost" style="padding:8px 16px;">
+                    <i class="bi bi-funnel"></i> <span data-i18n="home.filter.btn">Филтрирай</span>
+                </button>
+            </form>
+        </div>
+
+        <div class="evt-toolbar">
+            <div class="evt-chips">
+                <a class="evt-chip is-active" asp-action="Index" data-i18n="chip.featured">Featured</a>
+                <a class="evt-chip" asp-action="Index" asp-route-dateFrom="@DateTime.UtcNow.ToString("yyyy-MM-dd")" data-i18n="chip.today">Днес</a>
+                <a class="evt-chip" asp-action="Index" asp-route-dateFrom="@DateTime.UtcNow.AddDays(2).ToString("yyyy-MM-dd")" data-i18n="chip.weekend">Уикенд</a>
+                <a class="evt-chip" asp-action="Index" asp-route-search="concert" data-i18n="chip.concerts">Концерти</a>
+                <a class="evt-chip" asp-action="Index" asp-route-search="festival" data-i18n="chip.festivals">Фестивали</a>
+                <a class="evt-chip" asp-action="Index" asp-route-search="theatre" data-i18n="chip.theatre">Театър</a>
+                <a class="evt-chip" asp-action="Index" asp-route-search="free" data-i18n="chip.free">Безплатни</a>
+                <a class="evt-chip" asp-action="Index" asp-route-search="family" data-i18n="chip.family">Family</a>
             </div>
             @if (User.IsInRole(GlobalConstants.Roles.Organizer) || User.IsInRole(GlobalConstants.Roles.Admin))
             {
-                <a asp-controller="Events" asp-action="Create" class="groove-link" data-i18n="home.events.create">Създай събитие</a>
+                <a asp-controller="Events" asp-action="Create" class="evt-btn evt-btn-primary" style="padding:8px 16px;">
+                    <i class="bi bi-plus-lg"></i> <span data-i18n="home.events.create">Създай събитие</span>
+                </a>
             }
         </div>
 
-        <form method="get" class="groove-filter">
-            <input type="text" name="search" value="@Model.Search" placeholder="Търси по заглавие..." data-i18n-placeholder="home.filter.search" />
-            <select name="city">
-                <option value="" data-i18n="filter.allcities">Всички градове</option>
-                @foreach (var c in Model.Cities)
-                {
-                    <option value="@c" selected="@(Model.City == c)">@c</option>
-                }
-            </select>
-            <select name="genre">
-                <option value="" data-i18n="filter.allgenres">Всички жанрове</option>
-                @foreach (var g in Enum.GetValues<EventGenre>())
-                {
-                    <option value="@((int)g)" selected="@(Model.Genre == g)" data-i18n="genre.@g">@g.GetDisplayName()</option>
-                }
-            </select>
-            <input type="date" name="dateFrom" value="@Model.DateFrom?.ToString("yyyy-MM-dd")" />
-            <button type="submit" data-i18n="home.filter.btn">Филтър</button>
-            <a asp-action="Index" data-i18n="home.clear">Изчисти</a>
-        </form>
+        <div class="evt-discover">
+            @if (hasRealEvents)
+            {
+                <div id="event-cards-grid" class="evt-grid">
+                    @foreach (var ev in Model.Events)
+                    {
+                        <div class="evt-grid__cell"
+                             data-event-id="@ev.Id"
+                             data-event-title="@ev.Title"
+                             data-event-city="@ev.City"
+                             data-event-address="@ev.Address"
+                             data-event-genre="@ev.Genre">
+                            <partial name="_EventCard" model="ev" />
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="evt-empty">
+                    <p data-i18n="home.events.emptytext">Все още няма публикувани събития. Когато организаторите добавят такива, те ще се появят тук.</p>
+                    @if (User.Identity?.IsAuthenticated == true && !User.IsInRole(GlobalConstants.Roles.Organizer) && !User.IsInRole(GlobalConstants.Roles.Admin))
+                    {
+                        <a asp-controller="Account" asp-action="Apply" class="evt-btn evt-btn-primary mt-3" data-i18n="home.events.apply">Кандидатствай за организатор</a>
+                    }
+                </div>
+            }
 
-        @if (hasRealEvents)
-        {
-            <div id="event-cards-grid" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
-                @foreach (var ev in Model.Events)
-                {
-                    <div class="col"
-                         data-event-id="@ev.Id"
-                         data-event-title="@ev.Title"
-                         data-event-city="@ev.City"
-                         data-event-address="@ev.Address"
-                         data-event-genre="@ev.Genre">
-                        <partial name="_EventCard" model="ev" />
-                    </div>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="groove-empty-state">
-                <p data-i18n="home.events.emptytext">Все още няма публикувани събития. Когато организаторите добавят такива, те ще се появят тук.</p>
-                @if (User.Identity?.IsAuthenticated == true && !User.IsInRole(GlobalConstants.Roles.Organizer) && !User.IsInRole(GlobalConstants.Roles.Admin))
-                {
-                    <a asp-controller="Account" asp-action="Apply" class="groove-link" data-i18n="home.events.apply">Кандидатствай за организатор</a>
-                }
-            </div>
-        }
+            <aside class="evt-trending">
+                <div class="evt-trending__head">
+                    <span class="evt-card__chip evt-card__chip--hot" style="position:static;display:inline-block;">
+                        <i class="bi bi-fire"></i> <span data-i18n="home.trending.stamp">Тренд</span>
+                    </span>
+                    <h3 data-i18n="home.trending.title">Хора следят сега</h3>
+                    <p data-i18n="home.trending.sub">Най-нашумелите събития според реакциите.</p>
+                </div>
+                <div class="evt-trending__list">
+                    @foreach (var ev in trendingEvents)
+                    {
+                        var heat = ev.GoingCount * 2 + ev.InterestedCount + ev.LikesCount + ev.CommentsCount + ev.SavesCount;
+                        var rank = trendingEvents.IndexOf(ev) + 1;
+                        <button type="button" class="evt-trending__row" data-show-on-map="@ev.Id">
+                            @if (!string.IsNullOrWhiteSpace(ev.ImageUrl))
+                            {
+                                <img src="@ev.ImageUrl" alt="@ev.Title" />
+                            }
+                            else
+                            {
+                                <span class="evt-trending__placeholder"><i class="bi bi-calendar-event"></i></span>
+                            }
+                            <div class="evt-trending__body">
+                                <strong>@ev.Title</strong>
+                                <small>@ev.City · @ev.StartTime.ToString("dd.MM HH:mm")</small>
+                            </div>
+                            <span class="evt-trending__rank">#@rank</span>
+                        </button>
+                    }
+                    @if (trendingEvents.Count == 0)
+                    {
+                        <p class="text-muted small mb-0" data-i18n="home.trending.empty">Все още няма достатъчно реакции.</p>
+                    }
+                </div>
+            </aside>
+        </div>
     </section>
 </div>
