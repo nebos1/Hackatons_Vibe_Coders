@@ -1,4 +1,5 @@
 using EventsApp.Models;
+using EventsApp.ViewModels.Layouts;
 using EventsApp.ViewModels.Tickets;
 
 namespace EventsApp.ViewModels.Events
@@ -32,6 +33,25 @@ namespace EventsApp.ViewModels.Events
         public bool CanDelete { get; set; }
         public bool CanManageTickets { get; set; }
         public IReadOnlyList<EventTicketOptionViewModel> Tickets { get; set; } = Array.Empty<EventTicketOptionViewModel>();
+        public bool IsRecurring { get; set; }
+        public int? EventSeriesId { get; set; }
+        public int? SelectedOccurrenceId { get; set; }
+        public EventOccurrenceStatus? SelectedOccurrenceStatus { get; set; }
+        public IReadOnlyList<EventOccurrenceOptionViewModel> Occurrences { get; set; } = Array.Empty<EventOccurrenceOptionViewModel>();
+        public EventTicketingMode TicketingMode { get; set; } = EventTicketingMode.GeneralAdmission;
+        public bool HasSeatLayout { get; set; }
+        public EventSeatMapViewModel? SeatMap { get; set; }
+    }
+
+    public class EventOccurrenceOptionViewModel
+    {
+        public int Id { get; set; }
+        public DateTime StartDateTime { get; set; }
+        public DateTime EndDateTime { get; set; }
+        public EventOccurrenceStatus Status { get; set; }
+        public int SoldCount { get; set; }
+        public int? CapacityOverride { get; set; }
+        public bool IsAvailable => Status == EventOccurrenceStatus.Scheduled && StartDateTime > DateTime.UtcNow;
     }
 
     public class EventCommentViewModel

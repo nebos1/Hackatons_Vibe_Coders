@@ -1,7 +1,7 @@
 @using EventsApp.ViewModels.Account
 @model AccountOverviewViewModel
 @{
-    ViewData["Title"] = "Account overview";
+    ViewData["Title"] = "Преглед на акаунта";
     var isAdmin = Model.Role == GlobalConstants.Roles.Admin;
     var isOrganizer = Model.Role == GlobalConstants.Roles.Organizer;
     var displayName = !string.IsNullOrWhiteSpace(Model.UserName) ? Model.UserName : Model.Email;
@@ -26,30 +26,30 @@
                 }
             </div>
             <div>
-                <span class="groove-stamp groove-stamp-red">Account</span>
+                <span class="groove-stamp groove-stamp-red" data-i18n="account.title">Акаунт</span>
                 <h1>@displayName</h1>
                 <p>@Model.Email</p>
                 <div class="groove-inline-actions">
                     <span class="groove-status-badge @roleClass">@Model.Role.ToRoleDisplay()</span>
-                    <span class="groove-badge"><i class="bi bi-calendar-check"></i> Since @Model.CreatedAt.ToString("MMMM yyyy")</span>
+                    <span class="groove-badge"><i class="bi bi-calendar-check"></i> <span data-i18n="account.since">От</span> @Model.CreatedAt.ToString("MMMM yyyy")</span>
                 </div>
             </div>
         </div>
         <div class="account-overview-hero__actions">
             <a asp-action="EditProfile" class="groove-button groove-button-dark">
-                <i class="bi bi-person-gear"></i> Edit profile
+                <i class="bi bi-person-gear"></i> <span data-i18n="profile.edit">Редактирай профила</span>
             </a>
             @if (!string.IsNullOrWhiteSpace(currentUserId))
             {
                 <a asp-controller="Profiles" asp-action="Details" asp-route-id="@currentUserId" class="groove-button groove-button-paper">
-                    <i class="bi bi-person-lines-fill"></i> Public profile
+                    <i class="bi bi-person-lines-fill"></i> <span data-i18n="profile.public">Публичен профил</span>
                 </a>
             }
             <a asp-controller="Posts" asp-action="Create" class="groove-button groove-button-paper">
-                <i class="bi bi-plus-square"></i> New post
+                <i class="bi bi-plus-square"></i> <span data-i18n="post.create">Нова публикация</span>
             </a>
             <a asp-controller="Preferences" asp-action="Index" class="groove-button groove-button-paper">
-                <i class="bi bi-sliders"></i> Preferences
+                <i class="bi bi-sliders"></i> <span data-i18n="account.preferences">Предпочитания</span>
             </a>
         </div>
     </article>
@@ -57,27 +57,27 @@
     <section class="account-stat-strip">
         <a asp-controller="Profiles" asp-action="Followers" asp-route-id="@currentUserId">
             <strong>@Model.FollowersCount</strong>
-            <span>Followers</span>
+            <span data-i18n="profile.followers">последователи</span>
         </a>
         <a asp-controller="Profiles" asp-action="Following" asp-route-id="@currentUserId">
             <strong>@Model.FollowingCount</strong>
-            <span>Following</span>
+            <span data-i18n="profile.following">следва</span>
         </a>
         <span>
             <strong>@Model.PostsCount</strong>
-            <span>Posts</span>
+            <span data-i18n="profile.posts">публикации</span>
         </span>
         <span>
             <strong>@Model.SavedPostsCount</strong>
-            <span>Saved posts</span>
+            <span data-i18n="account.saved.posts">запазени публикации</span>
         </span>
         <span>
             <strong>@Model.SavedEventsCount</strong>
-            <span>Saved events</span>
+            <span data-i18n="account.saved.events">запазени събития</span>
         </span>
         <span>
             <strong>@Model.PurchasedTicketsCount</strong>
-            <span>Tickets</span>
+            <span data-i18n="org.btn.tickets">билети</span>
         </span>
     </section>
 
@@ -86,10 +86,10 @@
             <section class="groove-page-section">
                 <div class="groove-section-bar">
                     <div>
-                        <span class="groove-kicker">Your posts</span>
-                        <h2>What you have <span>published</span>.</h2>
+                        <span class="groove-kicker" data-i18n="account.your.posts">Твоите публикации</span>
+                        <h2 data-i18n-html="account.published">Това, което си <span>публикувал</span>.</h2>
                     </div>
-                    <a asp-controller="Posts" asp-action="Create" class="groove-link">Create</a>
+                    <a asp-controller="Posts" asp-action="Create" class="groove-link" data-i18n="home.events.create">Създай</a>
                 </div>
                 @if (Model.MyPosts.Any())
                 {
@@ -104,7 +104,7 @@
                 {
                     <div class="social-empty-panel">
                         <i class="bi bi-journal-plus"></i>
-                        <span>You have not posted yet.</span>
+                        <span data-i18n="account.no.posts">Все още нямаш публикации.</span>
                     </div>
                 }
             </section>
@@ -112,8 +112,8 @@
             <section class="groove-page-section">
                 <div class="groove-section-bar">
                     <div>
-                        <span class="groove-kicker">Saved</span>
-                        <h2>Posts you want to <span>keep</span>.</h2>
+                        <span class="groove-kicker" data-i18n="account.saved">Запазено</span>
+                        <h2 data-i18n-html="account.posts.keep">Публикации, които искаш да <span>запазиш</span>.</h2>
                     </div>
                 </div>
                 @if (Model.SavedPosts.Any())
@@ -129,7 +129,7 @@
                 {
                     <div class="social-empty-panel">
                         <i class="bi bi-bookmark"></i>
-                        <span>Saved posts will appear here.</span>
+                        <span data-i18n="account.saved.posts.empty">Запазените публикации ще се появят тук.</span>
                     </div>
                 }
             </section>
@@ -137,31 +137,31 @@
 
         <aside class="account-overview-side">
             <section class="social-side-panel">
-                <span class="groove-kicker">Quick actions</span>
+                <span class="groove-kicker" data-i18n="account.quick.actions">Бързи действия</span>
                 <div class="account-link-list">
-                    <a asp-controller="Home" asp-action="Index"><i class="bi bi-house-door"></i> Home</a>
-                    <a asp-controller="Posts" asp-action="Index"><i class="bi bi-grid"></i> Feed</a>
-                    <a asp-controller="Messages" asp-action="Index"><i class="bi bi-chat-dots"></i> Messages</a>
-                    <a asp-controller="Tickets" asp-action="MyTickets"><i class="bi bi-ticket-perforated"></i> My tickets</a>
-                    <a asp-controller="Events" asp-action="Recommended"><i class="bi bi-stars"></i> Recommended events</a>
+                    <a asp-controller="Home" asp-action="Index"><i class="bi bi-house-door"></i> <span data-i18n="nav.home">Начало</span></a>
+                    <a asp-controller="Posts" asp-action="Index"><i class="bi bi-grid"></i> <span data-i18n="nav.feed">Поток</span></a>
+                    <a asp-controller="Messages" asp-action="Index"><i class="bi bi-chat-dots"></i> <span data-i18n="nav.messages">Съобщения</span></a>
+                    <a asp-controller="Tickets" asp-action="MyTickets"><i class="bi bi-ticket-perforated"></i> <span data-i18n="nav.mytickets">Моите билети</span></a>
+                    <a asp-controller="Events" asp-action="Recommended"><i class="bi bi-stars"></i> <span data-i18n="nav.recommended">Препоръчани</span></a>
                 </div>
             </section>
 
             @if (isAdmin || isOrganizer)
             {
                 <section class="social-side-panel">
-                    <span class="groove-kicker">Work tools</span>
+                    <span class="groove-kicker" data-i18n="account.work.tools">Работни инструменти</span>
                     <div class="account-link-list">
                         @if (isOrganizer)
                         {
-                            <a asp-controller="Organizer" asp-action="Dashboard"><i class="bi bi-speedometer2"></i> Organizer dashboard</a>
-                            <a asp-controller="Organizer" asp-action="Profiles"><i class="bi bi-person-badge"></i> Public organizer pages</a>
+                            <a asp-controller="Organizer" asp-action="Dashboard"><i class="bi bi-speedometer2"></i> <span data-i18n="organizer.dashboard">Организаторско табло</span></a>
+                            <a asp-controller="Organizer" asp-action="Profiles"><i class="bi bi-person-badge"></i> <span data-i18n="organizer.public.pages">Публични организаторски страници</span></a>
                         }
-                        <a asp-controller="Tickets" asp-action="Validate"><i class="bi bi-qr-code-scan"></i> Validate tickets</a>
+                        <a asp-controller="Tickets" asp-action="Validate"><i class="bi bi-qr-code-scan"></i> <span data-i18n="nav.validate">Валидиране</span></a>
                         @if (isAdmin)
                         {
-                            <a asp-controller="Admin" asp-action="Index"><i class="bi bi-shield-check"></i> Admin panel</a>
-                            <a asp-controller="Admin" asp-action="Users"><i class="bi bi-people"></i> Users</a>
+                            <a asp-controller="Admin" asp-action="Index"><i class="bi bi-shield-check"></i> <span data-i18n="nav.admin">Админ</span></a>
+                            <a asp-controller="Admin" asp-action="Users"><i class="bi bi-people"></i> <span data-i18n="account.users">Потребители</span></a>
                         }
                     </div>
                 </section>
@@ -169,28 +169,28 @@
             else if (!Model.HasApplied)
             {
                 <section class="social-side-panel account-promo-panel">
-                    <span class="groove-kicker">Organizer</span>
-                    <h3>Start publishing events.</h3>
-                    <p>Apply when you are ready to sell tickets and manage events through Evento.</p>
+                    <span class="groove-kicker" data-i18n="profile.type.organizer">Организатор</span>
+                    <h3 data-i18n="account.apply.title">Започни да публикуваш събития.</h3>
+                    <p data-i18n="account.apply.desc">Кандидатствай, когато си готов да продаваш билети и да управляваш събития през Evento.</p>
                     <a asp-action="Apply" class="groove-button groove-button-dark">
-                        <i class="bi bi-send"></i> Apply
+                        <i class="bi bi-send"></i> <span data-i18n="home.events.apply">Кандидатствай</span>
                     </a>
                 </section>
             }
             else
             {
                 <section class="social-side-panel account-promo-panel">
-                    <span class="groove-kicker">Application</span>
-                    <h3>Pending review.</h3>
+                    <span class="groove-kicker" data-i18n="account.application">Кандидатура</span>
+                    <h3 data-i18n="account.pending.review">Чака преглед.</h3>
                     <p>@Model.OrganizationName</p>
-                    <a asp-action="EditApplication" class="groove-link">Edit application</a>
+                    <a asp-action="EditApplication" class="groove-link" data-i18n="account.edit.application">Редактирай кандидатурата</a>
                 </section>
             }
 
             <section class="social-side-panel">
                 <div class="social-side-panel__head">
-                    <span class="groove-kicker">Saved events</span>
-                    <a asp-controller="Home" asp-action="Index" class="groove-link">Explore</a>
+                    <span class="groove-kicker" data-i18n="account.saved.events">Запазени събития</span>
+                    <a asp-controller="Home" asp-action="Index" class="groove-link" data-i18n="account.explore">Разгледай</a>
                 </div>
                 @if (Model.SavedEvents.Any())
                 {
@@ -205,18 +205,18 @@
                 }
                 else
                 {
-                    <div class="social-empty-inline">Saved events will appear here.</div>
+                    <div class="social-empty-inline" data-i18n="account.saved.events.empty">Запазените събития ще се появят тук.</div>
                 }
             </section>
 
             <section class="social-side-panel">
                 <div class="social-side-panel__head">
-                    <span class="groove-kicker">Tickets</span>
-                    <a asp-controller="Tickets" asp-action="MyTickets" class="groove-link">All</a>
+                    <span class="groove-kicker" data-i18n="org.btn.tickets">Билети</span>
+                    <a asp-controller="Tickets" asp-action="MyTickets" class="groove-link" data-i18n="feed.all">Всички</a>
                 </div>
                 @if (Model.RecentTickets.Count == 0)
                 {
-                    <div class="social-empty-inline">No purchased tickets yet.</div>
+                    <div class="social-empty-inline" data-i18n="account.no.tickets">Все още няма купени билети.</div>
                 }
                 else
                 {

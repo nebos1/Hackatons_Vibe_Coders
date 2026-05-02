@@ -17,6 +17,28 @@
         'auth.register':   { bg: 'Регистрация',     en: 'Register' },
         'auth.logout':     { bg: 'Изход',           en: 'Logout' },
         'account.overview':{ bg: 'Преглед',         en: 'Overview' },
+        'account.title': { bg: 'Акаунт', en: 'Account' },
+        'account.since': { bg: 'От', en: 'Since' },
+        'account.preferences': { bg: 'Предпочитания', en: 'Preferences' },
+        'account.saved.posts': { bg: 'запазени публикации', en: 'Saved posts' },
+        'account.saved.events': { bg: 'Запазени събития', en: 'Saved events' },
+        'account.your.posts': { bg: 'Твоите публикации', en: 'Your posts' },
+        'account.published': { bg: 'Това, което си <span>публикувал</span>.', en: 'What you have <span>published</span>.' },
+        'account.no.posts': { bg: 'Все още нямаш публикации.', en: 'You have not posted yet.' },
+        'account.saved': { bg: 'Запазено', en: 'Saved' },
+        'account.posts.keep': { bg: 'Публикации, които искаш да <span>запазиш</span>.', en: 'Posts you want to <span>keep</span>.' },
+        'account.saved.posts.empty': { bg: 'Запазените публикации ще се появят тук.', en: 'Saved posts will appear here.' },
+        'account.quick.actions': { bg: 'Бързи действия', en: 'Quick actions' },
+        'account.work.tools': { bg: 'Работни инструменти', en: 'Work tools' },
+        'account.users': { bg: 'Потребители', en: 'Users' },
+        'account.apply.title': { bg: 'Започни да публикуваш събития.', en: 'Start publishing events.' },
+        'account.apply.desc': { bg: 'Кандидатствай, когато си готов да продаваш билети и да управляваш събития през Evento.', en: 'Apply when you are ready to sell tickets and manage events through Evento.' },
+        'account.application': { bg: 'Кандидатура', en: 'Application' },
+        'account.pending.review': { bg: 'Чака преглед.', en: 'Pending review.' },
+        'account.edit.application': { bg: 'Редактирай кандидатурата', en: 'Edit application' },
+        'account.explore': { bg: 'Разгледай', en: 'Explore' },
+        'account.saved.events.empty': { bg: 'Запазените събития ще се появят тук.', en: 'Saved events will appear here.' },
+        'account.no.tickets': { bg: 'Все още няма купени билети.', en: 'No purchased tickets yet.' },
         'profile.public':  { bg: 'Публичен профил', en: 'Public profile' },
         'post.create':     { bg: 'Нова публикация', en: 'Create post' },
         'story.create':    { bg: 'Стори',           en: 'Story' },
@@ -214,6 +236,176 @@
         'org.recent.events.h2': { bg: 'Последни <span>събития</span>.', en: 'Recent <span>events</span>.' },
         'org.kicker.diary':      { bg: 'Дневник',                en: 'Diary' },
         'org.recent.posts.h2':  { bg: 'Последни <span>публикации</span>.', en: 'Recent <span>posts</span>.' },
+
+        // COMMON
+        'common.cancel': { bg: 'Отказ', en: 'Cancel' },
+        'common.signin': { bg: 'Вход', en: 'Sign in' },
+        'common.send': { bg: 'Изпрати', en: 'Send' },
+        'common.back': { bg: 'Назад', en: 'Back' },
+
+        // RECURRING EVENTS
+        'event.schedule.kicker': { bg: 'График', en: 'Schedule' },
+        'event.schedule.title': { bg: 'Дати на събитието', en: 'Event dates' },
+        'event.schedule.single': { bg: 'Еднократно събитие', en: 'Single event' },
+        'event.schedule.single.desc': { bg: 'Използва стандартните начална и крайна дата.', en: 'Uses the standard start and end date.' },
+        'event.schedule.daily': { bg: 'Повтаря се всеки ден', en: 'Repeats daily' },
+        'event.schedule.daily.desc': { bg: 'Всеки ден или през няколко дни до крайна дата.', en: 'Every day or every few days until an end date.' },
+        'event.schedule.weekly': { bg: 'Повтаря се всяка седмица', en: 'Repeats weekly' },
+        'event.schedule.weekly.desc': { bg: 'Избери един или повече дни от седмицата.', en: 'Choose one or more weekdays.' },
+        'event.schedule.edit.note': { bg: 'За една конкретна дата отвори детайлите на събитието и отмени само избраната дата.', en: 'To change one concrete date, open the event details and cancel only the selected date.' },
+        'event.dates.kicker': { bg: 'Дати', en: 'Dates' },
+        'event.dates.title': { bg: 'Избери конкретна дата', en: 'Choose a specific date' },
+        'event.dates.cancel': { bg: 'Отмени тази дата', en: 'Cancel this date' },
+        'event.publicpage.choose': { bg: '-- Избери публична страница --', en: '-- Choose public page --' },
+        'home.geo.btn.short': { bg: 'Моето място', en: 'My Location' },
+        'home.filters.aria': { bg: 'Бързи филтри', en: 'Quick event filters' },
+        'home.chip.today': { bg: 'Днес', en: 'Today' },
+        'home.chip.weekend': { bg: 'Този уикенд', en: 'This weekend' },
+        'home.chip.concerts': { bg: 'Концерти', en: 'Concerts' },
+        'home.chip.theatre': { bg: 'Театър', en: 'Theatre' },
+        'home.chip.festivals': { bg: 'Фестивали', en: 'Festivals' },
+        'home.chip.free': { bg: 'Безплатни', en: 'Free events' },
+        'home.chip.family': { bg: 'Семейни', en: 'Family' },
+        'home.results.kicker': { bg: 'Зона с резултати', en: 'Smart search result area' },
+        'home.results.title': { bg: 'Резултати за следващото ти събитие', en: 'Results for your next event' },
+        'home.results.date': { bg: 'Дата', en: 'Date' },
+        'home.results.distance': { bg: 'Разстояние', en: 'Distance' },
+        'home.map.loading': { bg: 'Картата се зарежда...', en: 'Loading map...' },
+
+        // DAYS
+        'day.Sunday': { bg: 'Неделя', en: 'Sunday' },
+        'day.Monday': { bg: 'Понеделник', en: 'Monday' },
+        'day.Tuesday': { bg: 'Вторник', en: 'Tuesday' },
+        'day.Wednesday': { bg: 'Сряда', en: 'Wednesday' },
+        'day.Thursday': { bg: 'Четвъртък', en: 'Thursday' },
+        'day.Friday': { bg: 'Петък', en: 'Friday' },
+        'day.Saturday': { bg: 'Събота', en: 'Saturday' },
+
+        // TICKETING / SEATS
+        'event.ticketing.kicker': { bg: 'Билети и места', en: 'Ticketing and seating' },
+        'event.ticketing.title': { bg: 'Как влиза публиката', en: 'How the audience enters' },
+        'event.ticketing.ga': { bg: 'Без места', en: 'General Admission' },
+        'event.ticketing.ga.desc': { bg: 'Без избор на място. Старият билетен поток остава активен.', en: 'No seat selection. The existing ticket flow stays active.' },
+        'event.ticketing.seated': { bg: 'Използвай схема с места', en: 'Use a seated layout' },
+        'event.ticketing.seated.desc': { bg: 'Всяко събитие или дата получава отделна наличност на места.', en: 'Each event or date gets its own seat inventory.' },
+        'event.ticketing.standing': { bg: 'Правостоящи зони', en: 'Standing zones' },
+        'event.ticketing.standing.desc': { bg: 'Използвай преизползваеми секции за правостоящи или VIP зони.', en: 'Use reusable sections for standing or VIP zones.' },
+        'event.ticketing.tables': { bg: 'Маси / VIP', en: 'Tables / VIP' },
+        'event.ticketing.tables.desc': { bg: 'Използвай маси или премиум секции с добавка към цената.', en: 'Use tables or premium sections with a price modifier.' },
+        'event.ticketing.choose.layout': { bg: '-- Избери преизползваем layout --', en: '-- Choose reusable layout --' },
+        'ticket.end': { bg: 'Край', en: 'End' },
+        'ticket.seat': { bg: 'Място', en: 'Seat' },
+        'ticket.sold.lower': { bg: 'продадени', en: 'sold' },
+        'ticket.left': { bg: 'оставащи', en: 'left' },
+        'ticket.soldout': { bg: 'Разпродадено', en: 'Sold out' },
+        'ticket.getfree': { bg: 'Вземи безплатно', en: 'Get free' },
+        'ticket.buy': { bg: 'Купи', en: 'Buy' },
+        'ticket.none': { bg: 'Все още няма билети.', en: 'No tickets yet.' },
+        'tickets.available': { bg: 'Налични <span>билети</span>.', en: 'Available <span>tickets</span>.' },
+        'tickets.add': { bg: 'Добави билет', en: 'Add ticket' },
+
+        // SEAT MAP
+        'seat.map.kicker': { bg: 'Карта на местата', en: 'Seat map' },
+        'seat.map.help': { bg: 'Избери място преди покупка. Резервацията се пази за кратко.', en: 'Choose a seat before checkout. The reservation is held briefly.' },
+        'seat.none': { bg: 'Няма свободни места за избор.', en: 'No selectable seats.' },
+
+        // LAYOUTS
+        'layout.my': { bg: 'Моите layout-и', en: 'My Layouts' },
+        'layout.kicker': { bg: 'Layout-и', en: 'Layouts' },
+        'layout.index.title': { bg: 'Преизползваеми схеми за места', en: 'Reusable seating layouts' },
+        'layout.index.desc': { bg: 'Създай схема веднъж и я използвай за много събития, дати, зали, артисти или формати.', en: 'Create a layout once and reuse it across events, dates, venues, artists or formats.' },
+        'layout.create': { bg: 'Създай layout', en: 'Create layout' },
+        'layout.create.short': { bg: 'Нов layout', en: 'New layout' },
+        'layout.empty.title': { bg: 'Все още няма layout-и.', en: 'No layouts yet.' },
+        'layout.empty.desc': { bg: 'Започни с прост layout или остави събитията General Admission.', en: 'Start with a simple layout or keep events as General Admission.' },
+        'layout.sections': { bg: 'Секции', en: 'Sections' },
+        'layout.seats': { bg: 'Места', en: 'Seats' },
+        'layout.locked.note': { bg: 'Има продадени места. Големи промени ще създадат нова версия.', en: 'Sold seats exist. Major changes create a new version.' },
+        'layout.preview': { bg: 'Преглед', en: 'Preview' },
+        'layout.duplicate': { bg: 'Дублирай', en: 'Duplicate' },
+        'layout.editor.kicker': { bg: 'Layout редактор', en: 'Layout editor' },
+        'layout.editor.seatmap': { bg: 'Карта на залата', en: 'Seat map' },
+        'layout.editor.desc': { bg: 'Добавяй секции, генерирай редове и запази схемата като преизползваем шаблон.', en: 'Add sections, generate rows and save the layout as a reusable template.' },
+        'layout.version.warning': { bg: 'Този layout вече има продадени места. При запис ще се създаде нова версия.', en: 'This layout already has sold seats. Saving creates a new version.' },
+        'layout.section': { bg: 'Секция', en: 'Section' },
+        'layout.generate.rows': { bg: 'Генерирай редове', en: 'Generate rows' },
+        'layout.selected': { bg: 'Избрана секция', en: 'Selected section' },
+        'layout.section.name': { bg: 'Име на секция', en: 'Section name' },
+        'layout.price.modifier': { bg: 'Добавка към цена', en: 'Price modifier' },
+        'layout.remove.section': { bg: 'Премахни секцията', en: 'Remove section' },
+        'layout.save': { bg: 'Запази layout', en: 'Save layout' },
+
+        // STATUSES / TYPES
+        'status.occurrence.Scheduled': { bg: 'Планирана', en: 'Scheduled' },
+        'status.occurrence.Cancelled': { bg: 'Отменена', en: 'Cancelled' },
+        'status.occurrence.SoldOut': { bg: 'Разпродадена', en: 'Sold out' },
+        'status.layout.Draft': { bg: 'Чернова', en: 'Draft' },
+        'status.layout.Active': { bg: 'Активен', en: 'Active' },
+        'status.layout.Archived': { bg: 'Архивиран', en: 'Archived' },
+        'section.type.Seated': { bg: 'Седящи места', en: 'Seated' },
+        'section.type.Standing': { bg: 'Правостоящи', en: 'Standing' },
+        'section.type.VIP': { bg: 'VIP', en: 'VIP' },
+        'section.type.Table': { bg: 'Маси', en: 'Tables' },
+
+        // CONVERSATION
+        'comments.kicker': { bg: 'Разговор', en: 'Conversation' },
+        'comments.title': { bg: 'Коментари', en: 'Comments' },
+        'comments.placeholder': { bg: 'Напиши коментар...', en: 'Write a comment...' },
+        'comments.empty': { bg: 'Все още няма коментари.', en: 'No comments yet.' },
+        'event.location': { bg: 'Локация', en: 'Location' },
+        'event.social': { bg: 'Социално', en: 'Social' },
+        'event.attendance': { bg: 'Посещения', en: 'Attendance' },
+        'event.status.waiting.approval': { bg: 'Това събитие чака одобрение.', en: 'This event is waiting for approval.' },
+        'organizer.profiles.desc': { bg: 'Създавай отделни страници за брандове, зали, регулярни вечери или колективи. Избираш страница при публикуване на събитие.', en: 'Create separate pages for brands, venues, recurring nights or collectives. Pick one when publishing an event.' },
+        'social.likes': { bg: 'харесвания', en: 'likes' },
+        'social.comments': { bg: 'коментара', en: 'comments' },
+        'social.saves': { bg: 'запазвания', en: 'saves' },
+        'social.share': { bg: 'Сподели', en: 'Share' },
+        'post.like': { bg: 'Харесай', en: 'Like' },
+        'post.unlike': { bg: 'Премахни харесване', en: 'Unlike' },
+        'post.save': { bg: 'Запази', en: 'Save' },
+        'post.unsave': { bg: 'Премахни запазване', en: 'Unsave' },
+        'messages.seen': { bg: 'видяно', en: 'seen' },
+        'messages.placeholder': { bg: 'Напиши съобщение...', en: 'Write a message...' },
+        'messages.index.title': { bg: 'Лични <span>съобщения</span>.', en: 'Direct <span>messages</span>.' },
+        'messages.index.desc': { bg: 'Пиши си с хора и организатори. Засега съобщенията се обновяват при нормално зареждане на страницата.', en: 'Chat with people and organizers. Messages refresh with normal page requests for now.' },
+        'messages.empty': { bg: 'Все още няма разговори. Отвори профил и започни съобщение.', en: 'No conversations yet. Open a profile and start a message.' },
+        'messages.none': { bg: 'Все още няма съобщения', en: 'No messages yet' },
+        'feed.kicker': { bg: 'Поток', en: 'Feed' },
+        'feed.title': { bg: 'Последно от сцената.', en: 'Latest from the scene.' },
+        'feed.signin.stories': { bg: 'Влез, за да следваш хора и да виждаш активни сторита.', en: 'Sign in to follow people and see active stories.' },
+        'feed.following.kicker': { bg: 'Следиш', en: 'Following' },
+        'feed.following.title': { bg: 'Хората, които следиш.', en: 'People you follow.' },
+        'feed.posts.kicker': { bg: 'Публикации', en: 'Posts' },
+        'feed.posts.title': { bg: 'Новини от организатори и свежи постове.', en: 'Organizer updates and fresh posts.' },
+        'feed.all': { bg: 'Всички', en: 'All' },
+        'feed.more': { bg: 'Още', en: 'More' },
+        'feed.suggested': { bg: 'Предложени профили', en: 'Suggested profiles' },
+        'story.active': { bg: 'Активни сторита', en: 'Active stories' },
+        'story.close': { bg: 'Затвори стори', en: 'Close story' },
+        'story.viewer': { bg: 'Преглед на стори', en: 'Story viewer' },
+        'organizer.pages.kicker': { bg: 'Организаторски страници', en: 'Organizer pages' },
+        'organizer.pages.title': { bg: 'Сменяй между <span>публични идентичности</span>.', en: 'Switch between <span>public identities</span>.' },
+        'organizer.pages.public': { bg: 'Публична страница', en: 'Public page' },
+        'organizer.pages.singular': { bg: 'организаторска страница', en: 'organizer page' },
+        'organizer.pages.form.desc': { bg: 'Това е публичната идентичност, която хората виждат в събитията. Можеш да имаш няколко страници и да избираш една при публикуване.', en: 'This is the public identity people see on events. You can keep several pages and choose one when publishing.' },
+        'organizer.pages.all': { bg: 'Всички страници', en: 'All pages' },
+        'organizer.pages.name.placeholder': { bg: 'Име на клуб, колектив, промоутър...', en: 'Club name, collective, promoter...' },
+        'organizer.pages.city.placeholder': { bg: 'София, Пловдив...', en: 'Sofia, Plovdiv...' },
+        'organizer.pages.tagline.placeholder': { bg: 'Ъндърграунд техно вечери, live jazz сесии...', en: 'Underground techno nights, live jazz sessions...' },
+        'organizer.pages.use.default': { bg: 'Използвай като основна страница', en: 'Use as default page' },
+        'organizer.pages.active.selectable': { bg: 'Активна и избираема', en: 'Active and selectable' },
+        'organizer.pages.required': { bg: 'Задължително', en: 'Required' },
+        'organizer.pages.required.desc': { bg: 'Нужна е поне една активна публична страница, преди организатор да създава събития.', en: 'At least one active public page is required before an organizer can create events.' },
+        'organizer.pages.save': { bg: 'Запази страницата', en: 'Save page' },
+        'organizer.pages.new': { bg: 'Нова страница', en: 'New page' },
+        'organizer.pages.empty.title': { bg: 'Създай първата си публична страница.', en: 'Create your first public page.' },
+        'organizer.pages.empty.desc': { bg: 'Трябва да имаш поне една страница преди да създаваш събития.', en: 'You need at least one page before creating events.' },
+        'organizer.pages.create': { bg: 'Създай страница', en: 'Create page' },
+        'organizer.pages.default': { bg: 'Основна', en: 'Default' },
+        'organizer.pages.make.default': { bg: 'Направи основна', en: 'Make default' },
+        'organizer.pages.archive': { bg: 'Архивирай', en: 'Archive' },
+        'organizer.pages.delete': { bg: 'Изтрий', en: 'Delete' },
     };
 
     // ── Full text-replacement dictionary (BG → EN) for unlabelled nodes ────────
@@ -452,6 +644,24 @@
                 el.setAttribute('placeholder', entry[lang]);
             }
         });
+
+        // data-i18n-title → title attribute
+        document.querySelectorAll('[data-i18n-title]').forEach(function (el) {
+            var key = el.getAttribute('data-i18n-title');
+            var entry = KEYED[key];
+            if (entry && entry[lang] !== undefined) {
+                el.setAttribute('title', entry[lang]);
+            }
+        });
+
+        // data-i18n-aria-label → aria-label attribute
+        document.querySelectorAll('[data-i18n-aria-label]').forEach(function (el) {
+            var key = el.getAttribute('data-i18n-aria-label');
+            var entry = KEYED[key];
+            if (entry && entry[lang] !== undefined) {
+                el.setAttribute('aria-label', entry[lang]);
+            }
+        });
     }
 
     function applyTranslations(lang) {
@@ -490,6 +700,14 @@
                         node.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
                             var entry = KEYED[el.getAttribute('data-i18n-placeholder')];
                             if (entry && entry[lang] !== undefined) el.setAttribute('placeholder', entry[lang]);
+                        });
+                        node.querySelectorAll('[data-i18n-title]').forEach(function (el) {
+                            var entry = KEYED[el.getAttribute('data-i18n-title')];
+                            if (entry && entry[lang] !== undefined) el.setAttribute('title', entry[lang]);
+                        });
+                        node.querySelectorAll('[data-i18n-aria-label]').forEach(function (el) {
+                            var entry = KEYED[el.getAttribute('data-i18n-aria-label')];
+                            if (entry && entry[lang] !== undefined) el.setAttribute('aria-label', entry[lang]);
                         });
                         if (lang !== 'bg') {
                             walkAndTranslate(node, EN);

@@ -7,7 +7,7 @@
 <section class="groove-app-page social-messages-page">
     <div class="social-chat-shell">
         <header class="social-chat-header">
-            <a asp-action="Index" class="btn btn-sm btn-outline-secondary" title="Back">
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary" title="Назад" data-i18n-title="common.back">
                 <i class="bi bi-arrow-left"></i>
             </a>
             <a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OtherUserId" class="social-author-link">
@@ -32,7 +32,7 @@
                         @message.CreatedAt.ToString("dd.MM.yyyy HH:mm")
                         @if (message.IsMine && message.SeenAt.HasValue)
                         {
-                            <span> · seen</span>
+                            <span> · <span data-i18n="messages.seen">видяно</span></span>
                         }
                     </small>
                 </article>
@@ -41,9 +41,9 @@
 
         <form asp-action="Send" asp-route-id="@Model.Id" method="post" class="social-chat-compose">
             @Html.AntiForgeryToken()
-            <input type="text" name="content" maxlength="2000" placeholder="Write a message..." required />
+            <input type="text" name="content" maxlength="2000" placeholder="Напиши съобщение..." data-i18n-placeholder="messages.placeholder" required />
             <button type="submit" class="groove-button groove-button-dark">
-                <i class="bi bi-send"></i> Send
+                <i class="bi bi-send"></i> <span data-i18n="common.send">Изпрати</span>
             </button>
         </form>
     </div>

@@ -1,21 +1,24 @@
 @model OrganizerProfileViewModel
 @{
-    ViewData["Title"] = Model.Id.HasValue ? "Edit public organizer page" : "New public organizer page";
+    ViewData["Title"] = Model.Id.HasValue ? "Редакция на публична организаторска страница" : "Нова публична организаторска страница";
     var badgeClass = Model.Approved ? "groove-status-badge-success" : "groove-status-badge-warning";
-    var badgeText = Model.Approved ? "Approved organizer" : "Waiting approval";
+    var badgeText = Model.Approved ? "Одобрен организатор" : "Чака одобрение";
+    var badgeKey = Model.Approved ? "org.approved" : "org.pending";
+    var actionKey = Model.Id.HasValue ? "org.btn.edit" : "home.events.create";
+    var actionText = Model.Id.HasValue ? "Редактирай" : "Създай";
 }
 
 <section class="groove-app-page groove-form-shell">
     <div class="groove-page-hero">
         <div class="groove-page-hero__copy">
-            <span class="groove-stamp groove-stamp-yellow">Public page</span>
-            <h1>@(Model.Id.HasValue ? "Edit" : "Create") <span>organizer page</span>.</h1>
-            <p>This is the public identity people see on events. You can keep several pages and choose one when publishing.</p>
+            <span class="groove-stamp groove-stamp-yellow" data-i18n="organizer.pages.public">Публична страница</span>
+            <h1><span data-i18n="@actionKey">@actionText</span> <span data-i18n="organizer.pages.singular">организаторска страница</span>.</h1>
+            <p data-i18n="organizer.pages.form.desc">Това е публичната идентичност, която хората виждат в събитията. Можеш да имаш няколко страници и да избираш една при публикуване.</p>
         </div>
         <div class="groove-page-actions">
-            <span class="groove-status-badge @badgeClass">@badgeText</span>
+            <span class="groove-status-badge @badgeClass" data-i18n="@badgeKey">@badgeText</span>
             <a asp-action="Profiles" class="groove-button groove-button-paper">
-                <i class="bi bi-arrow-left"></i> All pages
+                <i class="bi bi-arrow-left"></i> <span data-i18n="organizer.pages.all">Всички страници</span>
             </a>
         </div>
     </div>
@@ -31,19 +34,19 @@
             <div class="groove-form-grid">
                 <div class="mb-3">
                     <label asp-for="OrganizationName" class="form-label"></label>
-                    <input asp-for="OrganizationName" class="form-control" placeholder="Club name, collective, promoter..." />
+                    <input asp-for="OrganizationName" class="form-control" placeholder="Име на клуб, колектив, промоутър..." data-i18n-placeholder="organizer.pages.name.placeholder" />
                     <span asp-validation-for="OrganizationName" class="text-danger small"></span>
                 </div>
                 <div class="mb-3">
                     <label asp-for="City" class="form-label"></label>
-                    <input asp-for="City" class="form-control" placeholder="Sofia, Plovdiv..." />
+                    <input asp-for="City" class="form-control" placeholder="София, Пловдив..." data-i18n-placeholder="organizer.pages.city.placeholder" />
                     <span asp-validation-for="City" class="text-danger small"></span>
                 </div>
             </div>
 
             <div class="mb-3">
                 <label asp-for="Tagline" class="form-label"></label>
-                <input asp-for="Tagline" class="form-control" placeholder="Underground techno nights, live jazz sessions..." />
+                <input asp-for="Tagline" class="form-control" placeholder="Ъндърграунд техно вечери, live jazz сесии..." data-i18n-placeholder="organizer.pages.tagline.placeholder" />
                 <span asp-validation-for="Tagline" class="text-danger small"></span>
             </div>
 
@@ -58,7 +61,7 @@
                     <label asp-for="AvatarFile" class="form-label"></label>
                     @if (!string.IsNullOrWhiteSpace(Model.CurrentAvatarUrl))
                     {
-                        <div class="mb-2"><img src="@Model.CurrentAvatarUrl" alt="Current profile" style="width:88px;height:88px;object-fit:cover;border-radius:50%;" /></div>
+                        <div class="mb-2"><img src="@Model.CurrentAvatarUrl" alt="Текущ профил" style="width:88px;height:88px;object-fit:cover;border-radius:50%;" /></div>
                     }
                     <input asp-for="AvatarFile" class="form-control" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
                     <span asp-validation-for="AvatarFile" class="text-danger small"></span>
@@ -67,7 +70,7 @@
                     <label asp-for="CoverFile" class="form-label"></label>
                     @if (!string.IsNullOrWhiteSpace(Model.CurrentCoverUrl))
                     {
-                        <div class="mb-2"><img src="@Model.CurrentCoverUrl" alt="Current cover" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;" /></div>
+                        <div class="mb-2"><img src="@Model.CurrentCoverUrl" alt="Текуща корица" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;" /></div>
                     }
                     <input asp-for="CoverFile" class="form-control" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
                     <span asp-validation-for="CoverFile" class="text-danger small"></span>
@@ -127,24 +130,24 @@
             <div class="groove-form-grid">
                 <label class="form-check">
                     <input asp-for="IsDefault" class="form-check-input" />
-                    <span class="form-check-label">Use as default page</span>
+                    <span class="form-check-label" data-i18n="organizer.pages.use.default">Използвай като основна страница</span>
                 </label>
                 <label class="form-check">
                     <input asp-for="IsActive" class="form-check-input" />
-                    <span class="form-check-label">Active and selectable</span>
+                    <span class="form-check-label" data-i18n="organizer.pages.active.selectable">Активна и избираема</span>
                 </label>
             </div>
 
             <div class="groove-note my-3">
-                <strong>Required</strong>
-                At least one active public page is required before an organizer can create events.
+                <strong data-i18n="organizer.pages.required">Задължително</strong>
+                <span data-i18n="organizer.pages.required.desc">Нужна е поне една активна публична страница, преди организатор да създава събития.</span>
             </div>
 
             <div class="groove-form-actions">
                 <button type="submit" class="groove-button groove-button-dark">
-                    <i class="bi bi-check-lg"></i> Save page
+                    <i class="bi bi-check-lg"></i> <span data-i18n="organizer.pages.save">Запази страницата</span>
                 </button>
-                <a asp-action="Profiles" class="groove-button groove-button-paper">Cancel</a>
+                <a asp-action="Profiles" class="groove-button groove-button-paper" data-i18n="common.cancel">Отказ</a>
             </div>
         </form>
     </div>

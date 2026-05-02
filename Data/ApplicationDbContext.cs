@@ -55,6 +55,18 @@ namespace EventsApp.Data
 
         public DbSet<UserTicket> UserTickets { get; set; } = null!;
 
+        public DbSet<EventSeries> EventSeries { get; set; } = null!;
+
+        public DbSet<EventOccurrence> EventOccurrences { get; set; } = null!;
+
+        public DbSet<VenueLayout> VenueLayouts { get; set; } = null!;
+
+        public DbSet<LayoutSection> LayoutSections { get; set; } = null!;
+
+        public DbSet<Seat> Seats { get; set; } = null!;
+
+        public DbSet<EventSeatInventory> EventSeatInventories { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -101,6 +113,38 @@ namespace EventsApp.Data
                       .WithMany(p => p.Events)
                       .HasForeignKey(e => e.OrganizerProfileId)
                       .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.VenueLayout)
+                      .WithMany(l => l.Events)
+                      .HasForeignKey(e => e.VenueLayoutId)
+                      .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<EventSeries>(entity =>
+            {
+                entity.HasOne(s => s.Event)
+                      .WithOne(e => e.EventSeries)
+                      .HasForeignKey<EventSeries>(s => s.EventId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(s => s.Organizer)
+                      .WithMany(u => u.EventSeries)
+                      .HasForeignKey(s => s.OrganizerId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(s => s.EventId).IsUnique();
+                entity.HasIndex(s => new { s.OrganizerId, s.Status });
+            });
+
+            builder.Entity<EventOccurrence>(entity =>
+            {
+                entity.HasOne(o => o.EventSeries)
+                      .WithMany(s => s.Occurrences)
+                      .HasForeignKey(o => o.EventSeriesId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(o => new { o.EventSeriesId, o.StartDateTime }).IsUnique();
+                entity.HasIndex(o => o.Status);
             });
 
             builder.Entity<Post>(entity =>
@@ -335,6 +379,16 @@ namespace EventsApp.Data
                       .HasForeignKey(ut => ut.TicketId)
                       .OnDelete(DeleteBehavior.Restrict);
 
+                entity.HasOne(ut => ut.EventOccurrence)
+                      .WithMany(o => o.UserTickets)
+                      .HasForeignKey(ut => ut.EventOccurrenceId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(ut => ut.Seat)
+                      .WithMany()
+                      .HasForeignKey(ut => ut.SeatId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
                 entity.HasOne(ut => ut.Transaction)
                       .WithMany(t => t.UserTickets)
                       .HasForeignKey(ut => ut.TransactionId)
@@ -346,6 +400,79 @@ namespace EventsApp.Data
                       .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(ut => ut.QrCode).IsUnique();
+            });
+
+            builder.Entity<VenueLayout>(entity =>
+            {
+                entity.HasOne(l => l.Organizer)
+                      .WithMany(u => u.VenueLayouts)
+                      .HasForeignKey(l => l.OrganizerId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(l => new { l.OrganizerId, l.Name, l.Version });
+            });
+
+            builder.Entity<LayoutSection>(entity =>
+            {
+                entity.HasOne(s => s.VenueLayout)
+                      .WithMany(l => l.Sections)
+                      .HasForeignKey(s => s.VenueLayoutId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(s => new { s.VenueLayoutId, s.Name });
+            });
+
+            builder.Entity<Seat>(entity =>
+            {
+                entity.HasOne(s => s.VenueLayout)
+                      .WithMany(l => l.Seats)
+                      .HasForeignKey(s => s.VenueLayoutId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(s => s.Section)
+                      .WithMany(sec => sec.Seats)
+                      .HasForeignKey(s => s.SectionId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(s => new { s.VenueLayoutId, s.Row, s.Number }).IsUnique();
+            });
+
+            builder.Entity<EventSeatInventory>(entity =>
+            {
+                entity.HasOne(i => i.Event)
+                      .WithMany(e => e.SeatInventories)
+                      .HasForeignKey(i => i.EventId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(i => i.EventOccurrence)
+                      .WithMany(o => o.SeatInventories)
+                      .HasForeignKey(i => i.EventOccurrenceId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(i => i.Seat)
+                      .WithMany(s => s.Inventories)
+                      .HasForeignKey(i => i.SeatId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(i => i.ReservedByUser)
+                      .WithMany()
+                      .HasForeignKey(i => i.ReservedByUserId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(i => i.UserTicket)
+                      .WithOne(ut => ut.SeatInventory)
+                      .HasForeignKey<EventSeatInventory>(i => i.TicketId)
+                      .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(i => new { i.EventId, i.SeatId })
+                      .IsUnique()
+                      .HasFilter("[EventId] IS NOT NULL AND [EventOccurrenceId] IS NULL");
+
+                entity.HasIndex(i => new { i.EventOccurrenceId, i.SeatId })
+                      .IsUnique()
+                      .HasFilter("[EventOccurrenceId] IS NOT NULL");
+
+                entity.HasIndex(i => new { i.Status, i.ReservedUntil });
             });
         }
     }

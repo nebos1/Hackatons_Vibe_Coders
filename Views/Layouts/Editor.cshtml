@@ -1,0 +1,106 @@
+@model VenueLayoutEditorViewModel
+@{
+    var readOnly = ViewBag.ReadOnly as bool? == true;
+    var actionText = readOnly ? "Преглед" : (Model.Id.HasValue ? "Редакция" : "Създаване");
+    var actionKey = readOnly ? "layout.preview" : (Model.Id.HasValue ? "org.btn.edit" : "layout.create.short");
+    ViewData["Title"] = readOnly ? "Преглед на layout" : (Model.Id.HasValue ? "Редакция на layout" : "Създай layout");
+}
+
+<section class="groove-app-page layout-page">
+    <div class="groove-page-hero">
+        <div class="groove-page-hero__copy">
+            <span class="groove-stamp groove-stamp-teal" data-i18n="layout.editor.kicker">Layout редактор</span>
+            <h1><span data-i18n="@actionKey">@actionText</span> <span data-i18n="layout.editor.seatmap">схема с места</span>.</h1>
+            <p data-i18n="layout.editor.desc">Изгради преизползваем шаблон за седящи места, правостоящи зони, VIP секции или маси. Наличността се създава отделно за всяко събитие или дата.</p>
+        </div>
+        <div class="groove-page-actions">
+            <a asp-action="Index" class="groove-button groove-button-paper">
+                <i class="bi bi-arrow-left"></i> <span data-i18n="layout.my">Моите layout-и</span>
+            </a>
+        </div>
+    </div>
+
+    @if (Model.IsInUseWithSoldSeats)
+    {
+        <div class="groove-alert groove-alert-warning mb-3">
+            <span data-i18n="layout.version.warning">Този layout вече има продадени места. При запис ще се създаде нова версия, вместо да се променя използваната.</span>
+        </div>
+    }
+
+    <form method="post" class="layout-editor-form">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+        <div class="layout-editor-shell" data-layout-editor data-readonly="@(readOnly ? "true" : "false")">
+            <aside class="layout-editor-sidebar">
+                <div class="mb-3">
+                    <label asp-for="VenueName" class="form-label"></label>
+                    <input asp-for="VenueName" class="form-control" readonly="@readOnly" />
+                    <span asp-validation-for="VenueName" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" readonly="@readOnly" />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status" asp-items="Html.GetEnumSelectList<VenueLayoutStatus>()" class="form-select" disabled="@readOnly"></select>
+                </div>
+
+                <div class="layout-editor-tools">
+                    <button type="button" class="groove-button groove-button-dark" data-layout-add-section disabled="@readOnly">
+                        <i class="bi bi-bounding-box"></i> <span data-i18n="layout.section">Секция</span>
+                    </button>
+                    <button type="button" class="groove-button groove-button-paper" data-layout-generate disabled="@readOnly">
+                        <i class="bi bi-grid-3x3"></i> <span data-i18n="layout.generate.rows">Генерирай редове</span>
+                    </button>
+                </div>
+
+                <div class="layout-editor-properties">
+                    <span class="groove-kicker" data-i18n="layout.selected">Избрано</span>
+                    <input type="text" class="form-control" data-layout-prop-name placeholder="Име на секция" data-i18n-placeholder="layout.section.name" disabled="@readOnly" />
+                    <select class="form-select" data-layout-prop-type disabled="@readOnly">
+                        @foreach (var type in Enum.GetValues<LayoutSectionType>())
+                        {
+                            var typeKey = $"section.type.{type}";
+                            var typeText = type switch
+                            {
+                                LayoutSectionType.Standing => "Правостоящи",
+                                LayoutSectionType.VIP => "VIP",
+                                LayoutSectionType.Table => "Маси",
+                                _ => "Седящи",
+                            };
+                            <option value="@type" data-i18n="@typeKey">@typeText</option>
+                        }
+                    </select>
+                    <input type="number" class="form-control" data-layout-prop-price step="0.01" placeholder="Добавка към цена" data-i18n-placeholder="layout.price.modifier" disabled="@readOnly" />
+                    <button type="button" class="groove-button groove-button-paper" data-layout-delete disabled="@readOnly">
+                        <i class="bi bi-trash"></i> <span data-i18n="layout.remove.section">Премахни секция</span>
+                    </button>
+                </div>
+            </aside>
+
+            <main class="layout-editor-stage-wrap">
+                <div class="layout-editor-stage" data-layout-stage></div>
+            </main>
+        </div>
+
+        <input asp-for="LayoutJson" type="hidden" data-layout-json />
+
+        @if (!readOnly)
+        {
+            <div class="groove-form-actions mt-3">
+                <button type="submit" class="groove-button groove-button-dark">
+                    <i class="bi bi-check-lg"></i> <span data-i18n="layout.save">Запази layout</span>
+                </button>
+                <a asp-action="Index" class="groove-button groove-button-paper" data-i18n="common.cancel">Отказ</a>
+            </div>
+        }
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/layout-editor.js" asp-append-version="true"></script>
+}

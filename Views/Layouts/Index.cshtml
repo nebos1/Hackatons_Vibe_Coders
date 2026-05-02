@@ -1,0 +1,77 @@
+@model VenueLayoutListViewModel
+@{
+    ViewData["Title"] = "Моите layout-и";
+}
+
+<section class="groove-app-page layout-page">
+    <div class="groove-page-hero">
+        <div class="groove-page-hero__copy">
+            <span class="groove-stamp groove-stamp-teal" data-i18n="layout.kicker">Layout-и</span>
+            <h1 data-i18n-html="layout.index.title">Преизползваеми <span>схеми с места</span>.</h1>
+            <p data-i18n="layout.index.desc">Създай схема за зала, сцена, театър, студио или зона веднъж и я използвай за много събития и повтарящи се дати.</p>
+        </div>
+        <div class="groove-page-actions">
+            <a asp-action="Create" class="groove-button groove-button-dark">
+                <i class="bi bi-plus-lg"></i> <span data-i18n="layout.create">Създай layout</span>
+            </a>
+            <a asp-controller="Organizer" asp-action="Dashboard" class="groove-button groove-button-paper">
+                <i class="bi bi-arrow-left"></i> <span data-i18n="organizer.dashboard">Организаторско табло</span>
+            </a>
+        </div>
+    </div>
+
+    @if (Model.Layouts.Count == 0)
+    {
+        <div class="groove-empty-card">
+            <i class="bi bi-grid-3x3-gap"></i>
+            <h2 class="groove-panel-title" data-i18n="layout.empty.title">Все още няма layout-и.</h2>
+            <p class="groove-panel-intro" data-i18n="layout.empty.desc">Започни с проста схема, генерирай редове и после я избери от формата за събитие.</p>
+        </div>
+    }
+    else
+    {
+        <div class="layout-card-grid">
+            @foreach (var layout in Model.Layouts)
+            {
+                var statusKey = $"status.layout.{layout.Status}";
+                var statusText = layout.Status switch
+                {
+                    VenueLayoutStatus.Draft => "Чернова",
+                    VenueLayoutStatus.Archived => "Архивиран",
+                    _ => "Активен",
+                };
+                <article class="layout-template-card">
+                    <div>
+                        <span class="groove-kicker">@layout.VenueName</span>
+                        <h2>@layout.Name <small>v@layout.Version</small></h2>
+                    </div>
+                    <dl class="layout-template-card__stats">
+                        <div><dt data-i18n="layout.sections">Секции</dt><dd>@layout.SectionsCount</dd></div>
+                        <div><dt data-i18n="layout.seats">Места</dt><dd>@layout.SeatsCount</dd></div>
+                        <div><dt data-i18n="org.th.status">Статус</dt><dd data-i18n="@statusKey">@statusText</dd></div>
+                    </dl>
+                    @if (layout.HasSoldSeats)
+                    {
+                        <p class="layout-template-card__note">
+                            <i class="bi bi-shield-lock"></i> <span data-i18n="layout.locked.note">Има продадени места. Редакция ще създаде нова версия.</span>
+                        </p>
+                    }
+                    <div class="groove-list-actions">
+                        <a asp-action="Edit" asp-route-id="@layout.Id" class="groove-button groove-button-dark">
+                            <i class="bi bi-pencil"></i> <span data-i18n="org.btn.edit">Редакция</span>
+                        </a>
+                        <a asp-action="Preview" asp-route-id="@layout.Id" class="groove-button groove-button-paper">
+                            <i class="bi bi-eye"></i> <span data-i18n="layout.preview">Преглед</span>
+                        </a>
+                        <form asp-action="Duplicate" asp-route-id="@layout.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <button class="groove-button groove-button-paper" type="submit">
+                                <i class="bi bi-files"></i> <span data-i18n="layout.duplicate">Дублирай</span>
+                            </button>
+                        </form>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>

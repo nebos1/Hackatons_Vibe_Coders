@@ -10,22 +10,25 @@ namespace EventsApp.ViewModels.Organizer
 
         [Required]
         [StringLength(GlobalConstants.Organizer.OrganizationNameMaxLength, MinimumLength = GlobalConstants.Organizer.OrganizationNameMinLength)]
-        [Display(Name = "Organization name")]
+        [Display(Name = "Име на организацията")]
         public string OrganizationName { get; set; } = null!;
 
         [StringLength(GlobalConstants.Organizer.TaglineMaxLength)]
+        [Display(Name = "Кратко описание")]
         public string? Tagline { get; set; }
 
         [StringLength(GlobalConstants.Organizer.DescriptionMaxLength)]
+        [Display(Name = "Описание")]
         public string? Description { get; set; }
 
         [StringLength(GlobalConstants.Organizer.CityMaxLength)]
+        [Display(Name = "Град")]
         public string? City { get; set; }
 
-        [Display(Name = "Profile image")]
+        [Display(Name = "Профилна снимка")]
         public IFormFile? AvatarFile { get; set; }
 
-        [Display(Name = "Cover image")]
+        [Display(Name = "Корица")]
         public IFormFile? CoverFile { get; set; }
 
         public string? CurrentAvatarUrl { get; set; }
@@ -34,16 +37,17 @@ namespace EventsApp.ViewModels.Organizer
 
         [StringLength(GlobalConstants.Organizer.PhoneNumberMaxLength)]
         [Phone]
-        [Display(Name = "Phone")]
+        [Display(Name = "Телефон")]
         public string? PhoneNumber { get; set; }
 
         [StringLength(GlobalConstants.Organizer.WebsiteMaxLength)]
         [Url]
+        [Display(Name = "Уебсайт")]
         public string? Website { get; set; }
 
         [StringLength(GlobalConstants.Organizer.ContactEmailMaxLength)]
         [EmailAddress]
-        [Display(Name = "Contact email")]
+        [Display(Name = "Контактен имейл")]
         public string? ContactEmail { get; set; }
 
         [StringLength(GlobalConstants.Organizer.SocialUrlMaxLength)]
@@ -59,17 +63,17 @@ namespace EventsApp.ViewModels.Organizer
         public string? TikTokUrl { get; set; }
 
         [StringLength(GlobalConstants.Organizer.BrandColorMaxLength)]
-        [Display(Name = "Brand color")]
+        [Display(Name = "Бранд цвят")]
         public string? BrandColor { get; set; }
 
         [StringLength(GlobalConstants.Organizer.CompanyNumberMaxLength)]
-        [Display(Name = "Company number")]
+        [Display(Name = "ЕИК / фирмен номер")]
         public string? CompanyNumber { get; set; }
 
-        [Display(Name = "Default page")]
+        [Display(Name = "Основна страница")]
         public bool IsDefault { get; set; }
 
-        [Display(Name = "Active")]
+        [Display(Name = "Активна")]
         public bool IsActive { get; set; } = true;
 
         public bool Approved { get; set; }

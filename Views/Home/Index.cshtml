@@ -77,14 +77,14 @@
                 <div class="groove-smart-search__status"><span id="home-search-status"></span></div>
             </form>
 
-            <div class="modern-search-chips" aria-label="Quick event filters">
-                <a asp-action="Index" asp-route-dateFrom="@DateTime.UtcNow.ToString("yyyy-MM-dd")">Today</a>
-                <a asp-action="Index" asp-route-dateFrom="@DateTime.UtcNow.AddDays(2).ToString("yyyy-MM-dd")">This weekend</a>
-                <a asp-action="Index" asp-route-search="concert">Concerts</a>
-                <a asp-action="Index" asp-route-search="theatre">Theatre</a>
-                <a asp-action="Index" asp-route-search="festival">Festivals</a>
-                <a asp-action="Index" asp-route-search="free">Free events</a>
-                <a asp-action="Index" asp-route-search="family">Family</a>
+            <div class="modern-search-chips" aria-label="Бързи филтри" data-i18n-aria-label="home.filters.aria">
+                <a asp-action="Index" asp-route-dateFrom="@DateTime.UtcNow.ToString("yyyy-MM-dd")" data-i18n="home.chip.today">Днес</a>
+                <a asp-action="Index" asp-route-dateFrom="@DateTime.UtcNow.AddDays(2).ToString("yyyy-MM-dd")" data-i18n="home.chip.weekend">Този уикенд</a>
+                <a asp-action="Index" asp-route-search="concert" data-i18n="home.chip.concerts">Концерти</a>
+                <a asp-action="Index" asp-route-search="theatre" data-i18n="home.chip.theatre">Театър</a>
+                <a asp-action="Index" asp-route-search="festival" data-i18n="home.chip.festivals">Фестивали</a>
+                <a asp-action="Index" asp-route-search="free" data-i18n="home.chip.free">Безплатни</a>
+                <a asp-action="Index" asp-route-search="family" data-i18n="home.chip.family">Семейни</a>
             </div>
 
             <div class="groove-hero__actions">
@@ -113,12 +113,12 @@
     <section id="event-map" class="groove-section groove-map-section home-results-section">
         <div class="home-results-heading">
             <div>
-                <span class="groove-stamp groove-stamp-teal">Smart search result area</span>
-                <h2>Results for your next event</h2>
+                <span class="groove-stamp groove-stamp-teal" data-i18n="home.results.kicker">Зона с резултати</span>
+                <h2 data-i18n="home.results.title">Резултати за следващото ти събитие</h2>
             </div>
             <div class="home-results-tools">
-                <button type="button"><i class="bi bi-calendar3"></i> Date</button>
-                <button type="button"><i class="bi bi-crosshair"></i> Distance</button>
+                <button type="button"><i class="bi bi-calendar3"></i> <span data-i18n="home.results.date">Дата</span></button>
+                <button type="button"><i class="bi bi-crosshair"></i> <span data-i18n="home.results.distance">Разстояние</span></button>
             </div>
         </div>
         <div class="groove-map-copy">
@@ -139,7 +139,7 @@
             <div id="events-map" class="notranslate" translate="no" data-no-i18n="true">
                 <div class="map-loading-state">
                     <i class="bi bi-map"></i>
-                    <span>Loading map...</span>
+                    <span data-i18n="home.map.loading">Картата се зарежда...</span>
                 </div>
             </div>
             <div id="home-no-results" class="alert alert-warning mt-2" style="display:none;" data-i18n="home.noresults">Няма събития, отговарящи на търсенето.</div>

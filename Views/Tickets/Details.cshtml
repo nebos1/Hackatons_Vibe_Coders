@@ -42,6 +42,18 @@
                 <dt>Начало</dt>
                 <dd>@Model.StartTime.ToString("dd.MM.yyyy HH:mm")</dd>
 
+                @if (Model.EndTime.HasValue)
+                {
+                    <dt data-i18n="ticket.end">Край</dt>
+                    <dd>@Model.EndTime.Value.ToString("dd.MM.yyyy HH:mm")</dd>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.SeatLabel))
+                {
+                    <dt data-i18n="ticket.seat">Място</dt>
+                    <dd>@Model.SeatLabel</dd>
+                }
+
                 <dt>Цена</dt>
                 <dd>@Model.Price.ToTicketPriceDisplay()</dd>
 

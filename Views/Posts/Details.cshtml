@@ -75,11 +75,11 @@
         }
 
         <div class="groove-inline-actions mt-4">
-            <span class="groove-badge"><i class="bi bi-heart-fill groove-inline-icon"></i> @Model.LikesCount likes</span>
-            <span class="groove-badge"><i class="bi bi-chat"></i> @Model.Comments.Count comments</span>
-            <span class="groove-badge"><i class="bi bi-bookmark"></i> @Model.SavesCount saves</span>
+            <span class="groove-badge"><i class="bi bi-heart-fill groove-inline-icon"></i> @Model.LikesCount <span data-i18n="social.likes">харесвания</span></span>
+            <span class="groove-badge"><i class="bi bi-chat"></i> @Model.Comments.Count <span data-i18n="social.comments">коментара</span></span>
+            <span class="groove-badge"><i class="bi bi-bookmark"></i> @Model.SavesCount <span data-i18n="social.saves">запазвания</span></span>
             <button class="groove-button groove-button-paper social-share-button" type="button" data-share-url="@shareUrl" data-share-title="Post by @Model.OrganizerName">
-                <i class="bi bi-share"></i> Share
+                <i class="bi bi-share"></i> <span data-i18n="social.share">Сподели</span>
             </button>
         </div>
 
@@ -89,13 +89,29 @@
                 <form asp-action="@(Model.CurrentUserLiked ? "Unlike" : "Like")" asp-route-id="@Model.Id" method="post">
                     @Html.AntiForgeryToken()
                     <button class="groove-button @(Model.CurrentUserLiked ? "groove-button-dark" : "groove-button-paper")" type="submit">
-                        <i class="bi @(Model.CurrentUserLiked ? "bi-heart-fill" : "bi-heart")"></i> @(Model.CurrentUserLiked ? "Unlike" : "Like")
+                        <i class="bi @(Model.CurrentUserLiked ? "bi-heart-fill" : "bi-heart")"></i>
+                        @if (Model.CurrentUserLiked)
+                        {
+                            <span data-i18n="post.unlike">Премахни харесване</span>
+                        }
+                        else
+                        {
+                            <span data-i18n="post.like">Харесай</span>
+                        }
                     </button>
                 </form>
                 <form asp-action="@(Model.CurrentUserSaved ? "Unsave" : "Save")" asp-route-id="@Model.Id" method="post">
                     @Html.AntiForgeryToken()
                     <button class="groove-button groove-button-paper" type="submit">
-                        <i class="bi @(Model.CurrentUserSaved ? "bi-bookmark-fill" : "bi-bookmark")"></i> @(Model.CurrentUserSaved ? "Unsave" : "Save")
+                        <i class="bi @(Model.CurrentUserSaved ? "bi-bookmark-fill" : "bi-bookmark")"></i>
+                        @if (Model.CurrentUserSaved)
+                        {
+                            <span data-i18n="post.unsave">Премахни запазване</span>
+                        }
+                        else
+                        {
+                            <span data-i18n="post.save">Запази</span>
+                        }
                     </button>
                 </form>
             </div>
@@ -105,8 +121,8 @@
     <section class="groove-page-section">
         <div class="groove-section-bar">
             <div>
-                <span class="groove-kicker">Comments</span>
-                <h2 id="comments">Conversation <span>(@Model.Comments.Count)</span>.</h2>
+                <span class="groove-kicker" data-i18n="comments.title">Коментари</span>
+                <h2 id="comments"><span data-i18n="comments.kicker">Разговор</span> <span>(@Model.Comments.Count)</span>.</h2>
             </div>
         </div>
 
@@ -115,8 +131,8 @@
             <form asp-action="AddComment" asp-route-id="@Model.Id" method="post" class="mb-4">
                 @Html.AntiForgeryToken()
                 <div class="input-group">
-                    <input type="text" name="content" class="form-control" placeholder="Write a comment..." maxlength="1000" required />
-                    <button class="btn btn-primary" type="submit"><i class="bi bi-send"></i> Send</button>
+                    <input type="text" name="content" class="form-control" placeholder="Напиши коментар..." data-i18n-placeholder="comments.placeholder" maxlength="1000" required />
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-send"></i> <span data-i18n="common.send">Изпрати</span></button>
                 </div>
             </form>
         }
@@ -125,7 +141,7 @@
         {
             <div class="groove-empty-card">
                 <i class="bi bi-chat-square-text"></i>
-                <h2 class="groove-panel-title">No comments yet.</h2>
+                <h2 class="groove-panel-title" data-i18n="comments.empty">Все още няма коментари.</h2>
             </div>
         }
         else
