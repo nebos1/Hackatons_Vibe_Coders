@@ -17,17 +17,20 @@ namespace EventsApp.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ITicketDocumentService _docs;
         private readonly IMediaUploadService _mediaUpload;
+        private readonly ISeatReservationService _seatReservations;
 
         public TicketsController(
             ApplicationDbContext db,
             UserManager<ApplicationUser> userManager,
             ITicketDocumentService docs,
-            IMediaUploadService mediaUpload)
+            IMediaUploadService mediaUpload,
+            ISeatReservationService seatReservations)
         {
             _db = db;
             _userManager = userManager;
             _docs = docs;
             _mediaUpload = mediaUpload;
+            _seatReservations = seatReservations;
         }
 
         // ---------- ORGANIZER MANAGEMENT ----------
@@ -129,7 +132,7 @@ namespace EventsApp.Controllers
             _db.Tickets.Add(ticket);
             await _db.SaveChangesAsync();
 
-            TempData["StatusMessage"] = "Ticket type created.";
+            TempData["StatusMessage"] = "Типът билет е създаден.";
             return RedirectToAction(nameof(Manage), new { id = ev.Id });
         }
 
@@ -141,6 +144,9 @@ namespace EventsApp.Controllers
 
             var ticket = await _db.Tickets
                 .Include(t => t.Event)
+                    .ThenInclude(e => e.EventSeries)
+                .Include(t => t.Event)
+                    .ThenInclude(e => e.VenueLayout)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (ticket == null) return NotFound();
@@ -203,7 +209,7 @@ namespace EventsApp.Controllers
             ticket.IsActive = input.IsActive;
 
             await _db.SaveChangesAsync();
-            TempData["StatusMessage"] = "Ticket type updated.";
+            TempData["StatusMessage"] = "Типът билет е обновен.";
             return RedirectToAction(nameof(Manage), new { id = ticket.EventId });
         }
 
@@ -242,7 +248,7 @@ namespace EventsApp.Controllers
 
             ticket.IsActive = false;
             await _db.SaveChangesAsync();
-            TempData["StatusMessage"] = "Ticket type disabled.";
+            TempData["StatusMessage"] = "Типът билет е деактивиран.";
             return RedirectToAction(nameof(Manage), new { id = ticket.EventId });
         }
 
@@ -250,7 +256,7 @@ namespace EventsApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Buy(Guid id)
+        public async Task<IActionResult> Buy(Guid id, int? occurrenceId, int? seatId)
         {
             var userId = _userManager.GetUserId(User)!;
 
@@ -262,47 +268,145 @@ namespace EventsApp.Controllers
 
             if (!ticket.IsActive)
             {
-                TempData["StatusMessage"] = "This ticket is no longer available.";
+                TempData["StatusMessage"] = "Този билет вече не е наличен.";
                 return RedirectToAction("Details", "Events", new { id = ticket.EventId });
             }
-            if (ticket.QuantityRemaining <= 0)
+            EventOccurrence? occurrence = null;
+            var startsAt = ticket.Event.StartTime;
+            if (occurrenceId.HasValue)
             {
-                TempData["StatusMessage"] = "Sorry, this ticket is sold out.";
+                occurrence = await _db.EventOccurrences
+                    .Include(o => o.EventSeries)
+                    .FirstOrDefaultAsync(o => o.Id == occurrenceId.Value);
+
+                if (occurrence == null || occurrence.EventSeries.EventId != ticket.EventId)
+                {
+                    TempData["StatusMessage"] = "Избери валидна дата за събитието.";
+                    return RedirectToAction("Details", "Events", new { id = ticket.EventId });
+                }
+
+                if (occurrence.Status != EventOccurrenceStatus.Scheduled)
+                {
+                    TempData["StatusMessage"] = "Тази дата не е налична за покупка.";
+                    return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
+                }
+
+                startsAt = occurrence.StartDateTime;
+            }
+
+            if (occurrence == null && ticket.QuantityRemaining <= 0)
+            {
+                TempData["StatusMessage"] = "Съжаляваме, този билет е разпродаден.";
                 return RedirectToAction("Details", "Events", new { id = ticket.EventId });
             }
             if (!ticket.Event.IsApproved)
             {
-                TempData["StatusMessage"] = "This event is not approved yet.";
-                return RedirectToAction("Details", "Events", new { id = ticket.EventId });
+                TempData["StatusMessage"] = "Това събитие все още не е одобрено.";
+                return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
             }
-            if (ticket.Event.StartTime <= DateTime.UtcNow)
+            if (startsAt <= DateTime.UtcNow)
             {
-                TempData["StatusMessage"] = "This event has already started.";
-                return RedirectToAction("Details", "Events", new { id = ticket.EventId });
+                TempData["StatusMessage"] = "Това събитие вече е започнало.";
+                return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
+            }
+
+            if (occurrence != null)
+            {
+                var paid = GlobalConstants.TransactionStatuses.Paid;
+                var soldForOccurrence = await _db.UserTickets
+                    .CountAsync(ut => ut.TicketId == ticket.Id
+                                      && ut.EventOccurrenceId == occurrence.Id
+                                      && ut.Transaction.Status == paid);
+                var occurrenceCapacity = occurrence.CapacityOverride ?? ticket.QuantityTotal;
+                if (soldForOccurrence >= occurrenceCapacity)
+                {
+                    occurrence.Status = EventOccurrenceStatus.SoldOut;
+                    await _db.SaveChangesAsync();
+                    TempData["StatusMessage"] = "Съжаляваме, тази дата е разпродадена.";
+                    return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
+                }
+            }
+
+            Seat? selectedSeat = null;
+            var requiresSeat = ticket.Event.VenueLayoutId.HasValue
+                               && ticket.Event.TicketingMode != EventTicketingMode.GeneralAdmission;
+            if (requiresSeat)
+            {
+                if (!seatId.HasValue)
+                {
+                    TempData["StatusMessage"] = "Избери място преди покупка.";
+                    return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
+                }
+
+                selectedSeat = await _db.Seats
+                    .Include(s => s.Section)
+                    .FirstOrDefaultAsync(s => s.Id == seatId.Value
+                                              && s.VenueLayoutId == ticket.Event.VenueLayoutId
+                                              && s.Status == LayoutSeatStatus.Active);
+
+                if (selectedSeat == null)
+                {
+                    TempData["StatusMessage"] = "Това място не е налично.";
+                    return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
+                }
+
+                var reservation = await _seatReservations.ReserveSeatAsync(
+                    ticket.EventId,
+                    occurrence?.Id,
+                    selectedSeat.Id,
+                    userId,
+                    TimeSpan.FromMinutes(10));
+
+                if (reservation == null)
+                {
+                    TempData["StatusMessage"] = "Това място току-що беше заето. Избери друго.";
+                    return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
+                }
             }
 
             var transaction = new Transaction
             {
                 UserId = userId,
-                TotalAmount = ticket.Price,
+                TotalAmount = ticket.Price + (selectedSeat?.Section.PriceModifier ?? 0m),
                 Status = GlobalConstants.TransactionStatuses.Paid,
             };
 
             var userTicket = new UserTicket
             {
                 TicketId = ticket.Id,
+                EventOccurrenceId = occurrence?.Id,
+                SeatId = selectedSeat?.Id,
                 TransactionId = transaction.Id,
                 QrCode = Guid.NewGuid().ToString("N"),
                 IsUsed = false,
             };
 
-            ticket.QuantityRemaining -= 1;
+            if (occurrence == null)
+            {
+                ticket.QuantityRemaining -= 1;
+            }
 
             _db.Transactions.Add(transaction);
             _db.UserTickets.Add(userTicket);
             await _db.SaveChangesAsync();
 
-            TempData["StatusMessage"] = "Demo purchase complete — your ticket is ready.";
+            if (selectedSeat != null)
+            {
+                var sold = await _seatReservations.MarkSeatSoldAsync(
+                    ticket.EventId,
+                    occurrence?.Id,
+                    selectedSeat.Id,
+                    userTicket.Id,
+                    userId);
+
+                if (!sold)
+                {
+                    TempData["StatusMessage"] = "Покупката на мястото не можа да бъде завършена.";
+                    return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
+                }
+            }
+
+            TempData["StatusMessage"] = "Демо покупката е завършена - билетът е готов.";
             return RedirectToAction(nameof(Details), new { id = userTicket.Id });
         }
 
@@ -318,11 +422,13 @@ namespace EventsApp.Controllers
                 {
                     Id = ut.Id,
                     EventId = ut.Ticket.EventId,
+                    EventOccurrenceId = ut.EventOccurrenceId,
                     EventTitle = ut.Ticket.Event.Title,
                     TicketName = ut.Ticket.Name,
                     Address = ut.Ticket.Event.Address,
                     City = ut.Ticket.Event.City,
-                    StartTime = ut.Ticket.Event.StartTime,
+                    StartTime = ut.EventOccurrence != null ? ut.EventOccurrence.StartDateTime : ut.Ticket.Event.StartTime,
+                    SeatLabel = ut.Seat != null ? ut.Seat.Row + ut.Seat.Number : null,
                     Price = ut.Ticket.Price,
                     IsUsed = ut.IsUsed,
                     CreatedAt = ut.CreatedAt,
@@ -340,6 +446,8 @@ namespace EventsApp.Controllers
             var ut = await _db.UserTickets
                 .AsNoTracking()
                 .Include(x => x.Ticket).ThenInclude(t => t.Event)
+                .Include(x => x.EventOccurrence)
+                .Include(x => x.Seat).ThenInclude(s => s!.Section)
                 .Include(x => x.Transaction).ThenInclude(t => t.User)
                 .Include(x => x.UsedByOrganizer)
                 .FirstOrDefaultAsync(x => x.Id == id);
@@ -362,6 +470,8 @@ namespace EventsApp.Controllers
             var ut = await _db.UserTickets
                 .AsNoTracking()
                 .Include(x => x.Ticket).ThenInclude(t => t.Event)
+                .Include(x => x.EventOccurrence)
+                .Include(x => x.Seat).ThenInclude(s => s!.Section)
                 .Include(x => x.Transaction).ThenInclude(t => t.User)
                 .Include(x => x.UsedByOrganizer)
                 .FirstOrDefaultAsync(x => x.Id == id);
@@ -408,6 +518,8 @@ namespace EventsApp.Controllers
 
             var ut = await _db.UserTickets
                 .Include(x => x.Ticket).ThenInclude(t => t.Event)
+                .Include(x => x.EventOccurrence)
+                .Include(x => x.Seat).ThenInclude(s => s!.Section)
                 .Include(x => x.Transaction).ThenInclude(t => t.User)
                 .Include(x => x.UsedByOrganizer)
                 .FirstOrDefaultAsync(x => x.QrCode == code);
@@ -438,6 +550,15 @@ namespace EventsApp.Controllers
                 return View(input);
             }
 
+            if (ut.EventOccurrence?.Status == EventOccurrenceStatus.Cancelled)
+            {
+                result.NotAllowed = true;
+                result.Message = "This ticket belongs to a cancelled occurrence.";
+                result.Ticket = ToDetails(ut);
+                ViewBag.Result = result;
+                return View(input);
+            }
+
             ut.IsUsed = true;
             ut.UsedAt = DateTime.UtcNow;
             ut.UsedByOrganizerId = userId;
@@ -462,10 +583,13 @@ namespace EventsApp.Controllers
                 TicketName = ut.Ticket.Name,
                 EventTitle = ut.Ticket.Event.Title,
                 EventId = ut.Ticket.EventId,
+                EventOccurrenceId = ut.EventOccurrenceId,
                 Address = ut.Ticket.Event.Address,
                 City = ut.Ticket.Event.City,
-                StartTime = ut.Ticket.Event.StartTime,
-                Price = ut.Ticket.Price,
+                StartTime = ut.EventOccurrence?.StartDateTime ?? ut.Ticket.Event.StartTime,
+                EndTime = ut.EventOccurrence?.EndDateTime ?? ut.Ticket.Event.EndTime,
+                SeatLabel = ut.Seat != null ? ut.Seat.Row + ut.Seat.Number : null,
+                Price = ut.Transaction.TotalAmount,
                 TransactionStatus = ut.Transaction.Status,
                 QrCode = ut.QrCode,
                 IsUsed = ut.IsUsed,

@@ -19,6 +19,7 @@ namespace EventsApp.ViewModels.Organizer
         public int TicketTypesCount { get; set; }
         public int TicketsSoldCount { get; set; }
         public int EventsWithTicketsCount { get; set; }
+        public int LayoutsCount { get; set; }
 
         public int UpcomingEventsCount { get; set; }
         public int PastEventsCount { get; set; }

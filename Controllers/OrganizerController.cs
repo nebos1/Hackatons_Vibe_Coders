@@ -224,6 +224,7 @@ namespace EventsApp.Controllers
                 TicketTypesCount = ticketTypesCount,
                 TicketsSoldCount = ticketsSoldCount,
                 EventsWithTicketsCount = eventsWithTickets,
+                LayoutsCount = await _db.VenueLayouts.CountAsync(l => l.OrganizerId == userId && l.Status != VenueLayoutStatus.Archived),
                 UpcomingEventsCount = upcomingCount,
                 PastEventsCount = pastCount,
                 TicketsUsedCount = ticketsUsedCount,
@@ -363,7 +364,7 @@ namespace EventsApp.Controllers
             await EnsureOrganizerDataAsync(userId, input, approved);
             await _db.SaveChangesAsync();
 
-            TempData["StatusMessage"] = isNew ? "Public organizer page created." : "Public organizer page updated.";
+            TempData["StatusMessage"] = isNew ? "Публичната организаторска страница е създадена." : "Публичната организаторска страница е обновена.";
             return RedirectToAction(nameof(Profiles));
         }
 
@@ -379,7 +380,7 @@ namespace EventsApp.Controllers
             profile.IsDefault = true;
             profile.IsActive = true;
             await _db.SaveChangesAsync();
-            TempData["StatusMessage"] = $"{profile.DisplayName} is now your default organizer page.";
+            TempData["StatusMessage"] = $"{profile.DisplayName} вече е основната ти организаторска страница.";
             return RedirectToAction(nameof(Profiles));
         }
 
@@ -396,12 +397,12 @@ namespace EventsApp.Controllers
             if (profile.Events.Any())
             {
                 profile.IsActive = false;
-                TempData["StatusMessage"] = "This page has events, so it was archived instead of deleted.";
+                TempData["StatusMessage"] = "Тази страница има събития, затова беше архивирана вместо изтрита.";
             }
             else
             {
                 _db.OrganizerProfiles.Remove(profile);
-                TempData["StatusMessage"] = "Public organizer page deleted.";
+                TempData["StatusMessage"] = "Публичната организаторска страница е изтрита.";
             }
 
             await _db.SaveChangesAsync();

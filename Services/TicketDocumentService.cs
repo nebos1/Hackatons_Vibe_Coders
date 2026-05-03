@@ -44,7 +44,7 @@ namespace EventsApp.Services
 
                     page.Header().Column(col =>
                     {
-                        col.Item().Text("GrooveOn").FontSize(28).Bold().FontColor(Colors.Indigo.Medium);
+                        col.Item().Text("Evento").FontSize(28).Bold().FontColor(Colors.Indigo.Medium);
                         col.Item().Text("Event Ticket").FontSize(14).FontColor(Colors.Grey.Darken2);
                         col.Item().PaddingTop(6).LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
                     });
@@ -58,6 +58,14 @@ namespace EventsApp.Services
                             col.Item().Text($"Ticket: {ticket.TicketName}").FontSize(13);
                             col.Item().Text($"Location: {ticket.Address}, {ticket.City}");
                             col.Item().Text($"Starts: {ticket.StartTime:yyyy-MM-dd HH:mm}");
+                            if (ticket.EndTime.HasValue)
+                            {
+                                col.Item().Text($"Ends: {ticket.EndTime:yyyy-MM-dd HH:mm}");
+                            }
+                            if (!string.IsNullOrWhiteSpace(ticket.SeatLabel))
+                            {
+                                col.Item().Text($"Seat: {ticket.SeatLabel}");
+                            }
                             col.Item().Text($"Price: {ticket.Price.ToTicketPriceDisplay()}");
                             col.Item().Text($"Holder: {ticket.OwnerUserName}");
                             col.Item().Text($"Email: {ticket.OwnerEmail}");

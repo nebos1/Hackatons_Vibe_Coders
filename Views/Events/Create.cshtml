@@ -25,7 +25,7 @@
             <div class="mb-3">
                 <label asp-for="OrganizerProfileId" class="form-label"></label>
                 <select asp-for="OrganizerProfileId" asp-items="Model.OrganizerProfiles" class="form-select">
-                    <option value="">-- Choose public page --</option>
+                    <option value="" data-i18n="event.publicpage.choose">-- Избери публична страница --</option>
                 </select>
                 <span asp-validation-for="OrganizerProfileId" class="text-danger small"></span>
             </div>
@@ -65,7 +65,7 @@
                     <div class="d-flex justify-content-between align-items-end gap-2 mb-1">
                         <label asp-for="Address" class="form-label mb-0"></label>
                         <button type="button" id="btn-use-my-location" class="groove-button groove-button-paper btn-sm">
-                            <i class="bi bi-geo-alt-fill"></i> My Location
+                            <i class="bi bi-geo-alt-fill"></i> <span data-i18n="home.geo.btn.short">Моето място</span>
                         </button>
                     </div>
                     <div style="position:relative;">
@@ -103,6 +103,8 @@
                 </div>
             </div>
 
+            <partial name="_RecurrenceFields" model="Model" />
+
             <div class="mb-3">
                 <label asp-for="Genre" class="form-label"></label>
                 <select asp-for="Genre" asp-items="Html.GetEnumSelectList<EventGenre>()" class="form-select"></select>
@@ -115,6 +117,8 @@
                 <span asp-validation-for="Photo" class="text-danger small"></span>
                 <div class="form-text">JPG, PNG, WebP или GIF, до 5 MB.</div>
             </div>
+
+            <partial name="_TicketingFields" model="Model" />
 
             @if (Model.CanEditApproval)
             {
@@ -139,4 +143,5 @@
     <partial name="_AiDescriptionScript" />
     <partial name="_GoogleMapsLoader" />
     <script src="~/js/event-place-picker.js" asp-append-version="true"></script>
+    <script src="~/js/event-form.js" asp-append-version="true"></script>
 }

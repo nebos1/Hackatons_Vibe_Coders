@@ -26,6 +26,8 @@ namespace EventsApp.Models
             this.SentMessages = new HashSet<Message>();
             this.UserActivities = new HashSet<UserActivity>();
             this.OrganizerProfiles = new HashSet<OrganizerProfile>();
+            this.EventSeries = new HashSet<EventSeries>();
+            this.VenueLayouts = new HashSet<VenueLayout>();
         }
 
         [Required]
@@ -76,5 +78,9 @@ namespace EventsApp.Models
         public ICollection<Message> SentMessages { get; set; }
 
         public ICollection<UserActivity> UserActivities { get; set; }
+
+        public ICollection<EventSeries> EventSeries { get; set; }
+
+        public ICollection<VenueLayout> VenueLayouts { get; set; }
     }
 }

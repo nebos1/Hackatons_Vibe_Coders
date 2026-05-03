@@ -8,9 +8,12 @@ namespace EventsApp.ViewModels.Tickets
         public string TicketName { get; set; } = null!;
         public string EventTitle { get; set; } = null!;
         public int EventId { get; set; }
+        public int? EventOccurrenceId { get; set; }
         public string Address { get; set; } = null!;
         public string City { get; set; } = null!;
         public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public string? SeatLabel { get; set; }
         public decimal Price { get; set; }
         public string TransactionStatus { get; set; } = null!;
         public string QrCode { get; set; } = null!;

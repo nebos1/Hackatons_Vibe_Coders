@@ -19,6 +19,8 @@ namespace EventsApp.Models
             this.UserActivities = new HashSet<UserActivity>();
             this.Images = new HashSet<EventImage>();
             this.Tickets = new HashSet<Ticket>();
+            this.SeatInventories = new HashSet<EventSeatInventory>();
+            this.TicketingMode = EventTicketingMode.GeneralAdmission;
         }
 
         [Key]
@@ -87,5 +89,16 @@ namespace EventsApp.Models
         public ICollection<EventImage> Images { get; set; }
 
         public ICollection<Ticket> Tickets { get; set; }
+
+        public EventSeries? EventSeries { get; set; }
+
+        public int? VenueLayoutId { get; set; }
+
+        public VenueLayout? VenueLayout { get; set; }
+
+        [Required]
+        public EventTicketingMode TicketingMode { get; set; }
+
+        public ICollection<EventSeatInventory> SeatInventories { get; set; }
     }
 }

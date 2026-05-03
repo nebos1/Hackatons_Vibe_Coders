@@ -1,14 +1,14 @@
 @model IReadOnlyList<ConversationListItemViewModel>
 @{
-    ViewData["Title"] = "Messages";
+    ViewData["Title"] = "Съобщения";
 }
 
 <section class="groove-app-page social-messages-page">
     <div class="groove-page-hero">
         <div class="groove-page-hero__copy">
-            <span class="groove-stamp groove-stamp-teal">Messages</span>
-            <h1>Direct <span>messages</span>.</h1>
-            <p>Chat with people and organizers. Messages refresh with normal page requests for now.</p>
+            <span class="groove-stamp groove-stamp-teal" data-i18n="nav.messages">Съобщения</span>
+            <h1 data-i18n-html="messages.index.title">Лични <span>съобщения</span>.</h1>
+            <p data-i18n="messages.index.desc">Пиши си с хора и организатори. Засега съобщенията се обновяват при нормално зареждане на страницата.</p>
         </div>
     </div>
 
@@ -17,7 +17,7 @@
         {
             <div class="social-empty-panel">
                 <i class="bi bi-chat-dots"></i>
-                <span>No conversations yet. Open a profile and start a message.</span>
+                <span data-i18n="messages.empty">Все още няма разговори. Отвори профил и започни съобщение.</span>
             </div>
         }
         else
@@ -36,7 +36,16 @@
                     }
                     <div>
                         <strong>@conversation.OtherUserName</strong>
-                        <small>@(conversation.LastMessage ?? "No messages yet")</small>
+                        <small>
+                            @if (string.IsNullOrWhiteSpace(conversation.LastMessage))
+                            {
+                                <span data-i18n="messages.none">Все още няма съобщения</span>
+                            }
+                            else
+                            {
+                                @conversation.LastMessage
+                            }
+                        </small>
                     </div>
                     <time>@conversation.UpdatedAt.ToString("dd.MM HH:mm")</time>
                     @if (conversation.UnseenCount > 0)

@@ -1,6 +1,6 @@
 @model FeedViewModel
 @{
-    ViewData["Title"] = "Feed";
+    ViewData["Title"] = "Поток";
     var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
     var isSignedIn = User.Identity?.IsAuthenticated == true;
     var currentStoryInitial = string.IsNullOrWhiteSpace(Model.CurrentUserDisplayName)
@@ -11,24 +11,24 @@
 <section class="groove-feed-page social-feed-page social-feed-page--stream">
     <header class="social-feed-topbar">
         <div>
-            <span class="groove-stamp groove-stamp-teal">Feed</span>
-            <h1>Latest from the scene.</h1>
+            <span class="groove-stamp groove-stamp-teal" data-i18n="feed.kicker">Поток</span>
+            <h1 data-i18n="feed.title">Последно от сцената.</h1>
         </div>
         @if (isSignedIn)
         {
             <a asp-controller="Account" asp-action="Index" class="groove-button groove-button-paper">
-                <i class="bi bi-columns-gap"></i> Account overview
+                <i class="bi bi-columns-gap"></i> <span data-i18n="account.overview">Преглед</span>
             </a>
         }
     </header>
 
-    <section class="social-stories-strip" aria-label="Active stories">
+    <section class="social-stories-strip" aria-label="Активни сторита" data-i18n-aria-label="story.active">
         @if (isSignedIn)
         {
             <article class="social-story-card social-story-card--create">
                 <form asp-controller="Stories" asp-action="Create" asp-route-returnUrl="@returnUrl" method="post" enctype="multipart/form-data" class="story-create-form">
                     @Html.AntiForgeryToken()
-                    <label class="story-create-trigger" for="story-media-input" title="Create story">
+                    <label class="story-create-trigger" for="story-media-input" title="Създай стори" data-i18n-title="story.create">
                         <span class="story-create-avatar">
                             @if (!string.IsNullOrWhiteSpace(Model.CurrentUserProfileImageUrl))
                             {
@@ -43,9 +43,9 @@
                     </label>
                     <input id="story-media-input" class="story-create-input" type="file" name="MediaFile" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime" />
                     <div class="story-create-fields">
-                        <span class="story-create-file" data-i18n="story.empty">Add story</span>
-                        <input type="text" name="Caption" placeholder="Caption" maxlength="280" data-i18n-placeholder="story.caption" />
-                        <button type="submit" data-i18n="story.post">Post story</button>
+                        <span class="story-create-file" data-i18n="story.empty">Добави стори</span>
+                        <input type="text" name="Caption" placeholder="Кратък текст" maxlength="280" data-i18n-placeholder="story.caption" />
+                        <button type="submit" data-i18n="story.post">Публикувай</button>
                     </div>
                 </form>
             </article>
@@ -84,14 +84,14 @@
 
         @if (!Model.Stories.Any() && !isSignedIn)
         {
-            <div class="social-empty-inline">Sign in to follow people and see active stories.</div>
+            <div class="social-empty-inline" data-i18n="feed.signin.stories">Влез, за да следваш хора и да виждаш активни сторита.</div>
         }
     </section>
 
     <div id="story-viewer" class="story-viewer" hidden aria-hidden="true">
-        <button type="button" class="story-viewer__backdrop" data-story-close aria-label="Close story"></button>
-        <article class="story-viewer__dialog" role="dialog" aria-modal="true" aria-label="Story viewer">
-            <button type="button" class="story-viewer__close" data-story-close aria-label="Close story">
+        <button type="button" class="story-viewer__backdrop" data-story-close aria-label="Затвори стори" data-i18n-aria-label="story.close"></button>
+        <article class="story-viewer__dialog" role="dialog" aria-modal="true" aria-label="Преглед на стори" data-i18n-aria-label="story.viewer">
+            <button type="button" class="story-viewer__close" data-story-close aria-label="Затвори стори" data-i18n-aria-label="story.close">
                 <i class="bi bi-x-lg"></i>
             </button>
             <div class="story-viewer__media">
@@ -112,8 +112,8 @@
                 <section class="social-feed-section social-feed-section--stream">
                     <div class="social-section-heading social-section-heading--compact">
                         <div>
-                            <span class="groove-kicker">Following</span>
-                            <h2>People you follow.</h2>
+                            <span class="groove-kicker" data-i18n="feed.following.kicker">Следиш</span>
+                            <h2 data-i18n="feed.following.title">Хората, които следиш.</h2>
                         </div>
                     </div>
                     <div class="social-post-list social-post-list--stream">
@@ -128,8 +128,8 @@
             <section class="social-feed-section social-feed-section--stream">
                 <div class="social-section-heading social-section-heading--compact">
                     <div>
-                        <span class="groove-kicker">Posts</span>
-                        <h2>Organizer updates and fresh posts.</h2>
+                        <span class="groove-kicker" data-i18n="feed.posts.kicker">Публикации</span>
+                        <h2 data-i18n="feed.posts.title">Новини от организатори и свежи постове.</h2>
                     </div>
                 </div>
                 @if (Model.OrganizerPosts.Any())
@@ -145,7 +145,7 @@
                 {
                     <div class="social-empty-panel">
                         <i class="bi bi-journal-text"></i>
-                        <span>No posts yet.</span>
+                        <span data-i18n="profile.no.posts">Все още няма публикации.</span>
                     </div>
                 }
             </section>
@@ -154,8 +154,8 @@
         <aside class="social-feed-aside social-feed-aside--overview">
             <section class="social-side-panel social-side-panel--quick">
                 <div class="social-side-panel__head">
-                    <span class="groove-kicker">Events</span>
-                    <a asp-controller="Home" asp-action="Index" class="groove-link">All</a>
+                    <span class="groove-kicker" data-i18n="profile.events">Събития</span>
+                    <a asp-controller="Home" asp-action="Index" class="groove-link" data-i18n="feed.all">Всички</a>
                 </div>
                 @foreach (var ev in Model.RecommendedEvents.Take(3))
                 {
@@ -169,21 +169,21 @@
 
             <section class="social-side-panel social-side-panel--quick">
                 <div class="social-side-panel__head">
-                    <span class="groove-kicker">Trending</span>
-                    <a asp-controller="Events" asp-action="Recommended" class="groove-link">More</a>
+                    <span class="groove-kicker" data-i18n="home.trending.tab.trend">Тренд</span>
+                    <a asp-controller="Events" asp-action="Recommended" class="groove-link" data-i18n="feed.more">Още</a>
                 </div>
                 @foreach (var ev in Model.TrendingEvents.Take(3))
                 {
                     <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="social-event-mini">
                         <span><i class="bi bi-fire"></i></span>
                         <strong>@ev.Title</strong>
-                        <small>@ev.GoingCount going · @ev.InterestedCount interested</small>
+                        <small>@ev.GoingCount <span data-i18n="event.action.going">Отивам</span> · @ev.InterestedCount <span data-i18n="event.action.interested">Интересува ме</span></small>
                     </a>
                 }
             </section>
 
             <section class="social-side-panel">
-                <span class="groove-kicker">Suggested profiles</span>
+                <span class="groove-kicker" data-i18n="feed.suggested">Предложени профили</span>
                 @foreach (var profile in Model.SuggestedProfiles.Take(5))
                 {
                     var profileInitial = string.IsNullOrWhiteSpace(profile.DisplayName) ? "?" : profile.DisplayName[..1].ToUpperInvariant();
@@ -199,14 +199,24 @@
                             }
                             <div>
                                 <strong>@profile.DisplayName</strong>
-                                <small>@(profile.IsOrganizer ? "Organizer" : "User") · @profile.FollowersCount followers</small>
+                                <small>
+                                    @if (profile.IsOrganizer)
+                                    {
+                                        <span data-i18n="profile.type.organizer">Организатор</span>
+                                    }
+                                    else
+                                    {
+                                        <span data-i18n="profile.type.profile">Профил</span>
+                                    }
+                                    · @profile.FollowersCount <span data-i18n="profile.followers">последователи</span>
+                                </small>
                             </div>
                         </a>
                         @if (isSignedIn)
                         {
                             <form asp-controller="Profiles" asp-action="Follow" asp-route-id="@profile.Id" asp-route-returnUrl="@returnUrl" method="post">
                                 @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-outline-primary">Follow</button>
+                                <button type="submit" class="btn btn-sm btn-outline-primary" data-i18n="profile.follow">Последвай</button>
                             </form>
                         }
                     </article>
@@ -219,6 +229,15 @@
 @section Scripts {
     <script>
         (function () {
+            function currentLang() {
+                var meta = document.querySelector('meta[name="x-app-lang"]');
+                return meta && meta.getAttribute('content') === 'en' ? 'en' : 'bg';
+            }
+
+            function storyEmptyText() {
+                return currentLang() === 'en' ? 'Add story' : 'Добави стори';
+            }
+
             var input = document.getElementById('story-media-input');
             if (input) {
                 var form = input.closest('.story-create-form');
@@ -228,7 +247,7 @@
                     if (!form) return;
                     form.classList.toggle('has-file', !!file);
                     if (label) {
-                        label.textContent = file ? file.name : 'Add story';
+                        label.textContent = file ? file.name : storyEmptyText();
                     }
                 });
             }

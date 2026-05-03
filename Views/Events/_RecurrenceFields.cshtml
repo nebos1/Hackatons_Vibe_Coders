@@ -1,0 +1,105 @@
+@model EventCreateEditViewModel
+
+<section class="event-schedule-panel mb-3" data-event-recurrence-panel>
+    <span class="groove-kicker" data-i18n="event.schedule.kicker">График</span>
+    <h3 class="h5 mt-2" data-i18n="event.schedule.title">Дати на събитието</h3>
+    <div class="event-choice-grid mt-3">
+        <label class="event-choice-card">
+            <input asp-for="RecurrenceType" type="radio" value="@EventRecurrenceType.None" />
+            <span>
+                <strong data-i18n="event.schedule.single">Еднократно събитие</strong>
+                <span data-i18n="event.schedule.single.desc">Използва стандартните начална и крайна дата.</span>
+            </span>
+        </label>
+        <label class="event-choice-card">
+            <input asp-for="RecurrenceType" type="radio" value="@EventRecurrenceType.Daily" />
+            <span>
+                <strong data-i18n="event.schedule.daily">Повтаря се всеки ден</strong>
+                <span data-i18n="event.schedule.daily.desc">Всеки ден или през няколко дни до крайна дата.</span>
+            </span>
+        </label>
+        <label class="event-choice-card">
+            <input asp-for="RecurrenceType" type="radio" value="@EventRecurrenceType.Weekly" />
+            <span>
+                <strong data-i18n="event.schedule.weekly">Повтаря се всяка седмица</strong>
+                <span data-i18n="event.schedule.weekly.desc">Избери един или повече дни от седмицата.</span>
+            </span>
+        </label>
+    </div>
+
+    <div class="event-recurring-fields" data-event-recurring-fields>
+        <div class="groove-form-grid mt-3">
+            <div class="mb-3">
+                <label asp-for="RecurrenceInterval" class="form-label"></label>
+                <input asp-for="RecurrenceInterval" type="number" min="1" class="form-control" />
+                <span asp-validation-for="RecurrenceInterval" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="TimeZone" class="form-label"></label>
+                <input asp-for="TimeZone" class="form-control" />
+                <span asp-validation-for="TimeZone" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <div class="event-weekday-list mb-3" data-event-weekdays>
+            @foreach (var day in Enum.GetValues<DayOfWeek>())
+            {
+                var dayKey = $"day.{day}";
+                var dayText = day switch
+                {
+                    DayOfWeek.Monday => "Понеделник",
+                    DayOfWeek.Tuesday => "Вторник",
+                    DayOfWeek.Wednesday => "Сряда",
+                    DayOfWeek.Thursday => "Четвъртък",
+                    DayOfWeek.Friday => "Петък",
+                    DayOfWeek.Saturday => "Събота",
+                    DayOfWeek.Sunday => "Неделя",
+                    _ => day.ToString(),
+                };
+                <label>
+                    <input type="checkbox"
+                           name="SelectedDaysOfWeek"
+                           value="@day"
+                           checked="@Model.SelectedDaysOfWeek.Contains(day)" />
+                    <span data-i18n="@dayKey">@dayText</span>
+                </label>
+            }
+        </div>
+        <span asp-validation-for="SelectedDaysOfWeek" class="text-danger small"></span>
+
+        <div class="groove-form-grid">
+            <div class="mb-3">
+                <label asp-for="RecurrenceStartDate" class="form-label"></label>
+                <input asp-for="RecurrenceStartDate" type="date" class="form-control" value="@Model.RecurrenceStartDate?.ToString("yyyy-MM-dd")" />
+                <span asp-validation-for="RecurrenceStartDate" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="RecurrenceEndDate" class="form-label"></label>
+                <input asp-for="RecurrenceEndDate" type="date" class="form-control" value="@Model.RecurrenceEndDate?.ToString("yyyy-MM-dd")" />
+                <span asp-validation-for="RecurrenceEndDate" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <div class="groove-form-grid">
+            <div class="mb-3">
+                <label asp-for="RecurrenceStartTime" class="form-label"></label>
+                <input asp-for="RecurrenceStartTime" type="time" class="form-control" value="@Model.RecurrenceStartTime?.ToString(@"hh\:mm")" />
+                <span asp-validation-for="RecurrenceStartTime" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="RecurrenceEndTime" class="form-label"></label>
+                <input asp-for="RecurrenceEndTime" type="time" class="form-control" value="@Model.RecurrenceEndTime?.ToString(@"hh\:mm")" />
+                <span asp-validation-for="RecurrenceEndTime" class="text-danger small"></span>
+            </div>
+        </div>
+
+        @if (Model.Id > 0)
+        {
+            <div class="mb-3">
+                <label asp-for="RecurringEditScope" class="form-label"></label>
+                <select asp-for="RecurringEditScope" asp-items="Html.GetEnumSelectList<RecurringEditScope>()" class="form-select"></select>
+                <div class="form-text" data-i18n="event.schedule.edit.note">За една конкретна дата отвори детайлите на събитието и отмени само избраната дата.</div>
+            </div>
+        }
+    </div>
+</section>

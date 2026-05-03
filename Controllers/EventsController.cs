@@ -2,6 +2,7 @@ using EventsApp.Common;
 using EventsApp.Data;
 using EventsApp.Models;
 using EventsApp.ViewModels.Events;
+using EventsApp.ViewModels.Layouts;
 using EventsApp.Services;
 using EventsApp.Services.AI;
 using EventsApp.Services.Geocoding;
@@ -22,6 +23,8 @@ namespace EventsApp.Controllers
         private readonly IAiSearchService _ai;
         private readonly IGeocodingService _geocoder;
         private readonly ISocialFeedService _socialFeed;
+        private readonly IRecurringEventService _recurringEvents;
+        private readonly ILayoutService _layouts;
 
         public EventsController(
             ApplicationDbContext db,
@@ -29,7 +32,9 @@ namespace EventsApp.Controllers
             IMediaUploadService mediaUploadService,
             IAiSearchService ai,
             IGeocodingService geocoder,
-            ISocialFeedService socialFeed)
+            ISocialFeedService socialFeed,
+            IRecurringEventService recurringEvents,
+            ILayoutService layouts)
         {
             _db = db;
             _userManager = userManager;
@@ -37,6 +42,8 @@ namespace EventsApp.Controllers
             _ai = ai;
             _geocoder = geocoder;
             _socialFeed = socialFeed;
+            _recurringEvents = recurringEvents;
+            _layouts = layouts;
         }
 
         public class GenerateDescriptionRequest
@@ -81,7 +88,7 @@ namespace EventsApp.Controllers
             return RedirectToAction("Index", "Home", new { search, city, genre, dateFrom });
         }
 
-        public async Task<IActionResult> Details(int id)
+        public async Task<IActionResult> Details(int id, int? occurrenceId)
         {
             var userId = _userManager.GetUserId(User);
             var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
@@ -91,6 +98,15 @@ namespace EventsApp.Controllers
                 .Include(e => e.Organizer)
                 .Include(e => e.OrganizerProfile)
                 .Include(e => e.Images)
+                .Include(e => e.EventSeries)
+                    .ThenInclude(s => s!.Occurrences)
+                        .ThenInclude(o => o.UserTickets)
+                            .ThenInclude(ut => ut.Transaction)
+                .Include(e => e.VenueLayout)
+                    .ThenInclude(l => l!.Sections)
+                .Include(e => e.VenueLayout)
+                    .ThenInclude(l => l!.Seats)
+                        .ThenInclude(s => s.Section)
                 .Include(e => e.Likes)
                 .Include(e => e.Saves)
                 .Include(e => e.Attendances)
@@ -109,13 +125,25 @@ namespace EventsApp.Controllers
                 return NotFound();
             }
 
+            var occurrences = ev.EventSeries?.Occurrences
+                .OrderBy(o => o.StartDateTime)
+                .ToList() ?? new List<EventOccurrence>();
+            var selectedOccurrence = occurrences.FirstOrDefault(o => o.Id == occurrenceId)
+                ?? occurrences.FirstOrDefault(o => o.Status == EventOccurrenceStatus.Scheduled && o.StartDateTime > DateTime.UtcNow)
+                ?? occurrences.FirstOrDefault();
+
+            if (ev.VenueLayoutId.HasValue && ev.TicketingMode != EventTicketingMode.GeneralAdmission)
+            {
+                await _layouts.EnsureInventoryAsync(ev.Id, selectedOccurrence?.Id, ev.VenueLayoutId.Value);
+            }
+
             var vm = new EventDetailsViewModel
             {
                 Id = ev.Id,
                 Title = ev.Title,
                 Description = ev.Description,
-                StartTime = ev.StartTime,
-                EndTime = ev.EndTime,
+                StartTime = selectedOccurrence?.StartDateTime ?? ev.StartTime,
+                EndTime = selectedOccurrence?.EndDateTime ?? ev.EndTime,
                 Genre = ev.Genre,
                 ImageUrl = ev.ImageUrl,
                 IsApproved = ev.IsApproved,
@@ -155,6 +183,23 @@ namespace EventsApp.Controllers
                 CanEdit = isAdmin || ev.OrganizerId == userId,
                 CanDelete = isAdmin || ev.OrganizerId == userId,
                 CanManageTickets = isAdmin || ev.OrganizerId == userId,
+                IsRecurring = ev.EventSeries != null && ev.EventSeries.RecurrenceType != EventRecurrenceType.None,
+                EventSeriesId = ev.EventSeries?.Id,
+                SelectedOccurrenceId = selectedOccurrence?.Id,
+                SelectedOccurrenceStatus = selectedOccurrence?.Status,
+                TicketingMode = ev.TicketingMode,
+                HasSeatLayout = ev.VenueLayoutId.HasValue && ev.TicketingMode != EventTicketingMode.GeneralAdmission,
+                Occurrences = occurrences
+                    .Select(o => new EventOccurrenceOptionViewModel
+                    {
+                        Id = o.Id,
+                        StartDateTime = o.StartDateTime,
+                        EndDateTime = o.EndDateTime,
+                        Status = o.Status,
+                        CapacityOverride = o.CapacityOverride,
+                        SoldCount = o.UserTickets.Count(ut => ut.Transaction.Status == GlobalConstants.TransactionStatuses.Paid),
+                    })
+                    .ToList(),
                 Tickets = ev.Tickets
                     .Where(t => t.IsActive)
                     .OrderBy(t => t.Price)
@@ -169,6 +214,11 @@ namespace EventsApp.Controllers
                     })
                     .ToList(),
             };
+
+            if (vm.HasSeatLayout && ev.VenueLayoutId.HasValue)
+            {
+                vm.SeatMap = await BuildSeatMapAsync(ev.VenueLayoutId.Value, ev.Id, selectedOccurrence?.Id);
+            }
 
             if (userId != null)
             {
@@ -195,6 +245,11 @@ namespace EventsApp.Controllers
                 CityCoordinatesMap = GetAllBgCitiesMap(),
                 OrganizerProfiles = await GetOrganizerProfileOptionsAsync(),
                 OrganizerProfileId = await GetDefaultOrganizerProfileIdAsync(),
+                RecurrenceStartDate = DateTime.UtcNow.AddDays(1).Date,
+                RecurrenceEndDate = DateTime.UtcNow.AddDays(31).Date,
+                RecurrenceStartTime = TimeSpan.FromHours(20),
+                RecurrenceEndTime = TimeSpan.FromHours(22),
+                VenueLayouts = await GetVenueLayoutOptionsAsync(),
             };
             return View(vm);
         }
@@ -217,13 +272,16 @@ namespace EventsApp.Controllers
             var profile = await ResolveOrganizerProfileAsync(input.OrganizerProfileId);
             if (!isAdmin && profile == null)
             {
-                ModelState.AddModelError(nameof(input.OrganizerProfileId), "Choose an active public organizer page.");
+                ModelState.AddModelError(nameof(input.OrganizerProfileId), "Избери активна публична организаторска страница.");
             }
 
             if (input.EndTime <= input.StartTime)
             {
-                ModelState.AddModelError(nameof(input.EndTime), "End time must be after start time.");
+                ModelState.AddModelError(nameof(input.EndTime), "Крайният час трябва да е след началния.");
             }
+
+            ValidateRecurringInput(input);
+            await ValidateLayoutInputAsync(input, userId, isAdmin);
 
 
             if (!ModelState.IsValid)
@@ -232,7 +290,23 @@ namespace EventsApp.Controllers
                 input.Cities = GetAllBgCities();
                 input.CityCoordinatesMap = GetAllBgCitiesMap();
                 input.OrganizerProfiles = await GetOrganizerProfileOptionsAsync();
+                input.VenueLayouts = await GetVenueLayoutOptionsAsync();
                 return View(input);
+            }
+
+            var eventStart = input.StartTime;
+            var eventEnd = input.EndTime;
+            if (input.RecurrenceType != EventRecurrenceType.None
+                && input.RecurrenceStartDate.HasValue
+                && input.RecurrenceStartTime.HasValue
+                && input.RecurrenceEndTime.HasValue)
+            {
+                eventStart = input.RecurrenceStartDate.Value.Date.Add(input.RecurrenceStartTime.Value);
+                eventEnd = input.RecurrenceStartDate.Value.Date.Add(input.RecurrenceEndTime.Value);
+                if (eventEnd <= eventStart)
+                {
+                    eventEnd = eventEnd.AddDays(1);
+                }
             }
 
             var ev = new Event
@@ -243,12 +317,14 @@ namespace EventsApp.Controllers
                 Address = input.Address,
                 OrganizerId = userId,
                 OrganizerProfileId = isAdmin ? input.OrganizerProfileId : profile!.Id,
-                StartTime = input.StartTime,
-                EndTime = input.EndTime,
+                StartTime = eventStart,
+                EndTime = eventEnd,
                 Genre = input.Genre,
                 Latitude = input.Latitude,
                 Longitude = input.Longitude,
                 IsApproved = isAdmin && input.IsApproved,
+                TicketingMode = input.TicketingMode,
+                VenueLayoutId = input.TicketingMode == EventTicketingMode.GeneralAdmission ? null : input.VenueLayoutId,
             };
 
             if (!ev.Latitude.HasValue || !ev.Longitude.HasValue)
@@ -269,6 +345,26 @@ namespace EventsApp.Controllers
             _db.Events.Add(ev);
             await _db.SaveChangesAsync();
 
+            if (input.RecurrenceType != EventRecurrenceType.None)
+            {
+                var series = ToEventSeries(ev, input);
+                _db.EventSeries.Add(series);
+                await _db.SaveChangesAsync();
+                await _recurringEvents.RegenerateOccurrencesAsync(series, RecurringEditScope.EntireSeries);
+
+                var firstOccurrence = await _db.EventOccurrences
+                    .Where(o => o.EventSeriesId == series.Id)
+                    .OrderBy(o => o.StartDateTime)
+                    .FirstOrDefaultAsync();
+
+                if (firstOccurrence != null)
+                {
+                    ev.StartTime = firstOccurrence.StartDateTime;
+                    ev.EndTime = firstOccurrence.EndDateTime;
+                    await _db.SaveChangesAsync();
+                }
+            }
+
             // Handle photo upload
             if (input.Photo != null && input.Photo.Length > 0)
             {
@@ -280,10 +376,19 @@ namespace EventsApp.Controllers
                     // Optionally, add to Images collection
                     _db.EventImages.Add(new EventImage { EventId = ev.Id, ImageUrl = uploadResult.Url });
                     await _db.SaveChangesAsync();
+
+                    var series = await _db.EventSeries.FirstOrDefaultAsync(s => s.EventId == ev.Id);
+                    if (series != null)
+                    {
+                        series.ImageUrl = uploadResult.Url;
+                        await _db.SaveChangesAsync();
+                    }
                 }
             }
 
-            TempData["StatusMessage"] = "Event created.";
+            await EnsureSeatInventoriesForEventAsync(ev.Id);
+
+            TempData["StatusMessage"] = "Събитието е създадено.";
             return RedirectToAction(nameof(Details), new { id = ev.Id });
         }
 
@@ -330,7 +435,9 @@ namespace EventsApp.Controllers
             var userId = _userManager.GetUserId(User)!;
             var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
 
-            var ev = await _db.Events.FirstOrDefaultAsync(e => e.Id == id);
+            var ev = await _db.Events
+                .Include(e => e.EventSeries)
+                .FirstOrDefaultAsync(e => e.Id == id);
             if (ev == null)
             {
                 return NotFound();
@@ -355,9 +462,20 @@ namespace EventsApp.Controllers
                 OrganizerProfileId = ev.OrganizerProfileId,
                 Latitude = ev.Latitude,
                 Longitude = ev.Longitude,
+                RecurrenceType = ev.EventSeries?.RecurrenceType ?? EventRecurrenceType.None,
+                RecurrenceInterval = ev.EventSeries?.Interval ?? 1,
+                SelectedDaysOfWeek = ParseDaysForInput(ev.EventSeries?.DaysOfWeek),
+                RecurrenceStartDate = ev.EventSeries?.StartDate.Date,
+                RecurrenceEndDate = ev.EventSeries?.EndDate.Date,
+                RecurrenceStartTime = ev.EventSeries?.StartTime,
+                RecurrenceEndTime = ev.EventSeries?.EndTime,
+                TimeZone = ev.EventSeries?.TimeZone ?? "Europe/Sofia",
+                TicketingMode = ev.TicketingMode,
+                VenueLayoutId = ev.VenueLayoutId,
                 IsApproved = ev.IsApproved,
                 CanEditApproval = isAdmin,
                 OrganizerProfiles = await GetOrganizerProfileOptionsAsync(),
+                VenueLayouts = await GetVenueLayoutOptionsAsync(),
             };
             return View(vm);
         }
@@ -370,7 +488,9 @@ namespace EventsApp.Controllers
             var userId = _userManager.GetUserId(User)!;
             var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
 
-            var ev = await _db.Events.FirstOrDefaultAsync(e => e.Id == id);
+            var ev = await _db.Events
+                .Include(e => e.EventSeries)
+                .FirstOrDefaultAsync(e => e.Id == id);
             if (ev == null)
             {
                 return NotFound();
@@ -384,19 +504,38 @@ namespace EventsApp.Controllers
             var profile = await ResolveOrganizerProfileAsync(input.OrganizerProfileId);
             if (!isAdmin && profile == null)
             {
-                ModelState.AddModelError(nameof(input.OrganizerProfileId), "Choose an active public organizer page.");
+                ModelState.AddModelError(nameof(input.OrganizerProfileId), "Избери активна публична организаторска страница.");
             }
 
             if (input.EndTime <= input.StartTime)
             {
-                ModelState.AddModelError(nameof(input.EndTime), "End time must be after start time.");
+                ModelState.AddModelError(nameof(input.EndTime), "Крайният час трябва да е след началния.");
             }
+
+            ValidateRecurringInput(input);
+            await ValidateLayoutInputAsync(input, userId, isAdmin);
 
             if (!ModelState.IsValid)
             {
                 input.CanEditApproval = isAdmin;
                 input.OrganizerProfiles = await GetOrganizerProfileOptionsAsync();
+                input.VenueLayouts = await GetVenueLayoutOptionsAsync();
                 return View(input);
+            }
+
+            var eventStart = input.StartTime;
+            var eventEnd = input.EndTime;
+            if (input.RecurrenceType != EventRecurrenceType.None
+                && input.RecurrenceStartDate.HasValue
+                && input.RecurrenceStartTime.HasValue
+                && input.RecurrenceEndTime.HasValue)
+            {
+                eventStart = input.RecurrenceStartDate.Value.Date.Add(input.RecurrenceStartTime.Value);
+                eventEnd = input.RecurrenceStartDate.Value.Date.Add(input.RecurrenceEndTime.Value);
+                if (eventEnd <= eventStart)
+                {
+                    eventEnd = eventEnd.AddDays(1);
+                }
             }
 
             var addressChanged = !string.Equals(ev.Address, input.Address, StringComparison.Ordinal)
@@ -407,11 +546,13 @@ namespace EventsApp.Controllers
             ev.OrganizerProfileId = isAdmin ? input.OrganizerProfileId : profile!.Id;
             ev.City = input.City;
             ev.Address = input.Address;
-            ev.StartTime = input.StartTime;
-            ev.EndTime = input.EndTime;
+            ev.StartTime = eventStart;
+            ev.EndTime = eventEnd;
             ev.Genre = input.Genre;
             ev.Latitude = input.Latitude;
             ev.Longitude = input.Longitude;
+            ev.TicketingMode = input.TicketingMode;
+            ev.VenueLayoutId = input.TicketingMode == EventTicketingMode.GeneralAdmission ? null : input.VenueLayoutId;
 
             if ((!ev.Latitude.HasValue || !ev.Longitude.HasValue) || addressChanged && (input.Latitude == null || input.Longitude == null))
             {
@@ -445,7 +586,27 @@ namespace EventsApp.Controllers
             }
 
             await _db.SaveChangesAsync();
-            TempData["StatusMessage"] = "Event updated.";
+
+            if (input.RecurrenceType != EventRecurrenceType.None)
+            {
+                if (ev.EventSeries == null)
+                {
+                    ev.EventSeries = ToEventSeries(ev, input);
+                    _db.EventSeries.Add(ev.EventSeries);
+                    await _db.SaveChangesAsync();
+                }
+                else
+                {
+                    ApplySeriesInput(ev.EventSeries, ev, input);
+                }
+
+                await _db.SaveChangesAsync();
+                await _recurringEvents.RegenerateOccurrencesAsync(ev.EventSeries, input.RecurringEditScope);
+            }
+
+            await EnsureSeatInventoriesForEventAsync(ev.Id);
+
+            TempData["StatusMessage"] = "Събитието е обновено.";
             return RedirectToAction(nameof(Details), new { id = ev.Id });
         }
 
@@ -471,6 +632,24 @@ namespace EventsApp.Controllers
             return View(ev);
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = GlobalConstants.Roles.Admin + "," + GlobalConstants.Roles.Organizer)]
+        public async Task<IActionResult> CancelOccurrence(int id, int occurrenceId)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var cancelled = await _recurringEvents.CancelOccurrenceAsync(
+                occurrenceId,
+                userId,
+                User.IsInRole(GlobalConstants.Roles.Admin));
+
+            TempData["StatusMessage"] = cancelled
+                ? "Тази дата беше отменена."
+                : "Датата не можа да бъде отменена.";
+
+            return RedirectToAction(nameof(Details), new { id, occurrenceId });
+        }
+
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = GlobalConstants.Roles.Admin + "," + GlobalConstants.Roles.Organizer)]
@@ -479,7 +658,10 @@ namespace EventsApp.Controllers
             var userId = _userManager.GetUserId(User)!;
             var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
 
-            var ev = await _db.Events.FirstOrDefaultAsync(e => e.Id == id);
+            var ev = await _db.Events
+                .Include(e => e.EventSeries)
+                    .ThenInclude(s => s!.Occurrences)
+                .FirstOrDefaultAsync(e => e.Id == id);
             if (ev == null)
             {
                 return NotFound();
@@ -490,9 +672,14 @@ namespace EventsApp.Controllers
                 return Forbid();
             }
 
+            var occurrenceIds = ev.EventSeries?.Occurrences.Select(o => o.Id).ToList() ?? new List<int>();
+            var inventories = await _db.EventSeatInventories
+                .Where(i => i.EventId == ev.Id || (i.EventOccurrenceId.HasValue && occurrenceIds.Contains(i.EventOccurrenceId.Value)))
+                .ToListAsync();
+            _db.EventSeatInventories.RemoveRange(inventories);
             _db.Events.Remove(ev);
             await _db.SaveChangesAsync();
-            TempData["StatusMessage"] = "Event deleted.";
+            TempData["StatusMessage"] = "Събитието е изтрито.";
             return RedirectToAction("Index", "Home");
         }
 
@@ -627,7 +814,7 @@ namespace EventsApp.Controllers
         {
             if (string.IsNullOrWhiteSpace(content))
             {
-                TempData["StatusMessage"] = "Comment cannot be empty.";
+                TempData["StatusMessage"] = "Коментарът не може да е празен.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
@@ -734,6 +921,248 @@ namespace EventsApp.Controllers
             return View(events);
         }
 
+        private async Task<EventSeatMapViewModel?> BuildSeatMapAsync(int layoutId, int eventId, int? occurrenceId)
+        {
+            var layout = await _db.VenueLayouts
+                .AsNoTracking()
+                .Include(l => l.Sections)
+                .Include(l => l.Seats)
+                    .ThenInclude(s => s.Section)
+                .FirstOrDefaultAsync(l => l.Id == layoutId);
+
+            if (layout == null)
+            {
+                return null;
+            }
+
+            var inventoryRows = occurrenceId.HasValue
+                ? await _db.EventSeatInventories
+                    .AsNoTracking()
+                    .Where(i => i.EventOccurrenceId == occurrenceId.Value)
+                    .ToListAsync()
+                : await _db.EventSeatInventories
+                    .AsNoTracking()
+                    .Where(i => i.EventId == eventId && i.EventOccurrenceId == null)
+                    .ToListAsync();
+
+            var inventory = inventoryRows.ToDictionary(i => i.SeatId);
+
+            return new EventSeatMapViewModel
+            {
+                LayoutId = layout.Id,
+                LayoutName = layout.Name,
+                Sections = layout.Sections
+                    .OrderBy(s => s.Name)
+                    .Select(section => new EventSeatSectionViewModel
+                    {
+                        Id = section.Id,
+                        Name = section.Name,
+                        Type = section.Type,
+                        PriceModifier = section.PriceModifier,
+                        X = section.X,
+                        Y = section.Y,
+                        Width = section.Width,
+                        Height = section.Height,
+                        Seats = layout.Seats
+                            .Where(seat => seat.SectionId == section.Id)
+                            .OrderBy(seat => seat.Row)
+                            .ThenBy(seat => seat.Number)
+                            .Select(seat =>
+                            {
+                                inventory.TryGetValue(seat.Id, out var inv);
+                                return new EventSeatViewModel
+                                {
+                                    Id = seat.Id,
+                                    InventoryId = inv?.Id,
+                                    Label = $"{seat.Row}{seat.Number}",
+                                    X = seat.X,
+                                    Y = seat.Y,
+                                    SeatType = seat.SeatType,
+                                    Status = seat.Status == LayoutSeatStatus.Blocked
+                                        ? EventSeatInventoryStatus.Blocked
+                                        : inv?.Status ?? EventSeatInventoryStatus.Available,
+                                };
+                            })
+                            .ToList(),
+                    })
+                    .ToList(),
+            };
+        }
+
+        private void ValidateRecurringInput(EventCreateEditViewModel input)
+        {
+            if (input.RecurrenceType == EventRecurrenceType.None)
+            {
+                return;
+            }
+
+            if (!input.RecurrenceStartDate.HasValue)
+            {
+                ModelState.AddModelError(nameof(input.RecurrenceStartDate), "Избери начална дата на серията.");
+            }
+
+            if (!input.RecurrenceEndDate.HasValue)
+            {
+                ModelState.AddModelError(nameof(input.RecurrenceEndDate), "Избери крайна дата на серията.");
+            }
+
+            if (!input.RecurrenceStartTime.HasValue)
+            {
+                ModelState.AddModelError(nameof(input.RecurrenceStartTime), "Избери начален час.");
+            }
+
+            if (!input.RecurrenceEndTime.HasValue)
+            {
+                ModelState.AddModelError(nameof(input.RecurrenceEndTime), "Избери краен час.");
+            }
+
+            if (input.RecurrenceInterval < 1)
+            {
+                ModelState.AddModelError(nameof(input.RecurrenceInterval), "Интервалът трябва да е поне 1.");
+            }
+
+            if (input.RecurrenceType == EventRecurrenceType.Weekly && input.SelectedDaysOfWeek.Count == 0)
+            {
+                ModelState.AddModelError(nameof(input.SelectedDaysOfWeek), "Избери поне един ден от седмицата.");
+            }
+
+            if (input.RecurrenceStartDate.HasValue && input.RecurrenceEndDate.HasValue)
+            {
+                var rangeDays = (input.RecurrenceEndDate.Value.Date - input.RecurrenceStartDate.Value.Date).Days;
+                if (rangeDays < 0)
+                {
+                    ModelState.AddModelError(nameof(input.RecurrenceEndDate), "Крайната дата трябва да е след началната.");
+                }
+                else if (rangeDays > 370)
+                {
+                    ModelState.AddModelError(nameof(input.RecurrenceEndDate), "Засега използвай период до 370 дни.");
+                }
+            }
+        }
+
+        private async Task ValidateLayoutInputAsync(EventCreateEditViewModel input, string userId, bool isAdmin)
+        {
+            if (input.TicketingMode == EventTicketingMode.GeneralAdmission)
+            {
+                return;
+            }
+
+            if (!input.VenueLayoutId.HasValue)
+            {
+                ModelState.AddModelError(nameof(input.VenueLayoutId), "Избери преизползваем layout или остави без места.");
+                return;
+            }
+
+            var layout = await _db.VenueLayouts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(l => l.Id == input.VenueLayoutId.Value);
+
+            if (layout == null || (!isAdmin && layout.OrganizerId != userId))
+            {
+                ModelState.AddModelError(nameof(input.VenueLayoutId), "Този layout не е наличен.");
+            }
+        }
+
+        private EventSeries ToEventSeries(Event ev, EventCreateEditViewModel input)
+        {
+            var series = new EventSeries
+            {
+                EventId = ev.Id,
+                OrganizerId = ev.OrganizerId,
+            };
+
+            ApplySeriesInput(series, ev, input);
+            return series;
+        }
+
+        private static void ApplySeriesInput(EventSeries series, Event ev, EventCreateEditViewModel input)
+        {
+            series.Title = ev.Title;
+            series.Description = ev.Description;
+            series.Category = ev.Genre;
+            series.Location = ev.Address;
+            series.City = ev.City;
+            series.ImageUrl = ev.ImageUrl;
+            series.RecurrenceType = input.RecurrenceType;
+            series.Interval = Math.Max(1, input.RecurrenceInterval);
+            series.DaysOfWeek = SerializeDays(input.SelectedDaysOfWeek);
+            series.StartDate = input.RecurrenceStartDate!.Value.Date;
+            series.EndDate = input.RecurrenceEndDate!.Value.Date;
+            series.StartTime = input.RecurrenceStartTime!.Value;
+            series.EndTime = input.RecurrenceEndTime!.Value;
+            series.TimeZone = string.IsNullOrWhiteSpace(input.TimeZone) ? "Europe/Sofia" : input.TimeZone.Trim();
+            series.Status = ev.IsApproved ? EventSeriesStatus.Published : EventSeriesStatus.Draft;
+            series.UpdatedAt = DateTime.UtcNow;
+        }
+
+        private async Task EnsureSeatInventoriesForEventAsync(int eventId)
+        {
+            var ev = await _db.Events
+                .AsNoTracking()
+                .Include(e => e.EventSeries)
+                    .ThenInclude(s => s!.Occurrences)
+                .FirstOrDefaultAsync(e => e.Id == eventId);
+
+            if (ev?.VenueLayoutId == null || ev.TicketingMode == EventTicketingMode.GeneralAdmission)
+            {
+                return;
+            }
+
+            if (ev.EventSeries?.Occurrences.Any() == true)
+            {
+                foreach (var occurrence in ev.EventSeries.Occurrences)
+                {
+                    await _layouts.EnsureInventoryAsync(eventId, occurrence.Id, ev.VenueLayoutId.Value);
+                }
+            }
+            else
+            {
+                await _layouts.EnsureInventoryAsync(eventId, null, ev.VenueLayoutId.Value);
+            }
+        }
+
+        private async Task<IEnumerable<SelectListItem>> GetVenueLayoutOptionsAsync()
+        {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Array.Empty<SelectListItem>();
+            }
+
+            return await _db.VenueLayouts
+                .AsNoTracking()
+                .Where(l => l.OrganizerId == userId && l.Status != VenueLayoutStatus.Archived)
+                .OrderBy(l => l.VenueName)
+                .ThenBy(l => l.Name)
+                .Select(l => new SelectListItem
+                {
+                    Value = l.Id.ToString(),
+                    Text = $"{l.VenueName} - {l.Name} v{l.Version}",
+                })
+                .ToListAsync();
+        }
+
+        private static string? SerializeDays(IEnumerable<DayOfWeek> days)
+        {
+            var value = string.Join(",", days.Distinct().OrderBy(d => d).Select(d => d.ToString()));
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        private static List<DayOfWeek> ParseDaysForInput(string? days)
+        {
+            if (string.IsNullOrWhiteSpace(days))
+            {
+                return new List<DayOfWeek>();
+            }
+
+            return days
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(value => Enum.TryParse<DayOfWeek>(value, ignoreCase: true, out var day) ? (DayOfWeek?)day : null)
+                .Where(day => day.HasValue)
+                .Select(day => day!.Value)
+                .ToList();
+        }
+
         private async Task<IActionResult?> RequireOrganizerPublicPageAsync()
         {
             if (User.IsInRole(GlobalConstants.Roles.Admin))
@@ -756,7 +1185,7 @@ namespace EventsApp.Controllers
                 return null;
             }
 
-            TempData["StatusMessage"] = "Create your public organizer page before publishing events.";
+            TempData["StatusMessage"] = "Създай публична организаторска страница преди да публикуваш събития.";
             return RedirectToAction("Profile", "Organizer");
         }
 

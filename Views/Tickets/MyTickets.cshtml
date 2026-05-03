@@ -58,6 +58,12 @@
                         <dt>Начало</dt>
                         <dd>@t.StartTime.ToString("dd.MM.yyyy HH:mm")</dd>
 
+                        @if (!string.IsNullOrWhiteSpace(t.SeatLabel))
+                        {
+                            <dt data-i18n="ticket.seat">Място</dt>
+                            <dd>@t.SeatLabel</dd>
+                        }
+
                         <dt>Цена</dt>
                         <dd>@t.Price.ToTicketPriceDisplay()</dd>
                     </dl>

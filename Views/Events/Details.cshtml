@@ -7,24 +7,24 @@
 <section class="groove-app-page">
     <div class="groove-page-actions mb-4">
         <a asp-controller="Home" asp-action="Index" class="groove-button groove-button-paper">
-            <i class="bi bi-arrow-left"></i> Back
+            <i class="bi bi-arrow-left"></i> <span data-i18n="common.back">Назад</span>
         </a>
         @if (Model.CanEdit)
         {
             <a asp-action="Edit" asp-route-id="@Model.Id" class="groove-button groove-button-paper">
-                <i class="bi bi-pencil"></i> Edit
+                <i class="bi bi-pencil"></i> <span data-i18n="org.btn.edit">Редакция</span>
             </a>
         }
         @if (Model.CanDelete)
         {
             <a asp-action="Delete" asp-route-id="@Model.Id" class="groove-button groove-button-paper">
-                <i class="bi bi-trash"></i> Delete
+                <i class="bi bi-trash"></i> <span data-i18n="organizer.pages.delete">Изтрий</span>
             </a>
         }
         @if (Model.CanManageTickets)
         {
             <a asp-controller="Tickets" asp-action="Manage" asp-route-id="@Model.Id" class="groove-button groove-button-dark">
-                <i class="bi bi-ticket-perforated"></i> Tickets
+                <i class="bi bi-ticket-perforated"></i> <span data-i18n="org.btn.tickets">Билети</span>
             </a>
         }
     </div>
@@ -32,7 +32,7 @@
     @if (!Model.IsApproved)
     {
         <div class="groove-alert groove-alert-warning mb-4">
-            <strong>This event is waiting for approval.</strong>
+            <strong data-i18n="event.status.waiting.approval">Това събитие чака одобрение.</strong>
         </div>
     }
 
@@ -61,23 +61,23 @@
 
         <aside class="groove-info-card">
             <dl class="groove-data-list">
-                <dt>Location</dt>
+                <dt data-i18n="event.location">Локация</dt>
                 <dd>@Model.Address, @Model.City</dd>
-                <dt>Start</dt>
+                <dt data-i18n="org.th.start">Начало</dt>
                 <dd>@Model.StartTime.ToString("dd.MM.yyyy HH:mm")</dd>
-                <dt>End</dt>
+                <dt data-i18n="ticket.end">Край</dt>
                 <dd>@Model.EndTime.ToString("dd.MM.yyyy HH:mm")</dd>
-                <dt>Organizer</dt>
+                <dt data-i18n="profile.type.organizer">Организатор</dt>
                 <dd><a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OrganizerId">@Model.OrganizerName</a></dd>
-                <dt>Social</dt>
-                <dd>@Model.LikesCount likes · @Model.SavesCount saves</dd>
-                <dt>Going</dt>
-                <dd>@Model.GoingCount going · @Model.InterestedCount interested</dd>
+                <dt data-i18n="event.social">Социално</dt>
+                <dd>@Model.LikesCount <span data-i18n="social.likes">харесвания</span> · @Model.SavesCount <span data-i18n="social.saves">запазвания</span></dd>
+                <dt data-i18n="event.attendance">Посещения</dt>
+                <dd>@Model.GoingCount <span data-i18n="event.action.going">Отивам</span> · @Model.InterestedCount <span data-i18n="event.action.interested">Интересува ме</span></dd>
             </dl>
 
             <div class="groove-form-actions">
                 <button class="groove-button groove-button-paper social-share-button" type="button" data-share-url="@shareUrl" data-share-title="@Model.Title">
-                    <i class="bi bi-share"></i> Share
+                    <i class="bi bi-share"></i> <span data-i18n="social.share">Сподели</span>
                 </button>
             </div>
 
@@ -88,25 +88,41 @@
                     <form asp-action="@(Model.CurrentUserLiked ? "Unlike" : "Like")" asp-route-id="@Model.Id" method="post">
                         @Html.AntiForgeryToken()
                         <button class="groove-button @(Model.CurrentUserLiked ? "groove-button-dark" : "groove-button-paper")" type="submit">
-                            <i class="bi @(Model.CurrentUserLiked ? "bi-heart-fill" : "bi-heart")"></i> @(Model.CurrentUserLiked ? "Unlike" : "Like")
+                            <i class="bi @(Model.CurrentUserLiked ? "bi-heart-fill" : "bi-heart")"></i>
+                            @if (Model.CurrentUserLiked)
+                            {
+                                <span data-i18n="post.unlike">Премахни харесване</span>
+                            }
+                            else
+                            {
+                                <span data-i18n="post.like">Харесай</span>
+                            }
                         </button>
                     </form>
                     <form asp-action="@(Model.CurrentUserSaved ? "Unsave" : "Save")" asp-route-id="@Model.Id" method="post">
                         @Html.AntiForgeryToken()
                         <button class="groove-button groove-button-paper" type="submit">
-                            <i class="bi @(Model.CurrentUserSaved ? "bi-bookmark-fill" : "bi-bookmark")"></i> @(Model.CurrentUserSaved ? "Unsave" : "Save")
+                            <i class="bi @(Model.CurrentUserSaved ? "bi-bookmark-fill" : "bi-bookmark")"></i>
+                            @if (Model.CurrentUserSaved)
+                            {
+                                <span data-i18n="post.unsave">Премахни запазване</span>
+                            }
+                            else
+                            {
+                                <span data-i18n="post.save">Запази</span>
+                            }
                         </button>
                     </form>
                     <form asp-action="Attendance" asp-route-id="@Model.Id" asp-route-status="@EventAttendanceStatus.Going" method="post">
                         @Html.AntiForgeryToken()
                         <button class="groove-button @(Model.CurrentUserAttendanceStatus == EventAttendanceStatus.Going ? "groove-button-dark" : "groove-button-paper")" type="submit">
-                            <i class="bi bi-check2-circle"></i> Going
+                            <i class="bi bi-check2-circle"></i> <span data-i18n="event.action.going">Отивам</span>
                         </button>
                     </form>
                     <form asp-action="Attendance" asp-route-id="@Model.Id" asp-route-status="@EventAttendanceStatus.Interested" method="post">
                         @Html.AntiForgeryToken()
                         <button class="groove-button @(Model.CurrentUserAttendanceStatus == EventAttendanceStatus.Interested ? "groove-button-dark" : "groove-button-paper")" type="submit">
-                            <i class="bi bi-star"></i> Interested
+                            <i class="bi bi-star"></i> <span data-i18n="event.action.interested">Интересува ме</span>
                         </button>
                     </form>
                 </div>
@@ -114,25 +130,113 @@
         </aside>
     </div>
 
+    @if (Model.IsRecurring && Model.Occurrences.Count > 0)
+    {
+        <section class="groove-page-section event-occurrence-selector">
+            <div class="groove-section-bar">
+                <div>
+                    <span class="groove-kicker" data-i18n="event.dates.kicker">Дати</span>
+                    <h2 data-i18n-html="event.dates.title">Избери <span>конкретна дата</span>.</h2>
+                </div>
+            </div>
+            <div class="event-occurrence-list">
+                @foreach (var occurrence in Model.Occurrences)
+                {
+                    var selected = occurrence.Id == Model.SelectedOccurrenceId;
+                    var cancelled = occurrence.Status == EventOccurrenceStatus.Cancelled;
+                    var statusKey = $"status.occurrence.{occurrence.Status}";
+                    var statusText = occurrence.Status switch
+                    {
+                        EventOccurrenceStatus.Cancelled => "Отменена",
+                        EventOccurrenceStatus.SoldOut => "Разпродадена",
+                        _ => "Планирана",
+                    };
+                    <a asp-action="Details"
+                       asp-route-id="@Model.Id"
+                       asp-route-occurrenceId="@occurrence.Id"
+                       class="event-occurrence-card @(selected ? "is-selected" : "") @(cancelled ? "is-cancelled" : "")">
+                        <strong>@occurrence.StartDateTime.ToString("ddd, dd.MM.yyyy HH:mm")</strong>
+                        <span>
+                            @occurrence.EndDateTime.ToString("HH:mm")
+                            · <span data-i18n="@statusKey">@statusText</span>
+                            · @occurrence.SoldCount <span data-i18n="ticket.sold.lower">продадени</span>
+                        </span>
+                    </a>
+                }
+            </div>
+            @if (Model.CanEdit && Model.SelectedOccurrenceId.HasValue && Model.SelectedOccurrenceStatus != EventOccurrenceStatus.Cancelled)
+            {
+                <form asp-action="CancelOccurrence" asp-route-id="@Model.Id" method="post" class="mt-3">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="occurrenceId" value="@Model.SelectedOccurrenceId" />
+                    <button class="groove-button groove-button-paper" type="submit">
+                        <i class="bi bi-calendar-x"></i> <span data-i18n="event.dates.cancel">Отмени избраната дата</span>
+                    </button>
+                </form>
+            }
+        </section>
+    }
+
     <section class="groove-page-section">
         <div class="groove-section-bar">
             <div>
-                <span class="groove-kicker">Tickets</span>
-                <h2>Available <span>tickets</span>.</h2>
+                <span class="groove-kicker" data-i18n="org.btn.tickets">Билети</span>
+                <h2 data-i18n-html="tickets.available">Налични <span>билети</span>.</h2>
             </div>
             @if (Model.CanManageTickets)
             {
                 <a asp-controller="Tickets" asp-action="Create" asp-route-id="@Model.Id" class="groove-button groove-button-paper">
-                    <i class="bi bi-plus-lg"></i> Add ticket
+                    <i class="bi bi-plus-lg"></i> <span data-i18n="tickets.add">Добави билет</span>
                 </a>
             }
         </div>
+
+        @if (Model.HasSeatLayout && Model.SeatMap != null)
+        {
+            <div class="event-seat-map-panel mb-3" data-seat-map>
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                    <div>
+                        <span class="groove-kicker" data-i18n="seat.map.kicker">Схема на местата</span>
+                        <h3 class="h5 mt-2 mb-1">@Model.SeatMap.LayoutName</h3>
+                        <p class="text-muted mb-0" data-i18n="seat.map.help">Избери свободно място преди покупка.</p>
+                    </div>
+                    <span class="groove-status-badge groove-status-badge-muted" data-seat-selected-label data-i18n="seat.none">Няма избрано място</span>
+                </div>
+                <div class="event-seat-stage">
+                    @foreach (var seatSection in Model.SeatMap.Sections)
+                    {
+                        <div class="event-seat-section"
+                             style="left:@(seatSection.X)px;top:@(seatSection.Y)px;width:@(seatSection.Width)px;height:@(seatSection.Height)px;">
+                            <span class="event-seat-section__title">
+                                @seatSection.Name
+                                @if (seatSection.PriceModifier != 0)
+                                {
+                                    <span>+@seatSection.PriceModifier.ToTicketPriceDisplay()</span>
+                                }
+                            </span>
+                            @foreach (var seat in seatSection.Seats)
+                            {
+                                <button type="button"
+                                        class="event-seat-button"
+                                        data-seat-id="@seat.Id"
+                                        data-seat-label="@seat.Label"
+                                        data-status="@seat.Status"
+                                        style="left:@(seat.X)px;top:@(seat.Y)px;"
+                                        disabled="@(!seat.Selectable)">
+                                    @seat.Label
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
 
         @if (Model.Tickets.Count == 0)
         {
             <div class="groove-empty-card">
                 <i class="bi bi-ticket-perforated"></i>
-                <h2 class="groove-panel-title">No tickets yet.</h2>
+                <h2 class="groove-panel-title" data-i18n="ticket.none">Все още няма билети.</h2>
             </div>
         }
         else
@@ -141,13 +245,22 @@
                 @foreach (var t in Model.Tickets)
                 {
                     var ticketStatusClass = t.SoldOut ? "groove-status-badge-danger" : "groove-status-badge-success";
-                    var ticketStatusText = t.SoldOut ? "Sold out" : $"{t.QuantityRemaining} left";
-                    var ticketActionText = t.Price.IsFreeTicket() ? "Get free" : "Buy";
+                    var ticketActionText = t.Price.IsFreeTicket() ? "Вземи безплатно" : "Купи";
+                    var ticketActionKey = t.Price.IsFreeTicket() ? "ticket.getfree" : "ticket.buy";
 
                     <article class="groove-ticket-card">
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <h3>@t.Name</h3>
-                            <span class="groove-status-badge @ticketStatusClass">@ticketStatusText</span>
+                            <span class="groove-status-badge @ticketStatusClass">
+                                @if (t.SoldOut)
+                                {
+                                    <span data-i18n="ticket.soldout">Разпродадено</span>
+                                }
+                                else
+                                {
+                                    <span>@t.QuantityRemaining</span> <span data-i18n="ticket.left">оставащи</span>
+                                }
+                            </span>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(t.Description))
                         {
@@ -157,24 +270,41 @@
                             <span class="groove-price">@t.Price.ToTicketPriceDisplay()</span>
                             @if (User.Identity?.IsAuthenticated == true)
                             {
-                                if (!t.SoldOut)
+                                if (!t.SoldOut && Model.SelectedOccurrenceStatus != EventOccurrenceStatus.Cancelled)
                                 {
                                     <form asp-controller="Tickets" asp-action="Buy" asp-route-id="@t.Id" method="post">
                                         @Html.AntiForgeryToken()
+                                        @if (Model.SelectedOccurrenceId.HasValue)
+                                        {
+                                            <input type="hidden" name="occurrenceId" value="@Model.SelectedOccurrenceId" />
+                                        }
+                                        @if (Model.HasSeatLayout)
+                                        {
+                                            <input type="hidden" name="seatId" data-seat-input />
+                                        }
                                         <button type="submit" class="groove-button groove-button-dark">
-                                            <i class="bi bi-bag-check"></i> @ticketActionText
+                                            <i class="bi bi-bag-check"></i> <span data-i18n="@ticketActionKey">@ticketActionText</span>
                                         </button>
                                     </form>
                                 }
                                 else
                                 {
-                                    <button class="groove-button groove-button-paper" disabled>Sold out</button>
+                                    <button class="groove-button groove-button-paper" disabled>
+                                        @if (Model.SelectedOccurrenceStatus == EventOccurrenceStatus.Cancelled)
+                                        {
+                                            <span data-i18n="status.occurrence.Cancelled">Отменена</span>
+                                        }
+                                        else
+                                        {
+                                            <span data-i18n="ticket.soldout">Разпродадено</span>
+                                        }
+                                    </button>
                                 }
                             }
                             else
                             {
                                 <a asp-area="Identity" asp-page="/Account/Login" class="groove-button groove-button-paper">
-                                    <i class="bi bi-box-arrow-in-right"></i> Sign in
+                                    <i class="bi bi-box-arrow-in-right"></i> <span data-i18n="common.signin">Вход</span>
                                 </a>
                             }
                         </div>
@@ -187,8 +317,8 @@
     <section class="groove-page-section">
         <div class="groove-section-bar">
             <div>
-                <span class="groove-kicker">Conversation</span>
-                <h2 id="comments">Comments <span>(@Model.Comments.Count)</span>.</h2>
+                <span class="groove-kicker" data-i18n="comments.kicker">Разговор</span>
+                <h2 id="comments"><span data-i18n="comments.title">Коментари</span> <span>(@Model.Comments.Count)</span>.</h2>
             </div>
         </div>
 
@@ -197,8 +327,8 @@
             <form asp-action="AddComment" asp-route-id="@Model.Id" method="post" class="mb-4">
                 @Html.AntiForgeryToken()
                 <div class="input-group">
-                    <input type="text" name="content" class="form-control" placeholder="Write a comment..." maxlength="1000" required />
-                    <button class="btn btn-primary" type="submit"><i class="bi bi-send"></i> Send</button>
+                    <input type="text" name="content" class="form-control" placeholder="Напиши коментар..." data-i18n-placeholder="comments.placeholder" maxlength="1000" required />
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-send"></i> <span data-i18n="common.send">Изпрати</span></button>
                 </div>
             </form>
         }
@@ -207,7 +337,7 @@
         {
             <div class="groove-empty-card">
                 <i class="bi bi-chat-square-text"></i>
-                <h2 class="groove-panel-title">No comments yet.</h2>
+                <h2 class="groove-panel-title" data-i18n="comments.empty">Все още няма коментари.</h2>
             </div>
         }
         else
@@ -227,7 +357,7 @@
                                 <form asp-action="DeleteComment" method="post" class="ms-2">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="commentId" value="@c.Id" />
-                                    <button class="groove-button groove-button-paper"><i class="bi bi-trash"></i> Delete</button>
+                                    <button class="groove-button groove-button-paper"><i class="bi bi-trash"></i> <span data-i18n="organizer.pages.delete">Изтрий</span></button>
                                 </form>
                             }
                         </article>
@@ -237,3 +367,41 @@
         }
     </section>
 </section>
+
+@section Scripts {
+    <script>
+        (function () {
+            var map = document.querySelector('[data-seat-map]');
+            if (!map) return;
+
+            var inputs = document.querySelectorAll('[data-seat-input]');
+            var label = document.querySelector('[data-seat-selected-label]');
+            var buttons = map.querySelectorAll('.event-seat-button:not([disabled])');
+            var submitButtons = Array.from(inputs).map(function (input) {
+                return input.closest('form') ? input.closest('form').querySelector('button[type="submit"]') : null;
+            }).filter(Boolean);
+
+            function setSubmitEnabled(enabled) {
+                submitButtons.forEach(function (button) {
+                    button.disabled = !enabled;
+                });
+            }
+
+            setSubmitEnabled(false);
+
+            buttons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    buttons.forEach(function (item) { item.classList.remove('is-selected'); });
+                    button.classList.add('is-selected');
+                    inputs.forEach(function (input) { input.value = button.getAttribute('data-seat-id'); });
+                    if (label) {
+                        var lang = (document.querySelector('meta[name="x-app-lang"]') || {}).content === 'en' ? 'en' : 'bg';
+                        var seatLabel = button.getAttribute('data-seat-label');
+                        label.textContent = lang === 'en' ? 'Seat ' + seatLabel + ' selected' : 'Избрано място ' + seatLabel;
+                    }
+                    setSubmitEnabled(true);
+                });
+            });
+        })();
+    </script>
+}

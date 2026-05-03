@@ -22,6 +22,16 @@ namespace EventsApp.Models
 
         public Ticket Ticket { get; set; } = null!;
 
+        [ForeignKey(nameof(EventOccurrence))]
+        public int? EventOccurrenceId { get; set; }
+
+        public EventOccurrence? EventOccurrence { get; set; }
+
+        [ForeignKey(nameof(Seat))]
+        public int? SeatId { get; set; }
+
+        public Seat? Seat { get; set; }
+
         [Required]
         [ForeignKey(nameof(Transaction))]
         public Guid TransactionId { get; set; }
@@ -44,5 +54,7 @@ namespace EventsApp.Models
         public string? UsedByOrganizerId { get; set; }
 
         public ApplicationUser? UsedByOrganizer { get; set; }
+
+        public EventSeatInventory? SeatInventory { get; set; }
     }
 }
