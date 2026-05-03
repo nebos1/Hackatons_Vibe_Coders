@@ -82,6 +82,53 @@
         </div>
     </article>
 
+    <div class="evt-stats-grid">
+        <div class="evt-stat">
+            <span class="evt-stat__icon"><i class="bi bi-calendar-check"></i></span>
+            <span class="evt-stat__value">@Model.EventsAttendedCount</span>
+            <span class="evt-stat__label" data-i18n="stats.attended">Посетени събития</span>
+            @if (Model.MonthlyEventsCount > 0)
+            {
+                <span class="evt-stat__delta">+@Model.MonthlyEventsCount този месец</span>
+            }
+        </div>
+        <div class="evt-stat">
+            <span class="evt-stat__icon" style="background:#fff3c4;color:#d97706;"><i class="bi bi-stars"></i></span>
+            <span class="evt-stat__value">@Model.EventsInterestedCount</span>
+            <span class="evt-stat__label" data-i18n="stats.interested">Интересува ме</span>
+        </div>
+        <div class="evt-stat">
+            <span class="evt-stat__icon" style="background:#ffe4e0;color:#c2392c;"><i class="bi bi-heart-fill"></i></span>
+            <span class="evt-stat__value">@Model.LikesGivenCount</span>
+            <span class="evt-stat__label" data-i18n="stats.likes">Дадени харесвания</span>
+        </div>
+        <div class="evt-stat">
+            <span class="evt-stat__icon" style="background:#dcfce7;color:#16a34a;"><i class="bi bi-people-fill"></i></span>
+            <span class="evt-stat__value">@Model.FollowersCount</span>
+            <span class="evt-stat__label" data-i18n="stats.followers">Последователи</span>
+            @if (Model.MonthlyNewFollowersCount > 0)
+            {
+                <span class="evt-stat__delta">+@Model.MonthlyNewFollowersCount този месец</span>
+            }
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Model.FavouriteGenre))
+        {
+            <div class="evt-stat">
+                <span class="evt-stat__icon" style="background:#e0e7ff;color:#4338ca;"><i class="bi bi-music-note-beamed"></i></span>
+                <span class="evt-stat__value" style="font-size:1rem;">@Model.FavouriteGenre</span>
+                <span class="evt-stat__label" data-i18n="stats.favgenre">Любим жанр</span>
+            </div>
+        }
+        @if (Model.CitiesVisitedCount.HasValue && Model.CitiesVisitedCount > 0)
+        {
+            <div class="evt-stat">
+                <span class="evt-stat__icon" style="background:#cffafe;color:#0891b2;"><i class="bi bi-geo-alt-fill"></i></span>
+                <span class="evt-stat__value">@Model.CitiesVisitedCount</span>
+                <span class="evt-stat__label" data-i18n="stats.cities">Града посетени</span>
+            </div>
+        }
+    </div>
+
     @if (Model.Events.Any())
     {
         <section class="groove-page-section">

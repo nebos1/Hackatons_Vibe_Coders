@@ -41,6 +41,7 @@ namespace EventsApp.ViewModels.Events
         public EventTicketingMode TicketingMode { get; set; } = EventTicketingMode.GeneralAdmission;
         public bool HasSeatLayout { get; set; }
         public EventSeatMapViewModel? SeatMap { get; set; }
+        public IReadOnlyList<EventCardViewModel> SimilarEvents { get; set; } = Array.Empty<EventCardViewModel>();
     }
 
     public class EventOccurrenceOptionViewModel

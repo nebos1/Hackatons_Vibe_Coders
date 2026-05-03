@@ -117,6 +117,32 @@ namespace EventsApp.Controllers
                 })
                 .ToListAsync();
 
+            var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+
+            var attendedCount = await _db.EventAttendances
+                .CountAsync(a => a.UserId == id && a.Status == EventAttendanceStatus.Going);
+            var interestedCount = await _db.EventAttendances
+                .CountAsync(a => a.UserId == id && a.Status == EventAttendanceStatus.Interested);
+            var likesGiven = await _db.EventLikes.CountAsync(l => l.UserId == id);
+            var monthlyEvents = await _db.EventAttendances
+                .Where(a => a.UserId == id && a.Status == EventAttendanceStatus.Going)
+                .Join(_db.Events, a => a.EventId, e => e.Id, (a, e) => e)
+                .CountAsync(e => e.StartTime >= monthStart);
+            var monthlyFollowers = await _db.Follows
+                .CountAsync(f => f.FollowingId == id && f.CreatedAt >= monthStart);
+            var favGenre = await _db.EventAttendances
+                .Where(a => a.UserId == id && a.Status == EventAttendanceStatus.Going)
+                .Join(_db.Events, a => a.EventId, e => e.Id, (a, e) => e.Genre)
+                .GroupBy(g => g)
+                .OrderByDescending(g => g.Count())
+                .Select(g => (EventGenre?)g.Key)
+                .FirstOrDefaultAsync();
+            var citiesVisited = await _db.EventAttendances
+                .Where(a => a.UserId == id && a.Status == EventAttendanceStatus.Going)
+                .Join(_db.Events, a => a.EventId, e => e.Id, (a, e) => e.City)
+                .Distinct()
+                .CountAsync();
+
             var vm = new PublicProfileViewModel
             {
                 Id = user.Id,
@@ -131,6 +157,13 @@ namespace EventsApp.Controllers
                 FollowingCount = await _db.Follows.CountAsync(f => f.FollowerId == id),
                 PostsCount = await _db.Posts.CountAsync(p => p.OrganizerId == id),
                 EventsCount = await eventsQuery.CountAsync(),
+                EventsAttendedCount = attendedCount,
+                EventsInterestedCount = interestedCount,
+                LikesGivenCount = likesGiven,
+                MonthlyEventsCount = monthlyEvents,
+                MonthlyNewFollowersCount = monthlyFollowers,
+                FavouriteGenre = favGenre?.GetDisplayName(),
+                CitiesVisitedCount = citiesVisited,
                 CurrentUserFollows = currentUserId != null && await _db.Follows.AnyAsync(f => f.FollowerId == currentUserId && f.FollowingId == id),
                 IsCurrentUser = isCurrentUser,
                 Posts = posts,

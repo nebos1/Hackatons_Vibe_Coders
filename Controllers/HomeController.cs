@@ -176,6 +176,42 @@ namespace EventsApp.Controllers
             return (Math.Sin(angle) * step * ring, Math.Cos(angle) * step * ring);
         }
 
+        public async Task<IActionResult> Calendar(int? year, int? month)
+        {
+            var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
+            var now = DateTime.UtcNow;
+            var y = year ?? now.Year;
+            var m = month ?? now.Month;
+            if (m < 1) { m = 12; y--; }
+            if (m > 12) { m = 1; y++; }
+
+            var monthStart = new DateTime(y, m, 1);
+            var monthEnd = monthStart.AddMonths(1);
+
+            var query = _db.Events.AsNoTracking().AsQueryable();
+            if (!isAdmin) query = query.Where(e => e.IsApproved);
+
+            var events = await query
+                .Where(e => e.StartTime >= monthStart && e.StartTime < monthEnd)
+                .OrderBy(e => e.StartTime)
+                .Select(e => new ViewModels.Home.CalendarEventViewModel
+                {
+                    Id = e.Id,
+                    Title = e.Title,
+                    City = e.City,
+                    StartTime = e.StartTime,
+                    Genre = e.Genre,
+                })
+                .ToListAsync();
+
+            return View(new ViewModels.Home.CalendarViewModel
+            {
+                Year = y,
+                Month = m,
+                Events = events,
+            });
+        }
+
         public IActionResult Privacy()
         {
             return View();

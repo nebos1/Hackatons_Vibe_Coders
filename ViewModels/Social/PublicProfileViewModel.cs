@@ -17,6 +17,13 @@ namespace EventsApp.ViewModels.Social
         public int FollowingCount { get; set; }
         public int PostsCount { get; set; }
         public int EventsCount { get; set; }
+        public int EventsAttendedCount { get; set; }
+        public int EventsInterestedCount { get; set; }
+        public int LikesGivenCount { get; set; }
+        public int MonthlyEventsCount { get; set; }
+        public int MonthlyNewFollowersCount { get; set; }
+        public string? FavouriteGenre { get; set; }
+        public int? CitiesVisitedCount { get; set; }
         public bool CurrentUserFollows { get; set; }
         public bool IsCurrentUser { get; set; }
         public IReadOnlyList<PostCardViewModel> Posts { get; set; } = Array.Empty<PostCardViewModel>();

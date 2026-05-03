@@ -2,6 +2,31 @@
 @{
     ViewData["Title"] = Model.Title;
     var shareUrl = Url.Action("Details", "Events", new { id = Model.Id }, Context.Request.Scheme) ?? string.Empty;
+    var ogDescription = !string.IsNullOrWhiteSpace(Model.Description)
+        ? (Model.Description.Length > 200 ? Model.Description[..200] + "…" : Model.Description)
+        : $"{Model.City} · {Model.StartTime:dd.MM.yyyy HH:mm}";
+    var ogImage = !string.IsNullOrWhiteSpace(Model.ImageUrl)
+        ? (Model.ImageUrl.StartsWith("http") ? Model.ImageUrl : $"{Context.Request.Scheme}://{Context.Request.Host}{Model.ImageUrl}")
+        : null;
+}
+
+@section Head {
+    <meta property="og:type" content="event" />
+    <meta property="og:title" content="@Model.Title" />
+    <meta property="og:description" content="@ogDescription" />
+    <meta property="og:url" content="@shareUrl" />
+    <meta property="og:site_name" content="Evento" />
+    @if (!string.IsNullOrWhiteSpace(ogImage))
+    {
+        <meta property="og:image" content="@ogImage" />
+    }
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@Model.Title" />
+    <meta name="twitter:description" content="@ogDescription" />
+    @if (!string.IsNullOrWhiteSpace(ogImage))
+    {
+        <meta name="twitter:image" content="@ogImage" />
+    }
 }
 
 <section class="groove-app-page">
@@ -9,6 +34,7 @@
         <a asp-controller="Home" asp-action="Index" class="groove-button groove-button-paper">
             <i class="bi bi-arrow-left"></i> <span data-i18n="common.back">Назад</span>
         </a>
+        <partial name="_ShareDropdown" model="@(new EventsApp.ViewModels.Shared.ShareModel { Url = shareUrl, Title = Model.Title })" />
         @if (Model.CanEdit)
         {
             <a asp-action="Edit" asp-route-id="@Model.Id" class="groove-button groove-button-paper">
@@ -366,6 +392,19 @@
             </div>
         }
     </section>
+
+    @if (Model.SimilarEvents.Count > 0)
+    {
+        <section class="evt-similar">
+            <h2 data-i18n="event.similar">Сходни събития</h2>
+            <div class="evt-similar__grid">
+                @foreach (var ev in Model.SimilarEvents)
+                {
+                    <partial name="_EventCard" model="ev" />
+                }
+            </div>
+        </section>
+    }
 </section>
 
 @section Scripts {

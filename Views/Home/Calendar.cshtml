@@ -1,0 +1,72 @@
+@model EventsApp.ViewModels.Home.CalendarViewModel
+@{
+    ViewData["Title"] = "Календар";
+    var first = new DateTime(Model.Year, Model.Month, 1);
+    var daysInMonth = DateTime.DaysInMonth(Model.Year, Model.Month);
+    var startWeekday = ((int)first.DayOfWeek + 6) % 7;
+    var prevYear = Model.Month == 1 ? Model.Year - 1 : Model.Year;
+    var prevMonth = Model.Month == 1 ? 12 : Model.Month - 1;
+    var nextYear = Model.Month == 12 ? Model.Year + 1 : Model.Year;
+    var nextMonth = Model.Month == 12 ? 1 : Model.Month + 1;
+    var monthName = first.ToString("MMMM yyyy", new System.Globalization.CultureInfo("bg-BG"));
+    var eventsByDay = Model.Events.GroupBy(e => e.StartTime.Day).ToDictionary(g => g.Key, g => g.ToList());
+    var bgWeekdays = new[] { "Пон", "Вто", "Сря", "Чет", "Пет", "Съб", "Нед" };
+    var today = DateTime.UtcNow.Date;
+}
+
+<section class="evt-cal-shell">
+    <div class="evt-cal-head">
+        <div>
+            <h1>Календар</h1>
+            <p class="text-muted m-0">Виж всички събития за избрания месец.</p>
+        </div>
+        <div class="evt-cal-controls">
+            <a asp-action="Calendar" asp-route-year="@prevYear" asp-route-month="@prevMonth" class="evt-cal-nav" title="Предишен">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            <span class="evt-cal-month">@monthName</span>
+            <a asp-action="Calendar" asp-route-year="@nextYear" asp-route-month="@nextMonth" class="evt-cal-nav" title="Следващ">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+            <a asp-action="Index" class="evt-btn evt-btn-ghost" style="margin-left:8px;">
+                <i class="bi bi-map"></i> Карта
+            </a>
+        </div>
+    </div>
+
+    <div class="evt-cal-grid">
+        <div class="evt-cal-weekdays">
+            @foreach (var w in bgWeekdays)
+            {
+                <span>@w</span>
+            }
+        </div>
+        <div class="evt-cal-days">
+            @for (var i = 0; i < startWeekday; i++)
+            {
+                <div class="evt-cal-day is-other"></div>
+            }
+            @for (var d = 1; d <= daysInMonth; d++)
+            {
+                var dayDate = new DateTime(Model.Year, Model.Month, d);
+                var isToday = dayDate.Date == today;
+                var dayEvents = eventsByDay.TryGetValue(d, out var list) ? list : new List<EventsApp.ViewModels.Home.CalendarEventViewModel>();
+                <div class="evt-cal-day @(isToday ? "is-today" : "")">
+                    <span class="evt-cal-day__num">@d</span>
+                    <div class="evt-cal-day__events">
+                        @foreach (var ev in dayEvents.Take(3))
+                        {
+                            <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="evt-cal-event" title="@ev.Title · @ev.City · @ev.StartTime.ToString("HH:mm")">
+                                @ev.StartTime.ToString("HH:mm") @ev.Title
+                            </a>
+                        }
+                        @if (dayEvents.Count > 3)
+                        {
+                            <span class="evt-cal-event evt-cal-event--more">+ @(dayEvents.Count - 3) още</span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>

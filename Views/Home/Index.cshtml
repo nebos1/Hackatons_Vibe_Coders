@@ -72,11 +72,15 @@
             <div class="evt-hero__cta">
                 <a asp-controller="Events" asp-action="Recommended" class="evt-btn evt-btn-primary">
                     <i class="bi bi-compass"></i>
-                    <span data-i18n="home.viewmap">Препоръчани събития</span>
+                    <span data-i18n="home.viewmap">Препоръчани</span>
+                </a>
+                <a asp-controller="Home" asp-action="Calendar" class="evt-btn evt-btn-ghost">
+                    <i class="bi bi-calendar3"></i>
+                    <span data-i18n="home.calendar">Календар</span>
                 </a>
                 <a asp-controller="Posts" asp-action="Index" class="evt-btn evt-btn-ghost">
                     <i class="bi bi-grid"></i>
-                    <span data-i18n="home.openfeed">Отвори потока</span>
+                    <span data-i18n="home.openfeed">Поток</span>
                 </a>
             </div>
 

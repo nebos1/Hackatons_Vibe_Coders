@@ -67,7 +67,9 @@
       "Bash(git commit -m 'Merge social-design \\(keep modern home design, take new functionality\\) *)",
       "Bash(git commit -m 'Site-wide design refresh + new-user preferences onboarding *)",
       "Bash(git commit -m 'Modernise auth header buttons and fix event card title clipping *)",
-      "Bash(git commit -m 'Fix feed page grid + TikTok-style preferences picker *)"
+      "Bash(git commit -m 'Fix feed page grid + TikTok-style preferences picker *)",
+      "Bash(grep -n \"</section>$\\\\|</section>\\\\s*$\" Views/Events/Details.cshtml)",
+      "Bash(git commit -m 'Sprint 1: dark mode, share dropdown, calendar, profile stats, similar events *)"
     ],
     "additionalDirectories": [
       "\\tmp"
