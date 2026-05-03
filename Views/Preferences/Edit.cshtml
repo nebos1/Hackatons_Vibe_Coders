@@ -1,58 +1,88 @@
 @model PreferencesViewModel
 @{
-    ViewData["Title"] = "Редакция на предпочитания";
+    var isWelcome = ViewBag.IsWelcome as bool? ?? false;
+    ViewData["Title"] = isWelcome ? "Добре дошъл в Evento" : "Редакция на предпочитания";
 }
 
-<section class="groove-app-page groove-form-shell groove-form-shell-narrow">
-    <div class="groove-page-hero">
-        <div class="groove-page-hero__copy">
-            <span class="groove-stamp groove-stamp-red">Персонално</span>
-            <h1>Настрой своите <span>предпочитания</span>.</h1>
-            <p>Жанрът, градът и радиусът помагат на Evento да ти подбира по-подходящи събития.</p>
+<section class="evt-shell" style="max-width: 760px; margin: 0 auto;">
+    @if (isWelcome)
+    {
+        <div class="evt-welcome">
+            <h2><i class="bi bi-stars"></i> Добре дошъл в Evento!</h2>
+            <p>Кажи ни какво обичаш и ще ти покажем най-подходящите събития. Отнема само минута.</p>
         </div>
-        <div class="groove-page-actions">
-            <a asp-action="Index" class="groove-button groove-button-paper">
-                <i class="bi bi-arrow-left"></i> Обратно
-            </a>
-        </div>
-    </div>
+    }
 
-    <div class="groove-form-panel">
+    <div class="card" style="padding: 28px;">
+        @if (!isWelcome)
+        {
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 18px;">
+                <div>
+                    <h1 style="margin:0; font-size: 1.6rem;">Твоите предпочитания</h1>
+                    <p class="text-muted" style="margin:4px 0 0;">Жанр, град и радиус помагат за по-точни препоръки.</p>
+                </div>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i> Обратно
+                </a>
+            </div>
+        }
+
         <form asp-action="Edit" method="post">
             @Html.AntiForgeryToken()
+            @if (isWelcome)
+            {
+                <input type="hidden" name="welcome" value="1" />
+            }
             <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-            <div class="mb-3">
-                <label asp-for="PreferredGenre" class="form-label"></label>
-                <select asp-for="PreferredGenre" asp-items="Html.GetEnumSelectList<EventGenre>()" class="form-select">
+            <div class="mb-4">
+                <label class="form-label" style="font-weight:600;">Какъв тип събития предпочиташ?</label>
+                <div class="evt-pref-chips" data-pref-chip-group="genre">
+                    @foreach (var g in Enum.GetValues<EventGenre>())
+                    {
+                        var selected = Model.PreferredGenre == g;
+                        <button type="button" class="evt-pref-chip @(selected ? "is-selected" : "")"
+                                data-pref-value="@((int)g)">
+                            @g.GetDisplayName()
+                        </button>
+                    }
+                </div>
+                <select asp-for="PreferredGenre" asp-items="Html.GetEnumSelectList<EventGenre>()" class="form-select d-none" id="PreferredGenreSelect">
                     <option value="">Без ограничение</option>
                 </select>
             </div>
 
             <div class="mb-3">
-                <label asp-for="PreferredCity" class="form-label"></label>
+                <label asp-for="PreferredCity" class="form-label" style="font-weight:600;">В кой град?</label>
                 <input asp-for="PreferredCity" class="form-control" placeholder="Например София" />
                 <span asp-validation-for="PreferredCity" class="text-danger small"></span>
             </div>
 
-            <div class="groove-form-grid">
-                <div class="mb-3">
-                    <label asp-for="MinAge" class="form-label"></label>
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <label asp-for="MinAge" class="form-label" style="font-weight:600;">Минимална възраст</label>
                     <input asp-for="MinAge" type="number" class="form-control" min="0" max="120" placeholder="Например 18" />
                     <span asp-validation-for="MinAge" class="text-danger small"></span>
                 </div>
-                <div class="mb-3">
-                    <label asp-for="MaxDistanceKm" class="form-label"></label>
+                <div class="col-sm-6">
+                    <label asp-for="MaxDistanceKm" class="form-label" style="font-weight:600;">Максимално разстояние (km)</label>
                     <input asp-for="MaxDistanceKm" type="number" class="form-control" min="0" max="10000" placeholder="Например 50" />
                     <span asp-validation-for="MaxDistanceKm" class="text-danger small"></span>
                 </div>
             </div>
 
-            <div class="groove-form-actions">
-                <button type="submit" class="groove-button groove-button-dark">
-                    <i class="bi bi-check-lg"></i> Запази
+            <div style="display:flex; gap:10px; margin-top: 22px; align-items:center;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg"></i> @(isWelcome ? "Покажи моите събития" : "Запази")
                 </button>
-                <a asp-action="Index" class="groove-button groove-button-paper">Отказ</a>
+                @if (isWelcome)
+                {
+                    <a href="/" class="btn btn-outline-secondary">Пропусни засега</a>
+                }
+                else
+                {
+                    <a asp-action="Index" class="btn btn-outline-secondary">Отказ</a>
+                }
             </div>
         </form>
     </div>
@@ -60,4 +90,18 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var group = document.querySelector('[data-pref-chip-group="genre"]');
+            var select = document.getElementById('PreferredGenreSelect');
+            if (!group || !select) return;
+            group.addEventListener('click', function (e) {
+                var btn = e.target.closest('.evt-pref-chip');
+                if (!btn) return;
+                group.querySelectorAll('.evt-pref-chip').forEach(function (c) { c.classList.remove('is-selected'); });
+                btn.classList.add('is-selected');
+                select.value = btn.getAttribute('data-pref-value');
+            });
+        })();
+    </script>
 }

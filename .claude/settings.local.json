@@ -61,7 +61,11 @@
       "Bash(git fetch *)",
       "Bash(git remote *)",
       "Bash(git ls-tree *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(git push *)",
+      "Bash(git merge *)",
+      "Bash(git commit -m 'Merge social-design \\(keep modern home design, take new functionality\\) *)",
+      "Bash(git commit -m 'Site-wide design refresh + new-user preferences onboarding *)"
     ],
     "additionalDirectories": [
       "\\tmp"
