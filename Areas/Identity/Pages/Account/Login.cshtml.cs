@@ -1,10 +1,13 @@
 using System.ComponentModel.DataAnnotations;
+using EventsApp.Common;
+using EventsApp.Data;
 using EventsApp.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 
 namespace EventsApp.Areas.Identity.Pages.Account
 {
@@ -13,15 +16,18 @@ namespace EventsApp.Areas.Identity.Pages.Account
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ApplicationDbContext _db;
         private readonly ILogger<LoginModel> _logger;
 
         public LoginModel(
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
+            ApplicationDbContext db,
             ILogger<LoginModel> logger)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _db = db;
             _logger = logger;
         }
 
@@ -91,6 +97,19 @@ namespace EventsApp.Areas.Identity.Pages.Account
             if (result.Succeeded)
             {
                 _logger.LogInformation("User {UserName} logged in.", user.UserName);
+
+                var isPlainUser = await _userManager.IsInRoleAsync(user, GlobalConstants.Roles.User)
+                    && !await _userManager.IsInRoleAsync(user, GlobalConstants.Roles.Organizer)
+                    && !await _userManager.IsInRoleAsync(user, GlobalConstants.Roles.Admin);
+                if (isPlainUser)
+                {
+                    var hasPrefs = await _db.UserPreferences.AsNoTracking().AnyAsync(p => p.UserId == user.Id);
+                    if (!hasPrefs)
+                    {
+                        return Redirect("/Preferences/Edit?welcome=1");
+                    }
+                }
+
                 return LocalRedirect(returnUrl);
             }
 

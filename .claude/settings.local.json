@@ -61,7 +61,16 @@
       "Bash(git fetch *)",
       "Bash(git remote *)",
       "Bash(git ls-tree *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(git push *)",
+      "Bash(git merge *)",
+      "Bash(git commit -m 'Merge social-design \\(keep modern home design, take new functionality\\) *)",
+      "Bash(git commit -m 'Site-wide design refresh + new-user preferences onboarding *)",
+      "Bash(git commit -m 'Modernise auth header buttons and fix event card title clipping *)",
+      "Bash(git commit -m 'Fix feed page grid + TikTok-style preferences picker *)",
+      "Bash(grep -n \"</section>$\\\\|</section>\\\\s*$\" Views/Events/Details.cshtml)",
+      "Bash(git commit -m 'Sprint 1: dark mode, share dropdown, calendar, profile stats, similar events *)",
+      "Bash(git commit -m 'Sprint 2: PWA, Memories, Year in Review \\(Wrapped\\), AI Day Plan via Sirma *)"
     ],
     "additionalDirectories": [
       "\\tmp"

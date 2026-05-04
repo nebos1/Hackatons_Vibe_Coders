@@ -36,7 +36,7 @@ namespace EventsApp.Controllers
             });
         }
 
-        public async Task<IActionResult> Edit()
+        public async Task<IActionResult> Edit(int? welcome = null)
         {
             var userId = _userManager.GetUserId(User)!;
             var prefs = await _db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == userId);
@@ -51,14 +51,19 @@ namespace EventsApp.Controllers
                     MaxDistanceKm = prefs.MaxDistanceKm,
                 };
 
+            ViewBag.IsWelcome = welcome == 1;
             return View(vm);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(PreferencesViewModel input)
+        public async Task<IActionResult> Edit(PreferencesViewModel input, int? welcome = null)
         {
-            if (!ModelState.IsValid) return View(input);
+            if (!ModelState.IsValid)
+            {
+                ViewBag.IsWelcome = welcome == 1;
+                return View(input);
+            }
 
             var userId = _userManager.GetUserId(User)!;
             var prefs = await _db.UserPreferences.FirstOrDefaultAsync(p => p.UserId == userId);
@@ -83,6 +88,13 @@ namespace EventsApp.Controllers
             }
 
             await _db.SaveChangesAsync();
+
+            if (welcome == 1)
+            {
+                TempData["StatusMessage"] = "Готово! Ето събития, които може да ти харесат.";
+                return RedirectToAction("Recommended", "Events");
+            }
+
             TempData["StatusMessage"] = "Preferences saved.";
             return RedirectToAction(nameof(Index));
         }

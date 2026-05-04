@@ -265,6 +265,36 @@ namespace EventsApp.Controllers
                 await _socialFeed.TrackActivityAsync(userId, UserActivityType.EventViewed, eventId: id);
             }
 
+            vm.SimilarEvents = await _db.Events
+                .AsNoTracking()
+                .Where(e => e.Id != ev.Id
+                    && e.IsApproved
+                    && (e.Genre == ev.Genre || e.City == ev.City)
+                    && e.StartTime >= DateTime.UtcNow)
+                .OrderByDescending(e => e.Genre == ev.Genre && e.City == ev.City ? 2 : (e.Genre == ev.Genre ? 1 : 0))
+                .ThenBy(e => e.StartTime)
+                .Take(4)
+                .Select(e => new EventCardViewModel
+                {
+                    Id = e.Id,
+                    Title = e.Title,
+                    ImageUrl = e.ImageUrl,
+                    Address = e.Address,
+                    City = e.City,
+                    StartTime = e.StartTime,
+                    Genre = e.Genre,
+                    IsApproved = e.IsApproved,
+                    OrganizerId = e.OrganizerId,
+                    OrganizerName = e.Organizer.UserName ?? string.Empty,
+                    LikesCount = e.Likes.Count,
+                    SavesCount = e.Saves.Count,
+                    GoingCount = e.Attendances.Count(a => a.Status == EventAttendanceStatus.Going),
+                    InterestedCount = e.Attendances.Count(a => a.Status == EventAttendanceStatus.Interested),
+                    CurrentUserLiked = userId != null && e.Likes.Any(l => l.UserId == userId),
+                    CurrentUserSaved = userId != null && e.Saves.Any(s => s.UserId == userId),
+                })
+                .ToListAsync();
+
             return View(vm);
         }
 

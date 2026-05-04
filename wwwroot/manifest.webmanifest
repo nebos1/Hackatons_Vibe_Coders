@@ -1,0 +1,17 @@
+{
+  "name": "Evento — събития на живо",
+  "short_name": "Evento",
+  "description": "Открий концерти, фестивали и партита около теб.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f7fb",
+  "theme_color": "#2456ff",
+  "lang": "bg",
+  "scope": "/",
+  "icons": [
+    { "src": "/img/logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/img/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["entertainment", "events", "social"]
+}

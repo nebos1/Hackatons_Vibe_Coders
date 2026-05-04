@@ -182,6 +182,60 @@ namespace EventsApp.Controllers
                 })
                 .ToListAsync();
 
+            var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+
+            var attendedCount = await _db.EventAttendances
+                .CountAsync(a => a.UserId == id && a.Status == EventAttendanceStatus.Going);
+            var interestedCount = await _db.EventAttendances
+                .CountAsync(a => a.UserId == id && a.Status == EventAttendanceStatus.Interested);
+            var likesGiven = await _db.EventLikes.CountAsync(l => l.UserId == id);
+            var monthlyEvents = await _db.EventAttendances
+                .Where(a => a.UserId == id && a.Status == EventAttendanceStatus.Going)
+                .Join(_db.Events, a => a.EventId, e => e.Id, (a, e) => e)
+                .CountAsync(e => e.StartTime >= monthStart);
+            var monthlyFollowers = await _db.Follows
+                .CountAsync(f => f.FollowingId == id && f.CreatedAt >= monthStart);
+            var favGenre = await _db.EventAttendances
+                .Where(a => a.UserId == id && a.Status == EventAttendanceStatus.Going)
+                .Join(_db.Events, a => a.EventId, e => e.Id, (a, e) => e.Genre)
+                .GroupBy(g => g)
+                .OrderByDescending(g => g.Count())
+                .Select(g => (EventGenre?)g.Key)
+                .FirstOrDefaultAsync();
+            var citiesVisited = await _db.EventAttendances
+                .Where(a => a.UserId == id && a.Status == EventAttendanceStatus.Going)
+                .Join(_db.Events, a => a.EventId, e => e.Id, (a, e) => e.City)
+                .Distinct()
+                .CountAsync();
+
+            var memories = new List<MemoryItem>();
+            if (isCurrentUser)
+            {
+                var today = DateTime.UtcNow.Date;
+                for (var y = 1; y <= 5; y++)
+                {
+                    var rangeStart = today.AddYears(-y).AddDays(-3);
+                    var rangeEnd = today.AddYears(-y).AddDays(3);
+                    var found = await _db.EventAttendances
+                        .Where(a => a.UserId == id && a.Status == EventAttendanceStatus.Going)
+                        .Join(_db.Events, a => a.EventId, e => e.Id, (a, e) => e)
+                        .Where(e => e.StartTime >= rangeStart && e.StartTime <= rangeEnd)
+                        .OrderBy(e => e.StartTime)
+                        .Select(e => new MemoryItem
+                        {
+                            EventId = e.Id,
+                            Title = e.Title,
+                            City = e.City,
+                            ImageUrl = e.ImageUrl,
+                            EventDate = e.StartTime,
+                            YearsAgo = y,
+                        })
+                        .Take(3)
+                        .ToListAsync();
+                    memories.AddRange(found);
+                }
+            }
+
             var vm = new PublicProfileViewModel
             {
                 Id = user.Id,
@@ -205,6 +259,13 @@ namespace EventsApp.Controllers
                 GoingEventsCount = await _db.EventAttendances.CountAsync(a => a.UserId == id && a.Status == EventAttendanceStatus.Going),
                 TicketsCount = isCurrentUser ? await _db.UserTickets.CountAsync(t => t.Transaction.UserId == id) : 0,
                 VibeTags = vibeTags,
+                EventsAttendedCount = attendedCount,
+                EventsInterestedCount = interestedCount,
+                LikesGivenCount = likesGiven,
+                MonthlyEventsCount = monthlyEvents,
+                MonthlyNewFollowersCount = monthlyFollowers,
+                FavouriteGenre = favGenre?.GetDisplayName(),
+                CitiesVisitedCount = citiesVisited,
                 CurrentUserFollows = currentUserId != null && await _db.Follows.AnyAsync(f => f.FollowerId == currentUserId && f.FollowingId == id),
                 IsCurrentUser = isCurrentUser,
                 CanStartConversation = currentUserId != null && !isCurrentUser && await _permissions.CanMessageUserAsync(User, id),
@@ -215,6 +276,7 @@ namespace EventsApp.Controllers
                 GoingEvents = goingEvents,
                 Posts = posts,
                 Events = events,
+                Memories = memories,
             };
 
             return View(vm);

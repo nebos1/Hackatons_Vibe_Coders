@@ -27,6 +27,13 @@ namespace EventsApp.ViewModels.Social
         public int GoingEventsCount { get; set; }
         public int TicketsCount { get; set; }
         public IReadOnlyList<string> VibeTags { get; set; } = Array.Empty<string>();
+        public int EventsAttendedCount { get; set; }
+        public int EventsInterestedCount { get; set; }
+        public int LikesGivenCount { get; set; }
+        public int MonthlyEventsCount { get; set; }
+        public int MonthlyNewFollowersCount { get; set; }
+        public string? FavouriteGenre { get; set; }
+        public int? CitiesVisitedCount { get; set; }
         public bool CurrentUserFollows { get; set; }
         public bool IsCurrentUser { get; set; }
         public bool CanStartConversation { get; set; }
@@ -37,5 +44,16 @@ namespace EventsApp.ViewModels.Social
         public IReadOnlyList<EventCardViewModel> GoingEvents { get; set; } = Array.Empty<EventCardViewModel>();
         public IReadOnlyList<PostCardViewModel> Posts { get; set; } = Array.Empty<PostCardViewModel>();
         public IReadOnlyList<EventCardViewModel> Events { get; set; } = Array.Empty<EventCardViewModel>();
+        public IReadOnlyList<MemoryItem> Memories { get; set; } = Array.Empty<MemoryItem>();
+    }
+
+    public class MemoryItem
+    {
+        public int EventId { get; set; }
+        public string Title { get; set; } = null!;
+        public string City { get; set; } = null!;
+        public string? ImageUrl { get; set; }
+        public DateTime EventDate { get; set; }
+        public int YearsAgo { get; set; }
     }
 }

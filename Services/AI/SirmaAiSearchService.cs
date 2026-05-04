@@ -130,6 +130,15 @@ Output ONLY the description text in Bulgarian, no preamble, no quotes, no Englis
             return intent;
         }
 
+        public async Task<string?> GenerateTextAsync(string prompt, string tag, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(prompt)) return null;
+            var raw = await RunAgentAsync(prompt, tag, cancellationToken);
+            if (raw == null) return null;
+            var clean = raw.Trim().Trim('"').Trim();
+            return string.IsNullOrWhiteSpace(clean) ? null : clean;
+        }
+
         public async Task<string?> GenerateEventDescriptionAsync(string title, string? city, string? genre, string? hints, string? lang = null, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(title)) return null;

@@ -1,0 +1,68 @@
+@model EventsApp.ViewModels.Shared.ShareModel
+@{
+    var encodedUrl = Uri.EscapeDataString(Model.Url);
+    var encodedTitle = Uri.EscapeDataString(Model.Title);
+    var fbUrl = $"https://www.facebook.com/sharer/sharer.php?u={encodedUrl}";
+    var tgUrl = $"https://t.me/share/url?url={encodedUrl}&text={encodedTitle}";
+    var waUrl = $"https://wa.me/?text={encodedTitle}%20{encodedUrl}";
+    var twUrl = $"https://twitter.com/intent/tweet?url={encodedUrl}&text={encodedTitle}";
+}
+
+<div class="evt-share" data-share>
+    <button type="button" class="evt-share__btn" data-share-toggle>
+        <i class="bi bi-share"></i> <span data-i18n="share.btn">Сподели</span>
+    </button>
+    <div class="evt-share__menu">
+        <a class="evt-share__item is-fb" href="@fbUrl" target="_blank" rel="noopener">
+            <i class="bi bi-facebook"></i> Facebook
+        </a>
+        <a class="evt-share__item is-tg" href="@tgUrl" target="_blank" rel="noopener">
+            <i class="bi bi-telegram"></i> Telegram
+        </a>
+        <a class="evt-share__item is-wa" href="@waUrl" target="_blank" rel="noopener">
+            <i class="bi bi-whatsapp"></i> WhatsApp
+        </a>
+        <a class="evt-share__item is-x" href="@twUrl" target="_blank" rel="noopener">
+            <i class="bi bi-twitter-x"></i> X (Twitter)
+        </a>
+        <button type="button" class="evt-share__item" data-share-copy data-share-url="@Model.Url">
+            <i class="bi bi-link-45deg"></i> <span data-i18n="share.copy">Копирай линк</span>
+        </button>
+    </div>
+</div>
+
+<script>
+    (function () {
+        if (window.__shareDropdownInit) return;
+        window.__shareDropdownInit = true;
+        document.addEventListener('click', function (e) {
+            var toggle = e.target.closest('[data-share-toggle]');
+            if (toggle) {
+                var wrap = toggle.closest('[data-share]');
+                document.querySelectorAll('[data-share].is-open').forEach(function (w) {
+                    if (w !== wrap) w.classList.remove('is-open');
+                });
+                wrap.classList.toggle('is-open');
+                e.preventDefault();
+                return;
+            }
+            var copy = e.target.closest('[data-share-copy]');
+            if (copy) {
+                var url = copy.getAttribute('data-share-url');
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(url).then(function () {
+                        var span = copy.querySelector('span') || copy;
+                        var orig = span.textContent;
+                        span.textContent = '✓ Копирано!';
+                        setTimeout(function () { span.textContent = orig; }, 1500);
+                    });
+                }
+                e.preventDefault();
+                return;
+            }
+            if (!e.target.closest('[data-share]')) {
+                document.querySelectorAll('[data-share].is-open').forEach(function (w) { w.classList.remove('is-open'); });
+            }
+        });
+    })();
+</script>

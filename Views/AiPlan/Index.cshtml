@@ -1,0 +1,86 @@
+@model EventsApp.ViewModels.Wrapped.DayPlanViewModel
+@{
+    ViewData["Title"] = "AI план за деня";
+}
+
+<section class="evt-aiplan">
+    <header class="evt-aiplan__hero">
+        <span class="evt-aiplan__kicker"><i class="bi bi-stars"></i> AI компаньон</span>
+        <h1>Какъв ще бъде твоят ден?</h1>
+        <p>Кажи ни град и настроение — Сирма ще ти подреди вечер от реалните събития около теб.</p>
+    </header>
+
+    <form method="get" class="evt-aiplan__form">
+        <div class="evt-search-row" style="grid-template-columns: 1fr 1fr 1.6fr auto;">
+            <div class="evt-search-field">
+                <span>Град</span>
+                <select name="city" required>
+                    <option value="">Избери</option>
+                    @foreach (var c in Model.Cities)
+                    {
+                        <option value="@c" selected="@(string.Equals(Model.City, c, StringComparison.OrdinalIgnoreCase))">@c</option>
+                    }
+                </select>
+            </div>
+            <div class="evt-search-field">
+                <span>Дата</span>
+                <input type="date" name="when" value="@Model.When.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="evt-search-field">
+                <span>Настроение / повод</span>
+                <input type="text" name="vibe" value="@Model.Vibe" placeholder="напр. първа среща · с приятели · спокойна вечер · техно до късно" maxlength="200" />
+            </div>
+            <button type="submit" class="evt-search-submit">
+                <i class="bi bi-magic"></i> <span>Подреди ми вечерта</span>
+            </button>
+        </div>
+    </form>
+
+    @if (Model.HasResult)
+    {
+        <div class="evt-aiplan__result">
+            @if (!string.IsNullOrWhiteSpace(Model.AiError))
+            {
+                <div class="alert alert-warning">@Model.AiError</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.AiPlan))
+            {
+                <article class="evt-aiplan__card">
+                    <span class="evt-aiplan__cardkicker"><i class="bi bi-stars"></i> Сирма предлага</span>
+                    <pre class="evt-aiplan__text">@Model.AiPlan</pre>
+                </article>
+            }
+
+            @if (Model.Candidates.Count > 0)
+            {
+                <section class="evt-aiplan__candidates">
+                    <h2>Всички събития за деня</h2>
+                    <div class="evt-aiplan__list">
+                        @foreach (var ev in Model.Candidates)
+                        {
+                            <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="evt-aiplan__row">
+                                @if (!string.IsNullOrWhiteSpace(ev.ImageUrl))
+                                {
+                                    <img src="@ev.ImageUrl" alt="@ev.Title" />
+                                }
+                                else
+                                {
+                                    <span class="evt-aiplan__rowimg"><i class="bi bi-music-note-beamed"></i></span>
+                                }
+                                <div class="evt-aiplan__rowbody">
+                                    <span class="evt-aiplan__rowtime">@ev.StartTime.ToString("HH:mm")</span>
+                                    <strong>@ev.Title</strong>
+                                    <small>@ev.Genre.GetDisplayName() · @(string.IsNullOrWhiteSpace(ev.Address) ? ev.City : ev.Address)</small>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                </section>
+            }
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(Model.City))
+    {
+        <div class="evt-empty">Няма публикувани събития за избрания ден. Опитай с друга дата.</div>
+    }
+</section>

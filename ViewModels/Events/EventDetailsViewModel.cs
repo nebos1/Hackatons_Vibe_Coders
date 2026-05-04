@@ -46,6 +46,7 @@ namespace EventsApp.ViewModels.Events
         public EventSeatMapViewModel? SeatMap { get; set; }
 
         public IReadOnlyList<ActingIdentityOptionViewModel> ActingIdentities { get; set; } = Array.Empty<ActingIdentityOptionViewModel>();
+        public IReadOnlyList<EventCardViewModel> SimilarEvents { get; set; } = Array.Empty<EventCardViewModel>();
     }
 
     public class EventOccurrenceOptionViewModel

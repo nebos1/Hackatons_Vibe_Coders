@@ -126,7 +126,7 @@ namespace EventsApp.Areas.Identity.Pages.Account
                 await _userManager.AddToRoleAsync(user, GlobalConstants.Roles.User);
 
                 await _signInManager.SignInAsync(user, isPersistent: false);
-                return LocalRedirect(returnUrl);
+                return Redirect("/Preferences/Edit?welcome=1");
             }
 
             foreach (var error in result.Errors)

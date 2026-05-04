@@ -35,5 +35,6 @@ namespace EventsApp.Services.AI
         string? LastStatusDetail { get; }
         Task<AiSearchIntent?> InterpretAsync(string query, CancellationToken cancellationToken = default);
         Task<string?> GenerateEventDescriptionAsync(string title, string? city, string? genre, string? hints, string? lang = null, CancellationToken cancellationToken = default);
+        Task<string?> GenerateTextAsync(string prompt, string tag, CancellationToken cancellationToken = default);
     }
 }

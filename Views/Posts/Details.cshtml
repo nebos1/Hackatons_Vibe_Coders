@@ -3,6 +3,33 @@
     ViewData["Title"] = "Post";
     var shareUrl = Url.Action("Details", "Posts", new { id = Model.Id }, Context.Request.Scheme) ?? string.Empty;
     var authorInitial = string.IsNullOrWhiteSpace(Model.OrganizerName) ? "?" : Model.OrganizerName[..1].ToUpperInvariant();
+    var ogTitle = $"{Model.OrganizerName} · Evento";
+    var ogDescription = !string.IsNullOrWhiteSpace(Model.Content)
+        ? (Model.Content.Length > 200 ? Model.Content[..200] + "…" : Model.Content)
+        : "Публикация в Evento";
+    var firstMedia = Model.Media.Select(m => m.Url).FirstOrDefault();
+    var ogImage = !string.IsNullOrWhiteSpace(firstMedia)
+        ? (firstMedia.StartsWith("http") ? firstMedia : $"{Context.Request.Scheme}://{Context.Request.Host}{firstMedia}")
+        : null;
+}
+
+@section Head {
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="@ogTitle" />
+    <meta property="og:description" content="@ogDescription" />
+    <meta property="og:url" content="@shareUrl" />
+    <meta property="og:site_name" content="Evento" />
+    @if (!string.IsNullOrWhiteSpace(ogImage))
+    {
+        <meta property="og:image" content="@ogImage" />
+    }
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@ogTitle" />
+    <meta name="twitter:description" content="@ogDescription" />
+    @if (!string.IsNullOrWhiteSpace(ogImage))
+    {
+        <meta name="twitter:image" content="@ogImage" />
+    }
 }
 
 <section class="groove-app-page">
@@ -10,6 +37,7 @@
         <a asp-action="Index" class="groove-button groove-button-paper">
             <i class="bi bi-arrow-left"></i> Back
         </a>
+        <partial name="_ShareDropdown" model="@(new EventsApp.ViewModels.Shared.ShareModel { Url = shareUrl, Title = ogTitle })" />
         @if (Model.CanEdit)
         {
             <a asp-action="Edit" asp-route-id="@Model.Id" class="groove-button groove-button-paper">
