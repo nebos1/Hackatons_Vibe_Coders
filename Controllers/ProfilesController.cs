@@ -73,6 +73,7 @@ namespace EventsApp.Controllers
                 {
                     Id = p.Id,
                     OrganizerId = p.OrganizerId,
+                    OrganizerProfileId = p.OrganizerProfileId,
                     OrganizerName = displayName,
                     AuthorImageUrl = user.ProfileImageUrl,
                     AuthorIsOrganizer = user.OrganizerData != null && user.OrganizerData.Approved,
@@ -165,6 +166,7 @@ namespace EventsApp.Controllers
                     Genre = e.Genre,
                     IsApproved = e.IsApproved,
                     OrganizerId = e.OrganizerId,
+                    OrganizerProfileId = e.OrganizerProfileId,
                     OrganizerName = displayName,
                     LikesCount = e.Likes.Count,
                     CommentsCount = e.Comments.Count,
@@ -511,6 +513,7 @@ namespace EventsApp.Controllers
                 Genre = e.Genre,
                 IsApproved = e.IsApproved,
                 OrganizerId = e.OrganizerId,
+                OrganizerProfileId = e.OrganizerProfileId,
                 OrganizerName = e.Organizer.OrganizerData != null && e.Organizer.OrganizerData.Approved
                     ? e.Organizer.OrganizerData.OrganizationName
                     : e.Organizer.UserName ?? string.Empty,

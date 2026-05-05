@@ -15,6 +15,7 @@ namespace EventsApp.ViewModels.Tickets
         public int QuantityTotal { get; set; }
         public int QuantityRemaining { get; set; }
         public bool IsActive { get; set; }
+        public bool RequiresAttendeeNames { get; set; }
         public int Sold { get; set; }
         public int Used { get; set; }
     }

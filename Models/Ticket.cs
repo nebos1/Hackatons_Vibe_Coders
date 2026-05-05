@@ -49,6 +49,8 @@ namespace EventsApp.Models
         [Required]
         public bool IsActive { get; set; }
 
+        public bool RequiresAttendeeNames { get; set; }
+
         [Required]
         public DateTime CreatedAt { get; set; }
 

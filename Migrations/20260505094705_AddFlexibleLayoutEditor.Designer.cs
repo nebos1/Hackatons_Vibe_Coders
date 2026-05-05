@@ -4,6 +4,7 @@ using EventsApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EventsApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260505094705_AddFlexibleLayoutEditor")]
+    partial class AddFlexibleLayoutEditor
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1160,11 +1163,6 @@ namespace EventsApp.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(1);
 
-                    b.Property<bool>("IsCapacityUnlimited")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<string>("Label")
                         .HasMaxLength(48)
                         .HasColumnType("nvarchar(48)");
@@ -1298,11 +1296,6 @@ namespace EventsApp.Migrations
 
                     b.Property<int>("QuantityTotal")
                         .HasColumnType("int");
-
-                    b.Property<bool>("RequiresAttendeeNames")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
 
                     b.HasKey("Id");
 
@@ -1460,27 +1453,17 @@ namespace EventsApp.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("AttendeeName")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int?>("EventOccurrenceId")
                         .HasColumnType("int");
 
-                    b.Property<bool>("IsPrimaryInPurchase")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsUsed")
                         .HasColumnType("bit");
 
                     b.Property<decimal>("PricePaid")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid>("PurchaseGroupId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("QrCode")
                         .IsRequired()
@@ -1505,8 +1488,6 @@ namespace EventsApp.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EventOccurrenceId");
-
-                    b.HasIndex("PurchaseGroupId");
 
                     b.HasIndex("QrCode")
                         .IsUnique();

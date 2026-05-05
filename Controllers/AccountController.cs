@@ -87,6 +87,7 @@ namespace EventsApp.Controllers
                 {
                     Id = p.Id,
                     OrganizerId = p.OrganizerId,
+                    OrganizerProfileId = p.OrganizerProfileId,
                     OrganizerName = p.Organizer.OrganizerData != null && p.Organizer.OrganizerData.Approved
                         ? p.Organizer.OrganizerData.OrganizationName
                         : p.Organizer.UserName ?? string.Empty,
@@ -123,7 +124,8 @@ namespace EventsApp.Controllers
                     Genre = l.Event.Genre,
                     IsApproved = l.Event.IsApproved,
                     OrganizerId = l.Event.OrganizerId,
-                    OrganizerName = l.Event.Organizer.UserName ?? string.Empty,
+                    OrganizerProfileId = l.Event.OrganizerProfileId,
+                    OrganizerName = l.Event.OrganizerProfile != null ? l.Event.OrganizerProfile.DisplayName : l.Event.Organizer.UserName ?? string.Empty,
                     LikesCount = l.Event.Likes.Count,
                     CommentsCount = l.Event.Comments.Count,
                     SavesCount = l.Event.Saves.Count,
@@ -152,7 +154,8 @@ namespace EventsApp.Controllers
                 {
                     Id = l.PostId,
                     OrganizerId = l.Post.OrganizerId,
-                    OrganizerName = l.Post.Organizer.UserName ?? string.Empty,
+                    OrganizerProfileId = l.Post.OrganizerProfileId,
+                    OrganizerName = l.Post.OrganizerProfile != null ? l.Post.OrganizerProfile.DisplayName : l.Post.Organizer.UserName ?? string.Empty,
                     Content = l.Post.Content,
                     CreatedAt = l.Post.CreatedAt,
                     EventId = l.Post.EventId,
@@ -178,6 +181,7 @@ namespace EventsApp.Controllers
                 {
                     Id = s.PostId,
                     OrganizerId = s.Post.OrganizerId,
+                    OrganizerProfileId = s.Post.OrganizerProfileId,
                     OrganizerName = s.Post.Organizer.OrganizerData != null && s.Post.Organizer.OrganizerData.Approved
                         ? s.Post.Organizer.OrganizerData.OrganizationName
                         : s.Post.Organizer.UserName ?? string.Empty,
@@ -214,7 +218,8 @@ namespace EventsApp.Controllers
                     Genre = s.Event.Genre,
                     IsApproved = s.Event.IsApproved,
                     OrganizerId = s.Event.OrganizerId,
-                    OrganizerName = s.Event.Organizer.UserName ?? string.Empty,
+                    OrganizerProfileId = s.Event.OrganizerProfileId,
+                    OrganizerName = s.Event.OrganizerProfile != null ? s.Event.OrganizerProfile.DisplayName : s.Event.Organizer.UserName ?? string.Empty,
                     LikesCount = s.Event.Likes.Count,
                     CommentsCount = s.Event.Comments.Count,
                     SavesCount = s.Event.Saves.Count,

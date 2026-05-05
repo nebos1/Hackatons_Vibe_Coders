@@ -2,6 +2,7 @@ using EventsApp.Common;
 using EventsApp.Models.AI;
 using EventsApp.Services.AI;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace EventsApp.Controllers.Api
 {
@@ -9,6 +10,8 @@ namespace EventsApp.Controllers.Api
     [Route("api/search")]
     public class SearchApiController : ControllerBase
     {
+        private const int MaxSmartQueryLength = 240;
+
         private readonly IAiSearchService _ai;
         private readonly ILogger<SearchApiController> _logger;
 
@@ -24,6 +27,7 @@ namespace EventsApp.Controllers.Api
         }
 
         [HttpPost("smart")]
+        [EnableRateLimiting("ai-light")]
         public async Task<IActionResult> Smart([FromBody] SmartSearchRequest? request, CancellationToken ct)
         {
             var query = (request?.Query ?? string.Empty).Trim();
@@ -37,6 +41,15 @@ namespace EventsApp.Controllers.Api
             {
                 result.AiUsed = false;
                 result.AiStatus = "Empty";
+                return Ok(result);
+            }
+
+            if (query.Length > MaxSmartQueryLength)
+            {
+                result.AiUsed = false;
+                result.AiStatus = "Rejected";
+                result.AiStatusDetail = $"Query is too long. Maximum length is {MaxSmartQueryLength} characters.";
+                ApplyKeywordFallback(result, query[..MaxSmartQueryLength]);
                 return Ok(result);
             }
 

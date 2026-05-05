@@ -24,7 +24,14 @@ namespace EventsApp.Models
         public string Name { get; set; } = null!;
 
         [Required]
+        [MaxLength(80)]
+        public string FloorName { get; set; } = "Floor 1";
+
+        [Required]
         public LayoutSectionType Type { get; set; }
+
+        [MaxLength(32)]
+        public string Shape { get; set; } = "Rectangle";
 
         [Range(0, int.MaxValue)]
         public int Capacity { get; set; }
@@ -39,6 +46,8 @@ namespace EventsApp.Models
         public double Width { get; set; }
 
         public double Height { get; set; }
+
+        public double Rotation { get; set; }
 
         public ICollection<Seat> Seats { get; set; }
     }

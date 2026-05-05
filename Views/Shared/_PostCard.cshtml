@@ -28,23 +28,43 @@
 
     <div class="card-body d-flex flex-column">
         <div class="social-post-card__author">
-            <a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OrganizerId" class="social-author-link">
-                @if (!string.IsNullOrWhiteSpace(Model.AuthorImageUrl))
-                {
-                    <img src="@Model.AuthorImageUrl" alt="@Model.OrganizerName" class="social-avatar-xs" />
-                }
-                else
-                {
-                    <span class="social-avatar-xs social-avatar-xs--fallback">@initial</span>
-                }
-                <span>
-                    <strong>@Model.OrganizerName</strong>
-                    @if (Model.AuthorIsOrganizer)
+            @if (Model.OrganizerProfileId.HasValue)
+            {
+                <span class="social-author-link">
+                    @if (!string.IsNullOrWhiteSpace(Model.AuthorImageUrl))
                     {
-                        <small><i class="bi bi-patch-check-fill"></i> Organizer</small>
+                        <img src="@Model.AuthorImageUrl" alt="@Model.OrganizerName" class="social-avatar-xs" />
                     }
+                    else
+                    {
+                        <span class="social-avatar-xs social-avatar-xs--fallback">@initial</span>
+                    }
+                    <span>
+                        <strong>@Model.OrganizerName</strong>
+                        <small><i class="bi bi-patch-check-fill"></i> Public page</small>
+                    </span>
                 </span>
-            </a>
+            }
+            else
+            {
+                <a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OrganizerId" class="social-author-link">
+                    @if (!string.IsNullOrWhiteSpace(Model.AuthorImageUrl))
+                    {
+                        <img src="@Model.AuthorImageUrl" alt="@Model.OrganizerName" class="social-avatar-xs" />
+                    }
+                    else
+                    {
+                        <span class="social-avatar-xs social-avatar-xs--fallback">@initial</span>
+                    }
+                    <span>
+                        <strong>@Model.OrganizerName</strong>
+                        @if (Model.AuthorIsOrganizer)
+                        {
+                            <small><i class="bi bi-patch-check-fill"></i> Organizer</small>
+                        }
+                    </span>
+                </a>
+            }
             <small class="text-muted">@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
         </div>
 
@@ -95,6 +115,12 @@
                 <button class="btn btn-sm btn-outline-secondary social-share-button" type="button" data-share-url="@shareUrl" data-share-title="Post by @Model.OrganizerName" title="Share">
                     <i class="bi bi-share"></i>
                 </button>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-controller="Messages" asp-action="SharePost" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary" title="Send in chat" data-i18n-title="share.chat">
+                        <i class="bi bi-send"></i>
+                    </a>
+                }
             </div>
 
             <div class="social-card-actions__manage">

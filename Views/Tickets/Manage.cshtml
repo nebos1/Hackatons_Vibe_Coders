@@ -42,6 +42,7 @@
                             <th>Продадени</th>
                             <th>Използвани</th>
                             <th>Статус</th>
+                            <th>Names</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -63,6 +64,16 @@
                                 <td>@t.Sold</td>
                                 <td>@t.Used</td>
                                 <td><span class="groove-status-badge @statusClass">@statusText</span></td>
+                                <td>
+                                    @if (t.RequiresAttendeeNames)
+                                    {
+                                        <span class="groove-status-badge groove-status-badge-muted">Required</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Optional</span>
+                                    }
+                                </td>
                                 <td>
                                     <div class="groove-list-actions">
                                         <a asp-action="Edit" asp-route-id="@t.Id" class="groove-button groove-button-paper">

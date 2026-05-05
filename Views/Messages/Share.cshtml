@@ -1,0 +1,97 @@
+@model ShareToChatViewModel
+@{
+    ViewData["Title"] = "Send in chat";
+}
+
+<section class="groove-app-page social-messages-page">
+    <div class="social-share-chat-shell">
+        <div class="social-message-panel">
+            <div class="social-message-panel__head">
+                <span class="groove-kicker" data-i18n="share.chat">Send in chat</span>
+                <h1 data-i18n="share.chat.title">Choose a conversation</h1>
+            </div>
+
+            <div class="social-message-share-preview">
+                @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+                {
+                    <img src="@Model.ImageUrl" alt="@Model.Title" />
+                }
+                else
+                {
+                    <span><i class="bi bi-send"></i></span>
+                }
+                <div>
+                    <em data-i18n="share.chat.preview">Sharing</em>
+                    <strong>@Model.Title</strong>
+                    @if (!string.IsNullOrWhiteSpace(Model.Meta))
+                    {
+                        <small>@Model.Meta</small>
+                    }
+                </div>
+            </div>
+
+            @if (!Model.Conversations.Any())
+            {
+                <div class="social-empty-panel">
+                    <i class="bi bi-chat-dots"></i>
+                    <span data-i18n="share.chat.empty">No active chats yet. Open a profile first and start a conversation.</span>
+                </div>
+            }
+            else
+            {
+                <form asp-action="@Model.ActionName" method="post" class="social-share-chat-form">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="shareId" value="@Model.ShareId" />
+
+                    <div class="social-share-chat-targets">
+                        @for (var i = 0; i < Model.Conversations.Count; i++)
+                        {
+                            var conversation = Model.Conversations[i];
+                            var initial = string.IsNullOrWhiteSpace(conversation.OtherUserName) ? "?" : conversation.OtherUserName[..1].ToUpperInvariant();
+                            <label class="social-share-chat-target">
+                                <input type="radio" name="conversationId" value="@conversation.Id" checked="@(i == 0)" />
+                                @if (!string.IsNullOrWhiteSpace(conversation.OtherUserImageUrl))
+                                {
+                                    <img src="@conversation.OtherUserImageUrl" alt="@conversation.OtherUserName" />
+                                }
+                                else
+                                {
+                                    <span>@initial</span>
+                                }
+                                <strong>@conversation.OtherUserName</strong>
+                                <small>
+                                    @if (conversation.Status == ConversationStatus.Pending)
+                                    {
+                                        <span data-i18n="messages.request.draft">Write first message</span>
+                                    }
+                                    else if (!string.IsNullOrWhiteSpace(conversation.LastMessage))
+                                    {
+                                        @conversation.LastMessage
+                                    }
+                                    else
+                                    {
+                                        <span data-i18n="messages.none">No messages yet</span>
+                                    }
+                                </small>
+                            </label>
+                        }
+                    </div>
+
+                    <label class="social-share-chat-note">
+                        <span data-i18n="share.chat.note">Add a note</span>
+                        <input type="text" name="note" maxlength="2000" placeholder="Say something about it..." data-i18n-placeholder="share.chat.note.placeholder" />
+                    </label>
+
+                    <div class="groove-cta-row">
+                        <button type="submit" class="groove-button groove-button-dark">
+                            <i class="bi bi-send"></i> <span data-i18n="common.send">Send</span>
+                        </button>
+                        <a asp-controller="Messages" asp-action="Index" class="groove-button groove-button-paper">
+                            <span data-i18n="common.cancel">Cancel</span>
+                        </a>
+                    </div>
+                </form>
+            }
+        </div>
+    </div>
+</section>

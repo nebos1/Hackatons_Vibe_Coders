@@ -1,74 +1,181 @@
-@model IReadOnlyList<ConversationListItemViewModel>
+@model MessagesIndexViewModel
 @{
-    ViewData["Title"] = "Съобщения";
+    ViewData["Title"] = "Messages";
 }
 
 <section class="groove-app-page social-messages-page">
     <div class="groove-page-hero">
         <div class="groove-page-hero__copy">
-            <span class="groove-stamp groove-stamp-teal" data-i18n="nav.messages">Съобщения</span>
-            <h1 data-i18n-html="messages.index.title">Лични <span>съобщения</span>.</h1>
-            <p data-i18n="messages.index.desc">Пиши си с хора и организатори. Засега съобщенията се обновяват при нормално зареждане на страницата.</p>
+            <span class="groove-stamp groove-stamp-teal" data-i18n="nav.messages">Messages</span>
+            <h1 data-i18n-html="messages.index.title">Direct <span>messages</span>.</h1>
+            <p data-i18n="messages.index.desc">Personal chats stay personal. Page inboxes are separated for organizers.</p>
         </div>
     </div>
 
-    <div class="social-message-list">
-        @if (!Model.Any())
+    <div class="social-message-board">
+        @if (Model.RequestConversations.Any())
         {
-            <div class="social-empty-panel">
-                <i class="bi bi-chat-dots"></i>
-                <span data-i18n="messages.empty">Все още няма разговори. Отвори профил и започни съобщение.</span>
-            </div>
-        }
-        else
-        {
-            @foreach (var conversation in Model)
-            {
-                var initial = string.IsNullOrWhiteSpace(conversation.OtherUserName) ? "?" : conversation.OtherUserName[..1].ToUpperInvariant();
-                <a asp-action="Details" asp-route-id="@conversation.Id" class="social-conversation-row">
-                    @if (!string.IsNullOrWhiteSpace(conversation.OtherUserImageUrl))
+            <section class="social-message-panel social-message-panel--requests">
+                <div class="social-message-panel__head">
+                    <span class="groove-kicker" data-i18n="messages.requests.panel">Requests</span>
+                    <h2 data-i18n="messages.requests.title">Needs approval</h2>
+                </div>
+
+                <div class="social-message-list social-message-list--compact">
+                    @foreach (var conversation in Model.RequestConversations)
                     {
-                        <img src="@conversation.OtherUserImageUrl" alt="@conversation.OtherUserName" />
-                    }
-                    else
-                    {
-                        <span class="social-conversation-row__fallback">@initial</span>
-                    }
-                    <div>
-                        <strong>@conversation.OtherUserName</strong>
-                        <small>
-                            @if (conversation.Status == ConversationStatus.Pending)
+                        var initial = string.IsNullOrWhiteSpace(conversation.OtherUserName) ? "?" : conversation.OtherUserName[..1].ToUpperInvariant();
+                        <a asp-action="Details" asp-route-id="@conversation.Id" class="social-conversation-row is-request">
+                            @if (!string.IsNullOrWhiteSpace(conversation.OtherUserImageUrl))
                             {
-                                if (conversation.IsRequestedByCurrentUser)
-                                {
-                                    <span data-i18n="messages.request.sent">Заявката чака одобрение</span>
-                                }
-                                else
-                                {
-                                    <span data-i18n="messages.request.incoming">Нова заявка за съобщение</span>
-                                }
-                            }
-                            else if (conversation.Status == ConversationStatus.Declined)
-                            {
-                                <span data-i18n="messages.request.declined">Заявката е отказана</span>
-                            }
-                            else if (string.IsNullOrWhiteSpace(conversation.LastMessage))
-                            {
-                                <span data-i18n="messages.none">Все още няма съобщения</span>
+                                <img src="@conversation.OtherUserImageUrl" alt="@conversation.OtherUserName" />
                             }
                             else
                             {
-                                @conversation.LastMessage
+                                <span class="social-conversation-row__fallback">@initial</span>
                             }
-                        </small>
-                    </div>
-                    <time>@conversation.UpdatedAt.ToString("dd.MM HH:mm")</time>
-                    @if (conversation.UnseenCount > 0)
-                    {
-                        <b>@conversation.UnseenCount</b>
+                            <div>
+                                <strong>@conversation.OtherUserName</strong>
+                                <small>
+                                    <span data-i18n="messages.request.incoming">New message request</span>
+                                    @if (!string.IsNullOrWhiteSpace(conversation.LastMessage))
+                                    {
+                                        <span> - @conversation.LastMessage</span>
+                                    }
+                                </small>
+                            </div>
+                            <time>@conversation.UpdatedAt.ToString("dd.MM HH:mm")</time>
+                            @if (conversation.UnseenCount > 0)
+                            {
+                                <b>@conversation.UnseenCount</b>
+                            }
+                        </a>
                     }
-                </a>
-            }
+                </div>
+            </section>
+        }
+
+        <section class="social-message-panel">
+            <div class="social-message-panel__head">
+                <span class="groove-kicker" data-i18n="messages.personal.panel">Personal</span>
+                <h2 data-i18n="messages.personal.title">Personal messages</h2>
+            </div>
+
+            <div class="social-message-list">
+                @if (!Model.PersonalConversations.Any())
+                {
+                    <div class="social-empty-panel">
+                        <i class="bi bi-chat-dots"></i>
+                        <span data-i18n="messages.empty">No conversations yet. Open a profile and start a message.</span>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var conversation in Model.PersonalConversations)
+                    {
+                        var initial = string.IsNullOrWhiteSpace(conversation.OtherUserName) ? "?" : conversation.OtherUserName[..1].ToUpperInvariant();
+                        <a asp-action="Details" asp-route-id="@conversation.Id" class="social-conversation-row">
+                            @if (!string.IsNullOrWhiteSpace(conversation.OtherUserImageUrl))
+                            {
+                                <img src="@conversation.OtherUserImageUrl" alt="@conversation.OtherUserName" />
+                            }
+                            else
+                            {
+                                <span class="social-conversation-row__fallback">@initial</span>
+                            }
+                            <div>
+                                <strong>@conversation.OtherUserName</strong>
+                                <small>
+                                    @if (conversation.Status == ConversationStatus.Pending)
+                                    {
+                                        if (conversation.IsRequestedByCurrentUser && !conversation.HasMessages)
+                                        {
+                                            <span data-i18n="messages.request.draft">Write first message</span>
+                                        }
+                                        else if (conversation.IsRequestedByCurrentUser)
+                                        {
+                                            <span data-i18n="messages.request.sent">Request waiting for approval</span>
+                                        }
+                                    }
+                                    else if (conversation.Status == ConversationStatus.Declined)
+                                    {
+                                        <span data-i18n="messages.request.declined">Request declined</span>
+                                    }
+                                    else if (string.IsNullOrWhiteSpace(conversation.LastMessage))
+                                    {
+                                        <span data-i18n="messages.none">No messages yet</span>
+                                    }
+                                    else
+                                    {
+                                        @conversation.LastMessage
+                                    }
+                                </small>
+                            </div>
+                            <time>@conversation.UpdatedAt.ToString("dd.MM HH:mm")</time>
+                            @if (conversation.UnseenCount > 0)
+                            {
+                                <b>@conversation.UnseenCount</b>
+                            }
+                        </a>
+                    }
+                }
+            </div>
+        </section>
+
+        @if (Model.HasOrganizerPages || Model.PageConversations.Any())
+        {
+            <section class="social-message-panel social-message-panel--page">
+                <div class="social-message-panel__head">
+                    <span class="groove-kicker" data-i18n="messages.pages.panel">Page inbox</span>
+                    <h2 data-i18n="messages.pages.title">Messages to your public pages</h2>
+                </div>
+
+                <div class="social-message-list">
+                    @if (!Model.PageConversations.Any())
+                    {
+                        <div class="social-empty-panel">
+                            <i class="bi bi-building"></i>
+                            <span data-i18n="messages.pages.empty">No one has written to your pages yet.</span>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var conversation in Model.PageConversations)
+                        {
+                            var initial = string.IsNullOrWhiteSpace(conversation.OtherUserName) ? "?" : conversation.OtherUserName[..1].ToUpperInvariant();
+                            <a asp-action="Details" asp-route-id="@conversation.Id" class="social-conversation-row">
+                                @if (!string.IsNullOrWhiteSpace(conversation.OtherUserImageUrl))
+                                {
+                                    <img src="@conversation.OtherUserImageUrl" alt="@conversation.OtherUserName" />
+                                }
+                                else
+                                {
+                                    <span class="social-conversation-row__fallback">@initial</span>
+                                }
+                                <div>
+                                    <strong>@conversation.OtherUserName</strong>
+                                    <small>
+                                        <span>@conversation.ScopeLabel</span>
+                                        @if (conversation.Status == ConversationStatus.Pending && conversation.IsRequestedByCurrentUser && !conversation.HasMessages)
+                                        {
+                                            <span> - <span data-i18n="messages.request.draft">Write first message</span></span>
+                                        }
+                                        else if (!string.IsNullOrWhiteSpace(conversation.LastMessage))
+                                        {
+                                            <span> - @conversation.LastMessage</span>
+                                        }
+                                    </small>
+                                </div>
+                                <time>@conversation.UpdatedAt.ToString("dd.MM HH:mm")</time>
+                                @if (conversation.UnseenCount > 0)
+                                {
+                                    <b>@conversation.UnseenCount</b>
+                                }
+                            </a>
+                        }
+                    }
+                </div>
+            </section>
         }
     </div>
 </section>

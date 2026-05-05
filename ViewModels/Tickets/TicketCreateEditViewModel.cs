@@ -43,5 +43,8 @@ namespace EventsApp.ViewModels.Tickets
 
         [Display(Name = "Active")]
         public bool IsActive { get; set; } = true;
+
+        [Display(Name = "Require attendee names")]
+        public bool RequiresAttendeeNames { get; set; }
     }
 }

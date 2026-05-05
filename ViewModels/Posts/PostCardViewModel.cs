@@ -6,6 +6,7 @@ namespace EventsApp.ViewModels.Posts
     {
         public int Id { get; set; }
         public string OrganizerId { get; set; } = null!;
+        public int? OrganizerProfileId { get; set; }
         public string OrganizerName { get; set; } = null!;
         public string Content { get; set; } = null!;
         public DateTime CreatedAt { get; set; }

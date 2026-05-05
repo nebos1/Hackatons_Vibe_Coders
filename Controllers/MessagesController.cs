@@ -34,7 +34,7 @@ namespace EventsApp.Controllers
         {
             var userId = _userManager.GetUserId(User)!;
 
-            var conversations = await _db.Conversations
+            var conversationRows = await _db.Conversations
                 .AsNoTracking()
                 .Where(c => c.ParticipantOneId == userId || c.ParticipantTwoId == userId)
                 .OrderByDescending(c => c.UpdatedAt)
@@ -44,30 +44,69 @@ namespace EventsApp.Controllers
                     c.UpdatedAt,
                     c.Status,
                     c.RequestedByUserId,
+                    c.OrganizerProfileId,
+                    PageName = c.OrganizerProfile != null ? c.OrganizerProfile.DisplayName : null,
+                    PageImageUrl = c.OrganizerProfile != null ? c.OrganizerProfile.AvatarImageUrl : null,
+                    PageOwnerId = c.OrganizerProfile != null ? c.OrganizerProfile.OwnerId : null,
                     Other = c.ParticipantOneId == userId ? c.ParticipantTwo : c.ParticipantOne,
                     LastMessage = c.Messages
                         .OrderByDescending(m => m.CreatedAt)
                         .Select(m => m.Content)
                         .FirstOrDefault(),
+                    HasMessages = c.Messages.Any(),
                     UnseenCount = c.Messages.Count(m => m.SenderId != userId && m.SeenAt == null),
-                })
-                .Select(c => new ConversationListItemViewModel
-                {
-                    Id = c.Id,
-                    OtherUserId = c.Other.Id,
-                    OtherUserName = c.Other.OrganizerData != null && c.Other.OrganizerData.Approved
-                        ? c.Other.OrganizerData.OrganizationName
-                        : c.Other.UserName ?? string.Empty,
-                    OtherUserImageUrl = c.Other.ProfileImageUrl,
-                    LastMessage = c.LastMessage,
-                    UpdatedAt = c.UpdatedAt,
-                    UnseenCount = c.UnseenCount,
-                    Status = c.Status,
-                    IsRequestedByCurrentUser = c.RequestedByUserId == userId,
                 })
                 .ToListAsync();
 
-            return View(conversations);
+            var conversations = conversationRows
+                .Select(c =>
+                {
+                    var currentUserOwnsPage = c.OrganizerProfileId.HasValue && c.PageOwnerId == userId;
+                    var displayName = c.OrganizerProfileId.HasValue && !currentUserOwnsPage
+                        ? c.PageName ?? GetDisplayName(c.Other)
+                        : GetDisplayName(c.Other);
+                    var imageUrl = c.OrganizerProfileId.HasValue && !currentUserOwnsPage
+                        ? c.PageImageUrl ?? c.Other.ProfileImageUrl
+                        : c.Other.ProfileImageUrl;
+
+                    return new ConversationListItemViewModel
+                    {
+                        Id = c.Id,
+                        OtherUserId = c.Other.Id,
+                        OtherUserName = displayName,
+                        OtherUserImageUrl = imageUrl,
+                        LastMessage = c.LastMessage,
+                        HasMessages = c.HasMessages,
+                        UpdatedAt = c.UpdatedAt,
+                        UnseenCount = c.UnseenCount,
+                        Status = c.Status,
+                        IsRequestedByCurrentUser = c.RequestedByUserId == userId,
+                        OrganizerProfileId = c.OrganizerProfileId,
+                        PageName = c.PageName,
+                        PageImageUrl = c.PageImageUrl,
+                        CurrentUserOwnsPage = currentUserOwnsPage,
+                    };
+                })
+                .ToList();
+
+            var hasOrganizerPages = await CurrentUserHasActiveOrganizerPageAsync(userId);
+            var vm = new MessagesIndexViewModel
+            {
+                RequestConversations = conversations
+                    .Where(c => c.IsIncomingRequest
+                        && c.HasMessages
+                        && (!c.IsPageConversation || !c.CurrentUserOwnsPage || hasOrganizerPages))
+                    .ToList(),
+                PersonalConversations = conversations
+                    .Where(c => !c.IsPageConversation && !c.IsIncomingRequest)
+                    .ToList(),
+                PageConversations = conversations
+                    .Where(c => c.IsPageConversation && !c.IsIncomingRequest && (!c.CurrentUserOwnsPage || hasOrganizerPages))
+                    .ToList(),
+                HasOrganizerPages = hasOrganizerPages,
+            };
+
+            return View(vm);
         }
 
         public async Task<IActionResult> Details(int id)
@@ -78,10 +117,16 @@ namespace EventsApp.Controllers
                     .ThenInclude(u => u.OrganizerData)
                 .Include(c => c.ParticipantTwo)
                     .ThenInclude(u => u.OrganizerData)
+                .Include(c => c.OrganizerProfile)
                 .Include(c => c.Messages)
                     .ThenInclude(m => m.Sender)
                 .Include(c => c.Messages)
                     .ThenInclude(m => m.AuthorOrganizerProfile)
+                .Include(c => c.Messages)
+                    .ThenInclude(m => m.SharedEvent)
+                .Include(c => c.Messages)
+                    .ThenInclude(m => m.SharedPost)
+                        .ThenInclude(p => p!.Images)
                 .FirstOrDefaultAsync(c => c.Id == id && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
 
             if (conversation == null)
@@ -104,17 +149,50 @@ namespace EventsApp.Controllers
             var other = conversation.ParticipantOneId == userId
                 ? conversation.ParticipantTwo
                 : conversation.ParticipantOne;
+            var currentUserOwnsPage = conversation.OrganizerProfile?.OwnerId == userId;
+            if (conversation.OrganizerProfileId.HasValue
+                && currentUserOwnsPage
+                && !await _permissions.CanActAsOrganizerPageAsync(User, conversation.OrganizerProfileId.Value))
+            {
+                return Forbid();
+            }
+
+            var displayName = conversation.OrganizerProfileId.HasValue && !currentUserOwnsPage
+                ? conversation.OrganizerProfile?.DisplayName ?? GetDisplayName(other)
+                : GetDisplayName(other);
+            var imageUrl = conversation.OrganizerProfileId.HasValue && !currentUserOwnsPage
+                ? conversation.OrganizerProfile?.AvatarImageUrl ?? other.ProfileImageUrl
+                : other.ProfileImageUrl;
+            var actingIdentities = await GetConversationIdentityOptionsAsync(conversation, userId);
+            var canUseConversationIdentity = !conversation.OrganizerProfileId.HasValue
+                || !currentUserOwnsPage
+                || actingIdentities.Count > 0;
+            var hasMessages = conversation.Messages.Any();
+            var canSendInitialRequestMessage = conversation.Status == ConversationStatus.Pending
+                && conversation.RequestedByUserId == userId
+                && !hasMessages
+                && actingIdentities.Count > 0;
 
             var vm = new ConversationDetailsViewModel
             {
                 Id = conversation.Id,
                 OtherUserId = other.Id,
-                OtherUserName = GetDisplayName(other),
-                OtherUserImageUrl = other.ProfileImageUrl,
+                OtherUserName = displayName,
+                OtherUserImageUrl = imageUrl,
                 Status = conversation.Status,
                 IsRequestedByCurrentUser = conversation.RequestedByUserId == userId,
                 CanRespondToRequest = conversation.Status == ConversationStatus.Pending
-                    && conversation.RequestedByUserId != userId,
+                    && conversation.RequestedByUserId != userId
+                    && hasMessages
+                    && canUseConversationIdentity,
+                HasMessages = hasMessages,
+                CanSendInitialRequestMessage = canSendInitialRequestMessage,
+                CanSendMessage = conversation.Status == ConversationStatus.Accepted && actingIdentities.Count > 0
+                    || canSendInitialRequestMessage,
+                OrganizerProfileId = conversation.OrganizerProfileId,
+                PageName = conversation.OrganizerProfile?.DisplayName,
+                PageImageUrl = conversation.OrganizerProfile?.AvatarImageUrl,
+                CurrentUserOwnsPage = currentUserOwnsPage,
                 Messages = conversation.Messages
                     .OrderBy(m => m.CreatedAt)
                     .Select(m => new MessageBubbleViewModel
@@ -129,9 +207,23 @@ namespace EventsApp.Controllers
                         CreatedAt = m.CreatedAt,
                         SeenAt = m.SeenAt,
                         IsMine = m.SenderId == userId,
+                        SharedEventId = m.SharedEventId,
+                        SharedEventTitle = m.SharedEvent?.Title,
+                        SharedEventImageUrl = m.SharedEvent?.ImageUrl,
+                        SharedEventMeta = m.SharedEvent == null
+                            ? null
+                            : $"{m.SharedEvent.City} · {m.SharedEvent.StartTime:dd.MM HH:mm}",
+                        SharedPostId = m.SharedPostId,
+                        SharedPostTitle = m.SharedPost == null
+                            ? null
+                            : m.SharedPost.Content.Length > 90
+                                ? m.SharedPost.Content[..90] + "..."
+                                : m.SharedPost.Content,
+                        SharedPostImageUrl = m.SharedPost?.Images.Select(i => i.ImageUrl).FirstOrDefault(),
+                        SharedPostMeta = m.SharedPost == null ? null : $"Post · {m.SharedPost.CreatedAt:dd.MM HH:mm}",
                     })
                     .ToList(),
-                ActingIdentities = await _actingIdentity.GetOptionsAsync(HttpContext, null),
+                ActingIdentities = actingIdentities,
             };
 
             return View(vm);
@@ -154,7 +246,7 @@ namespace EventsApp.Controllers
 
             var (one, two) = SortParticipants(currentUserId, userId);
             var conversation = await _db.Conversations
-                .FirstOrDefaultAsync(c => c.ParticipantOneId == one && c.ParticipantTwoId == two);
+                .FirstOrDefaultAsync(c => c.ParticipantOneId == one && c.ParticipantTwoId == two && c.OrganizerProfileId == null);
             var canMessageDirectly = await _permissions.CanMessageUserAsync(User, userId);
 
             if (conversation == null && !canMessageDirectly)
@@ -200,7 +292,185 @@ namespace EventsApp.Controllers
                 TempData["StatusMessage"] = "Тази заявка за съобщение е отказана.";
             }
 
+            if (conversation.Status == ConversationStatus.Pending
+                && conversation.RequestedByUserId == currentUserId
+                && !await _db.Messages.AnyAsync(m => m.ConversationId == conversation.Id))
+            {
+                TempData["StatusMessage"] = "Write one message to send the request.";
+            }
+
             return RedirectToAction(nameof(Details), new { id = conversation.Id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> StartPage(int organizerProfileId)
+        {
+            var currentUserId = _userManager.GetUserId(User)!;
+            var page = await _db.OrganizerProfiles
+                .AsNoTracking()
+                .Include(p => p.Owner)
+                    .ThenInclude(o => o.OrganizerData)
+                .Include(p => p.BusinessWorkspace)
+                .FirstOrDefaultAsync(p =>
+                    p.Id == organizerProfileId &&
+                    p.IsActive &&
+                    p.IsApproved &&
+                    (p.BusinessWorkspace == null || p.BusinessWorkspace.Status == BusinessWorkspaceStatus.Active));
+
+            if (page == null)
+            {
+                return NotFound();
+            }
+
+            if (page.Owner.OrganizerData?.Approved != true
+                || !await _userManager.IsInRoleAsync(page.Owner, GlobalConstants.Roles.Organizer))
+            {
+                return NotFound();
+            }
+
+            if (page.OwnerId == currentUserId)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
+            var (one, two) = SortParticipants(currentUserId, page.OwnerId);
+            var conversation = await _db.Conversations
+                .FirstOrDefaultAsync(c =>
+                    c.ParticipantOneId == one &&
+                    c.ParticipantTwoId == two &&
+                    c.OrganizerProfileId == page.Id);
+
+            var canMessageDirectly = await _permissions.CanMessageUserAsync(User, page.OwnerId);
+            if (conversation == null && !canMessageDirectly)
+            {
+                var since = DateTime.UtcNow.AddHours(-1);
+                var recentRequests = await _db.Conversations
+                    .AsNoTracking()
+                    .CountAsync(c => c.CreatedAt >= since && c.RequestedByUserId == currentUserId);
+                if (recentRequests >= 5)
+                {
+                    TempData["StatusMessage"] = "Too many message requests. Try again later.";
+                    return RedirectToAction("Index", "Posts");
+                }
+            }
+
+            if (conversation == null)
+            {
+                conversation = new Conversation
+                {
+                    ParticipantOneId = one,
+                    ParticipantTwoId = two,
+                    OrganizerProfileId = page.Id,
+                    Status = canMessageDirectly ? ConversationStatus.Accepted : ConversationStatus.Pending,
+                    RequestedByUserId = currentUserId,
+                };
+                _db.Conversations.Add(conversation);
+                await _db.SaveChangesAsync();
+            }
+            else if (conversation.Status == ConversationStatus.Declined && canMessageDirectly)
+            {
+                conversation.Status = ConversationStatus.Accepted;
+                conversation.RequestedByUserId = currentUserId;
+                conversation.RespondedAt = DateTime.UtcNow;
+                conversation.UpdatedAt = conversation.RespondedAt.Value;
+                await _db.SaveChangesAsync();
+            }
+
+            if (conversation.Status == ConversationStatus.Pending
+                && conversation.RequestedByUserId == currentUserId
+                && !await _db.Messages.AnyAsync(m => m.ConversationId == conversation.Id))
+            {
+                TempData["StatusMessage"] = "Write one message to send the request.";
+            }
+
+            return RedirectToAction(nameof(Details), new { id = conversation.Id });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ShareEvent(int id)
+        {
+            var evt = await _db.Events
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id == id && e.IsApproved);
+            if (evt == null)
+            {
+                return NotFound();
+            }
+
+            var userId = _userManager.GetUserId(User)!;
+            var vm = new ShareToChatViewModel
+            {
+                ShareType = "event",
+                ShareId = evt.Id,
+                Title = evt.Title,
+                ImageUrl = evt.ImageUrl,
+                Meta = $"{evt.City} - {evt.StartTime:dd.MM HH:mm}",
+                Conversations = await BuildShareTargetsAsync(userId),
+            };
+
+            return View("Share", vm);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> SharePost(int id)
+        {
+            var post = await _db.Posts
+                .AsNoTracking()
+                .Include(p => p.Images)
+                .FirstOrDefaultAsync(p => p.Id == id);
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            var title = string.IsNullOrWhiteSpace(post.Content)
+                ? "Evento post"
+                : post.Content.Length > 90
+                    ? post.Content[..90] + "..."
+                    : post.Content;
+            var userId = _userManager.GetUserId(User)!;
+            var vm = new ShareToChatViewModel
+            {
+                ShareType = "post",
+                ShareId = post.Id,
+                Title = title,
+                ImageUrl = post.Images.Select(i => i.ImageUrl).FirstOrDefault(),
+                Meta = $"Post - {post.CreatedAt:dd.MM HH:mm}",
+                Conversations = await BuildShareTargetsAsync(userId),
+            };
+
+            return View("Share", vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendEvent(int shareId, int conversationId, string? note)
+        {
+            var exists = await _db.Events
+                .AsNoTracking()
+                .AnyAsync(e => e.Id == shareId && e.IsApproved);
+            if (!exists)
+            {
+                return NotFound();
+            }
+
+            return await SendSharedCardAsync(conversationId, shareId, null, note, "Shared an event.");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendPost(int shareId, int conversationId, string? note)
+        {
+            var exists = await _db.Posts
+                .AsNoTracking()
+                .AnyAsync(p => p.Id == shareId);
+            if (!exists)
+            {
+                return NotFound();
+            }
+
+            return await SendSharedCardAsync(conversationId, null, shareId, note, "Shared a post.");
         }
 
         [HttpPost]
@@ -209,6 +479,7 @@ namespace EventsApp.Controllers
         {
             var userId = _userManager.GetUserId(User)!;
             var conversation = await _db.Conversations
+                .Include(c => c.OrganizerProfile)
                 .FirstOrDefaultAsync(c => c.Id == id && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
 
             if (conversation == null)
@@ -217,6 +488,19 @@ namespace EventsApp.Controllers
             }
 
             if (conversation.Status != ConversationStatus.Pending || conversation.RequestedByUserId == userId)
+            {
+                return Forbid();
+            }
+
+            if (!await _db.Messages.AnyAsync(m => m.ConversationId == id))
+            {
+                TempData["StatusMessage"] = "The request appears after the first message is sent.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            if (conversation.OrganizerProfileId.HasValue
+                && conversation.OrganizerProfile?.OwnerId == userId
+                && !await _permissions.CanActAsOrganizerPageAsync(User, conversation.OrganizerProfileId.Value))
             {
                 return Forbid();
             }
@@ -236,6 +520,7 @@ namespace EventsApp.Controllers
         {
             var userId = _userManager.GetUserId(User)!;
             var conversation = await _db.Conversations
+                .Include(c => c.OrganizerProfile)
                 .FirstOrDefaultAsync(c => c.Id == id && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
 
             if (conversation == null)
@@ -244,6 +529,13 @@ namespace EventsApp.Controllers
             }
 
             if (conversation.Status != ConversationStatus.Pending || conversation.RequestedByUserId == userId)
+            {
+                return Forbid();
+            }
+
+            if (conversation.OrganizerProfileId.HasValue
+                && conversation.OrganizerProfile?.OwnerId == userId
+                && !await _permissions.CanActAsOrganizerPageAsync(User, conversation.OrganizerProfileId.Value))
             {
                 return Forbid();
             }
@@ -263,6 +555,7 @@ namespace EventsApp.Controllers
         {
             var userId = _userManager.GetUserId(User)!;
             var conversation = await _db.Conversations
+                .Include(c => c.OrganizerProfile)
                 .FirstOrDefaultAsync(c => c.Id == id && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
 
             if (conversation == null)
@@ -270,7 +563,12 @@ namespace EventsApp.Controllers
                 return NotFound();
             }
 
-            if (conversation.Status != ConversationStatus.Accepted)
+            var hasMessages = await _db.Messages.AnyAsync(m => m.ConversationId == id);
+            var isInitialRequestMessage = conversation.Status == ConversationStatus.Pending
+                && conversation.RequestedByUserId == userId
+                && !hasMessages;
+
+            if (conversation.Status != ConversationStatus.Accepted && !isInitialRequestMessage)
             {
                 TempData["StatusMessage"] = conversation.Status == ConversationStatus.Pending
                     ? "Първо заявката за съобщение трябва да бъде одобрена."
@@ -282,7 +580,9 @@ namespace EventsApp.Controllers
                 ? conversation.ParticipantTwoId
                 : conversation.ParticipantOneId;
 
-            if (!await _permissions.CanMessageUserAsync(User, otherUserId))
+            if (!conversation.OrganizerProfileId.HasValue
+                && !isInitialRequestMessage
+                && !await _permissions.CanMessageUserAsync(User, otherUserId))
             {
                 TempData["StatusMessage"] = "Messaging is limited to organizer questions, organizer replies, or mutual follows.";
                 return Forbid();
@@ -301,8 +601,28 @@ namespace EventsApp.Controllers
             }
 
             var now = DateTime.UtcNow;
-            var identity = await _actingIdentity.ResolveAsync(HttpContext, actingIdentityKey, null, includePersonal: !User.IsInRole(GlobalConstants.Roles.Organizer));
-            if (identity == null || !await _permissions.CanMessageAsIdentityAsync(User, id, identity.Type, identity.OrganizerProfileId))
+            var allowedIdentities = await GetConversationIdentityOptionsAsync(conversation, userId);
+            var identityKey = allowedIdentities.FirstOrDefault(i => i.Key == actingIdentityKey)?.Key
+                ?? allowedIdentities.FirstOrDefault(i => i.IsDefault)?.Key
+                ?? allowedIdentities.FirstOrDefault()?.Key;
+
+            if (string.IsNullOrWhiteSpace(identityKey))
+            {
+                TempData["StatusMessage"] = "You cannot reply from this identity anymore.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var identity = await _actingIdentity.ResolveAsync(HttpContext, identityKey, conversation.OrganizerProfileId);
+            if (identity == null)
+            {
+                return Forbid();
+            }
+
+            var canSendAsIdentity = isInitialRequestMessage
+                ? await _permissions.CanCommentAsIdentityAsync(User, identity.Type, identity.OrganizerProfileId)
+                : await _permissions.CanMessageAsIdentityAsync(User, id, identity.Type, identity.OrganizerProfileId);
+
+            if (!canSendAsIdentity)
             {
                 return Forbid();
             }
@@ -321,7 +641,259 @@ namespace EventsApp.Controllers
             conversation.UpdatedAt = now;
             await _db.SaveChangesAsync();
 
+            if (isInitialRequestMessage)
+            {
+                TempData["StatusMessage"] = "Message request sent. The conversation will unlock after approval.";
+            }
+
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        private async Task<IActionResult> SendSharedCardAsync(
+            int conversationId,
+            int? sharedEventId,
+            int? sharedPostId,
+            string? note,
+            string fallbackContent)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var conversation = await _db.Conversations
+                .Include(c => c.OrganizerProfile)
+                .FirstOrDefaultAsync(c => c.Id == conversationId && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
+
+            if (conversation == null)
+            {
+                return NotFound();
+            }
+
+            var hasMessages = await _db.Messages.AnyAsync(m => m.ConversationId == conversationId);
+            var isInitialRequestMessage = conversation.Status == ConversationStatus.Pending
+                && conversation.RequestedByUserId == userId
+                && !hasMessages;
+
+            if (conversation.Status != ConversationStatus.Accepted && !isInitialRequestMessage)
+            {
+                TempData["StatusMessage"] = conversation.Status == ConversationStatus.Pending
+                    ? "The request must be approved before you can send more messages."
+                    : "This conversation is not active.";
+                return RedirectToAction(nameof(Details), new { id = conversationId });
+            }
+
+            var otherUserId = conversation.ParticipantOneId == userId
+                ? conversation.ParticipantTwoId
+                : conversation.ParticipantOneId;
+
+            if (!conversation.OrganizerProfileId.HasValue
+                && !isInitialRequestMessage
+                && !await _permissions.CanMessageUserAsync(User, otherUserId))
+            {
+                return Forbid();
+            }
+
+            var content = string.IsNullOrWhiteSpace(note) ? fallbackContent : note.Trim();
+            if (content.Length > GlobalConstants.Social.MessageContentMaxLength)
+            {
+                content = content[..GlobalConstants.Social.MessageContentMaxLength];
+            }
+
+            var allowedIdentities = await GetConversationIdentityOptionsAsync(conversation, userId);
+            var identityKey = allowedIdentities.FirstOrDefault(i => i.IsDefault)?.Key
+                ?? allowedIdentities.FirstOrDefault()?.Key;
+            if (string.IsNullOrWhiteSpace(identityKey))
+            {
+                TempData["StatusMessage"] = "You cannot reply from this identity anymore.";
+                return RedirectToAction(nameof(Details), new { id = conversationId });
+            }
+
+            var identity = await _actingIdentity.ResolveAsync(HttpContext, identityKey, conversation.OrganizerProfileId);
+            if (identity == null)
+            {
+                return Forbid();
+            }
+
+            var canSendAsIdentity = isInitialRequestMessage
+                ? await _permissions.CanCommentAsIdentityAsync(User, identity.Type, identity.OrganizerProfileId)
+                : await _permissions.CanMessageAsIdentityAsync(User, conversationId, identity.Type, identity.OrganizerProfileId);
+
+            if (!canSendAsIdentity)
+            {
+                return Forbid();
+            }
+
+            var now = DateTime.UtcNow;
+            _db.Messages.Add(new Message
+            {
+                ConversationId = conversationId,
+                SenderId = userId,
+                AuthorType = identity.Type,
+                AuthorOrganizerProfileId = identity.OrganizerProfileId,
+                BusinessWorkspaceId = identity.BusinessWorkspaceId,
+                Content = content,
+                SharedEventId = sharedEventId,
+                SharedPostId = sharedPostId,
+                CreatedAt = now,
+            });
+
+            conversation.UpdatedAt = now;
+            await _db.SaveChangesAsync();
+
+            TempData["StatusMessage"] = isInitialRequestMessage
+                ? "Message request sent. The conversation will unlock after approval."
+                : "Sent in chat.";
+            return RedirectToAction(nameof(Details), new { id = conversationId });
+        }
+
+        private async Task<IReadOnlyList<ConversationListItemViewModel>> BuildShareTargetsAsync(string userId)
+        {
+            var hasOrganizerPages = await CurrentUserHasActiveOrganizerPageAsync(userId);
+            var rows = await _db.Conversations
+                .AsNoTracking()
+                .Where(c => c.ParticipantOneId == userId || c.ParticipantTwoId == userId)
+                .OrderByDescending(c => c.UpdatedAt)
+                .Select(c => new
+                {
+                    c.Id,
+                    c.UpdatedAt,
+                    c.Status,
+                    c.RequestedByUserId,
+                    c.OrganizerProfileId,
+                    PageName = c.OrganizerProfile != null ? c.OrganizerProfile.DisplayName : null,
+                    PageImageUrl = c.OrganizerProfile != null ? c.OrganizerProfile.AvatarImageUrl : null,
+                    PageOwnerId = c.OrganizerProfile != null ? c.OrganizerProfile.OwnerId : null,
+                    Other = c.ParticipantOneId == userId ? c.ParticipantTwo : c.ParticipantOne,
+                    LastMessage = c.Messages
+                        .OrderByDescending(m => m.CreatedAt)
+                        .Select(m => m.Content)
+                        .FirstOrDefault(),
+                    HasMessages = c.Messages.Any(),
+                    UnseenCount = c.Messages.Count(m => m.SenderId != userId && m.SeenAt == null),
+                })
+                .ToListAsync();
+
+            return rows
+                .Where(c => c.Status == ConversationStatus.Accepted
+                    || (c.Status == ConversationStatus.Pending && c.RequestedByUserId == userId && !c.HasMessages))
+                .Where(c => !c.OrganizerProfileId.HasValue || c.PageOwnerId != userId || hasOrganizerPages)
+                .Select(c =>
+                {
+                    var currentUserOwnsPage = c.OrganizerProfileId.HasValue && c.PageOwnerId == userId;
+                    var displayName = c.OrganizerProfileId.HasValue && !currentUserOwnsPage
+                        ? c.PageName ?? GetDisplayName(c.Other)
+                        : GetDisplayName(c.Other);
+                    var imageUrl = c.OrganizerProfileId.HasValue && !currentUserOwnsPage
+                        ? c.PageImageUrl ?? c.Other.ProfileImageUrl
+                        : c.Other.ProfileImageUrl;
+
+                    return new ConversationListItemViewModel
+                    {
+                        Id = c.Id,
+                        OtherUserId = c.Other.Id,
+                        OtherUserName = displayName,
+                        OtherUserImageUrl = imageUrl,
+                        LastMessage = c.LastMessage,
+                        HasMessages = c.HasMessages,
+                        UpdatedAt = c.UpdatedAt,
+                        UnseenCount = c.UnseenCount,
+                        Status = c.Status,
+                        IsRequestedByCurrentUser = c.RequestedByUserId == userId,
+                        OrganizerProfileId = c.OrganizerProfileId,
+                        PageName = c.PageName,
+                        PageImageUrl = c.PageImageUrl,
+                        CurrentUserOwnsPage = currentUserOwnsPage,
+                    };
+                })
+                .ToList();
+        }
+
+        private async Task<IReadOnlyList<ActingIdentityOptionViewModel>> GetConversationIdentityOptionsAsync(Conversation conversation, string userId)
+        {
+            if (!conversation.OrganizerProfileId.HasValue)
+            {
+                var personal = await BuildPersonalIdentityOptionAsync(userId);
+                return personal == null
+                    ? Array.Empty<ActingIdentityOptionViewModel>()
+                    : new[] { personal };
+            }
+
+            var page = conversation.OrganizerProfile
+                ?? await _db.OrganizerProfiles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == conversation.OrganizerProfileId.Value);
+            if (page == null)
+            {
+                return Array.Empty<ActingIdentityOptionViewModel>();
+            }
+
+            if (page.OwnerId == userId)
+            {
+                if (!await _permissions.CanActAsOrganizerPageAsync(User, page.Id))
+                {
+                    return Array.Empty<ActingIdentityOptionViewModel>();
+                }
+
+                return new[]
+                {
+                    new ActingIdentityOptionViewModel
+                    {
+                        Key = $"page:{page.Id}",
+                        Label = "Page: " + page.DisplayName,
+                        DisplayName = page.DisplayName,
+                        ImageUrl = page.AvatarImageUrl,
+                        BadgeKey = "identity.page",
+                        IsDefault = true,
+                    },
+                };
+            }
+
+            var userIdentity = await BuildPersonalIdentityOptionAsync(userId);
+            return userIdentity == null
+                ? Array.Empty<ActingIdentityOptionViewModel>()
+                : new[] { userIdentity };
+        }
+
+        private async Task<ActingIdentityOptionViewModel?> BuildPersonalIdentityOptionAsync(string userId)
+        {
+            var user = await _db.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return null;
+            }
+
+            return new ActingIdentityOptionViewModel
+            {
+                Key = "user",
+                Label = "Personal profile: " + GetDisplayName(user),
+                DisplayName = GetDisplayName(user),
+                ImageUrl = user.ProfileImageUrl,
+                BadgeKey = User.IsInRole(GlobalConstants.Roles.Admin) ? "identity.admin" : "identity.user",
+                IsDefault = true,
+            };
+        }
+
+        private async Task<bool> CurrentUserHasActiveOrganizerPageAsync(string userId)
+        {
+            if (!User.IsInRole(GlobalConstants.Roles.Organizer))
+            {
+                return false;
+            }
+
+            var hasApprovedOrganizerData = await _db.OrganizerData
+                .AsNoTracking()
+                .AnyAsync(o => o.OrganizerId == userId && o.Approved);
+            if (!hasApprovedOrganizerData)
+            {
+                return false;
+            }
+
+            return await _db.OrganizerProfiles
+                .AsNoTracking()
+                .AnyAsync(p =>
+                    p.OwnerId == userId &&
+                    p.IsActive &&
+                    p.IsApproved &&
+                    (p.BusinessWorkspace == null || p.BusinessWorkspace.Status == BusinessWorkspaceStatus.Active));
         }
 
         private static (string One, string Two) SortParticipants(string first, string second)

@@ -15,6 +15,7 @@ namespace EventsApp.Controllers
     public class SearchController : Controller
     {
         private const int ResultsPerSection = 12;
+        private const int MaxAiQueryLength = 240;
 
         private readonly ApplicationDbContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
@@ -45,7 +46,8 @@ namespace EventsApp.Controllers
             AiSearchIntent? intent = null;
             if (_ai.IsEnabled)
             {
-                intent = await _ai.InterpretAsync(term, cancellationToken);
+                var aiTerm = term.Length > MaxAiQueryLength ? term[..MaxAiQueryLength] : term;
+                intent = await _ai.InterpretAsync(aiTerm, cancellationToken);
             }
 
             var keyword = ResolveKeyword(term, intent);
@@ -146,7 +148,8 @@ namespace EventsApp.Controllers
                 Genre = e.Genre,
                 IsApproved = e.IsApproved,
                 OrganizerId = e.OrganizerId,
-                OrganizerName = e.Organizer.UserName ?? string.Empty,
+                OrganizerProfileId = e.OrganizerProfileId,
+                OrganizerName = e.OrganizerProfile != null ? e.OrganizerProfile.DisplayName : e.Organizer.UserName ?? string.Empty,
                 LikesCount = e.Likes.Count,
                 CommentsCount = e.Comments.Count,
                 SavesCount = e.Saves.Count,
@@ -188,7 +191,8 @@ namespace EventsApp.Controllers
             {
                 Id = p.Id,
                 OrganizerId = p.OrganizerId,
-                OrganizerName = p.Organizer.UserName ?? string.Empty,
+                OrganizerProfileId = p.OrganizerProfileId,
+                OrganizerName = p.OrganizerProfile != null ? p.OrganizerProfile.DisplayName : p.Organizer.UserName ?? string.Empty,
                 Content = p.Content,
                 CreatedAt = p.CreatedAt,
                 EventId = p.EventId,
@@ -200,8 +204,11 @@ namespace EventsApp.Controllers
                 SavesCount = p.Saves.Count,
                 CurrentUserLiked = userId != null && p.Likes.Any(l => l.UserId == userId),
                 CurrentUserSaved = userId != null && p.Saves.Any(s => s.UserId == userId),
-                AuthorImageUrl = p.Organizer.ProfileImageUrl,
-                AuthorIsOrganizer = p.Organizer.OrganizerData != null && p.Organizer.OrganizerData.Approved,
+                AuthorImageUrl = p.OrganizerProfile != null && !string.IsNullOrWhiteSpace(p.OrganizerProfile.AvatarImageUrl)
+                    ? p.OrganizerProfile.AvatarImageUrl
+                    : p.Organizer.ProfileImageUrl,
+                AuthorIsOrganizer = (p.OrganizerProfile != null && p.OrganizerProfile.IsActive && p.OrganizerProfile.IsApproved)
+                    || (p.Organizer.OrganizerData != null && p.Organizer.OrganizerData.Approved),
             });
         }
 

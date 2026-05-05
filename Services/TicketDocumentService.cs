@@ -66,6 +66,10 @@ namespace EventsApp.Services
                             {
                                 col.Item().Text($"Seat: {ticket.SeatLabel}");
                             }
+                            if (!string.IsNullOrWhiteSpace(ticket.AttendeeName))
+                            {
+                                col.Item().Text($"Attendee: {ticket.AttendeeName}");
+                            }
                             col.Item().Text($"Price: {ticket.Price.ToTicketPriceDisplay()}");
                             col.Item().Text($"Holder: {ticket.OwnerUserName}");
                             col.Item().Text($"Email: {ticket.OwnerEmail}");

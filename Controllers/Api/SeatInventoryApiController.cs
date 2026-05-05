@@ -45,7 +45,10 @@ namespace EventsApp.Controllers.Api
                 {
                     i.Id,
                     i.SeatId,
-                    Label = i.Seat.Row + i.Seat.Number,
+                    Label = string.IsNullOrWhiteSpace(i.Seat.Label) ? i.Seat.Row + i.Seat.Number : i.Seat.Label,
+                    i.Seat.Capacity,
+                    i.Seat.IsCapacityUnlimited,
+                    Type = i.Seat.SeatType.ToString(),
                     Section = i.Seat.Section.Name,
                     i.Seat.Section.PriceModifier,
                     Status = i.Status.ToString(),

@@ -14,6 +14,9 @@ namespace EventsApp.ViewModels.Tickets
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public string? SeatLabel { get; set; }
+        public string? AttendeeName { get; set; }
+        public Guid PurchaseGroupId { get; set; }
+        public bool IsPrimaryInPurchase { get; set; }
         public decimal Price { get; set; }
         public string TransactionStatus { get; set; } = null!;
         public string QrCode { get; set; } = null!;

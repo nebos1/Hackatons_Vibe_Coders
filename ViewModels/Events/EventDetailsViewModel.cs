@@ -20,6 +20,7 @@ namespace EventsApp.ViewModels.Events
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
         public string OrganizerId { get; set; } = null!;
+        public int? OrganizerProfileId { get; set; }
         public string OrganizerName { get; set; } = null!;
         public IReadOnlyList<string> ImageUrls { get; set; } = Array.Empty<string>();
         public int LikesCount { get; set; }

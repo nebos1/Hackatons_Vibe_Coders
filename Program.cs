@@ -8,6 +8,10 @@ using EventsApp.Services.Geocoding;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +23,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options
+        .UseSqlServer(connectionString)
+        .ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.BoolWithDefaultWarning)));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -49,6 +55,7 @@ builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions
 builder.Services.Configure<SirmaAiOptions>(builder.Configuration.GetSection(SirmaAiOptions.SectionName));
 builder.Services.Configure<GoogleMapsOptions>(builder.Configuration.GetSection(GoogleMapsOptions.SectionName));
 builder.Services.AddHttpClient<IAiSearchService, OpenAiService>();
+builder.Services.AddHttpClient<ILayoutAiService, OpenAiLayoutService>();
 builder.Services.AddHttpClient<IGeocodingService, NominatimGeocodingService>();
 // Image generation removed — no additional HttpClient or image service registered.
 
@@ -60,6 +67,30 @@ builder.Services.Configure<FormOptions>(options =>
 builder.Services.AddLocalization();
 builder.Services.AddControllersWithViews();
 builder.Services.AddAntiforgery(opts => opts.HeaderName = "RequestVerificationToken");
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("ai-light", context =>
+        RateLimitPartition.GetFixedWindowLimiter("ai-light:" + GetRateLimitKey(context), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            AutoReplenishment = true,
+        }));
+
+    options.AddPolicy("ai-heavy", context =>
+        RateLimitPartition.GetFixedWindowLimiter("ai-heavy:" + GetRateLimitKey(context), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 4,
+            Window = TimeSpan.FromMinutes(10),
+            QueueLimit = 0,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            AutoReplenishment = true,
+        }));
+});
 
 var app = builder.Build();
 
@@ -97,6 +128,7 @@ app.UseRequestLocalization(new RequestLocalizationOptions()
 app.UseRouting();
 
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllerRoute(
@@ -106,3 +138,15 @@ app.MapControllerRoute(
 app.MapRazorPages();
 
 app.Run();
+
+static string GetRateLimitKey(HttpContext context)
+{
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        return context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? context.User.Identity.Name
+            ?? "authenticated";
+    }
+
+    return context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+}

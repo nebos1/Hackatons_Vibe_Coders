@@ -9,6 +9,7 @@ namespace EventsApp.ViewModels.Tickets
         public int QuantityRemaining { get; set; }
         public int MaxPurchaseQuantity { get; set; }
         public bool IsActive { get; set; }
+        public bool RequiresAttendeeNames { get; set; }
         public bool SoldOut => QuantityRemaining <= 0;
     }
 }

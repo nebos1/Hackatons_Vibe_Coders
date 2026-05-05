@@ -4,6 +4,7 @@ using EventsApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EventsApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260505083047_AddPageScopedConversations")]
+    partial class AddPageScopedConversations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -300,7 +303,9 @@ namespace EventsApp.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsApproved")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<double?>("Latitude")
                         .HasColumnType("float");
@@ -722,13 +727,6 @@ namespace EventsApp.Migrations
                     b.Property<int>("Capacity")
                         .HasColumnType("int");
 
-                    b.Property<string>("FloorName")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)")
-                        .HasDefaultValue("Floor 1");
-
                     b.Property<double>("Height")
                         .HasColumnType("float");
 
@@ -739,16 +737,6 @@ namespace EventsApp.Migrations
 
                     b.Property<decimal>("PriceModifier")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<double>("Rotation")
-                        .HasColumnType("float");
-
-                    b.Property<string>("Shape")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)")
-                        .HasDefaultValue("Rectangle");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -807,12 +795,6 @@ namespace EventsApp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<int?>("SharedEventId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("SharedPostId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorOrganizerProfileId");
@@ -820,10 +802,6 @@ namespace EventsApp.Migrations
                     b.HasIndex("BusinessWorkspaceId");
 
                     b.HasIndex("SenderId");
-
-                    b.HasIndex("SharedEventId");
-
-                    b.HasIndex("SharedPostId");
 
                     b.HasIndex("ConversationId", "CreatedAt");
 
@@ -1155,32 +1133,10 @@ namespace EventsApp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Capacity")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
-
-                    b.Property<bool>("IsCapacityUnlimited")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Label")
-                        .HasMaxLength(48)
-                        .HasColumnType("nvarchar(48)");
-
                     b.Property<string>("Number")
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
-
-                    b.Property<double>("Radius")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("float")
-                        .HasDefaultValue(16.0);
-
-                    b.Property<double>("Rotation")
-                        .HasColumnType("float");
 
                     b.Property<string>("Row")
                         .IsRequired()
@@ -1207,9 +1163,9 @@ namespace EventsApp.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("VenueLayoutId");
+                    b.HasIndex("SectionId");
 
-                    b.HasIndex("SectionId", "Row", "Number")
+                    b.HasIndex("VenueLayoutId", "Row", "Number")
                         .IsUnique();
 
                     b.ToTable("Seats");
@@ -1298,11 +1254,6 @@ namespace EventsApp.Migrations
 
                     b.Property<int>("QuantityTotal")
                         .HasColumnType("int");
-
-                    b.Property<bool>("RequiresAttendeeNames")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
 
                     b.HasKey("Id");
 
@@ -1460,27 +1411,17 @@ namespace EventsApp.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("AttendeeName")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int?>("EventOccurrenceId")
                         .HasColumnType("int");
 
-                    b.Property<bool>("IsPrimaryInPurchase")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsUsed")
                         .HasColumnType("bit");
 
                     b.Property<decimal>("PricePaid")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid>("PurchaseGroupId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("QrCode")
                         .IsRequired()
@@ -1505,8 +1446,6 @@ namespace EventsApp.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EventOccurrenceId");
-
-                    b.HasIndex("PurchaseGroupId");
 
                     b.HasIndex("QrCode")
                         .IsUnique();
@@ -2017,16 +1956,6 @@ namespace EventsApp.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("EventsApp.Models.Event", "SharedEvent")
-                        .WithMany()
-                        .HasForeignKey("SharedEventId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("EventsApp.Models.Post", "SharedPost")
-                        .WithMany()
-                        .HasForeignKey("SharedPostId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.Navigation("AuthorOrganizerProfile");
 
                     b.Navigation("BusinessWorkspace");
@@ -2034,10 +1963,6 @@ namespace EventsApp.Migrations
                     b.Navigation("Conversation");
 
                     b.Navigation("Sender");
-
-                    b.Navigation("SharedEvent");
-
-                    b.Navigation("SharedPost");
                 });
 
             modelBuilder.Entity("EventsApp.Models.OrganizerData", b =>

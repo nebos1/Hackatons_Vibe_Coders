@@ -54,6 +54,18 @@
                     <dd>@Model.SeatLabel</dd>
                 }
 
+                @if (!string.IsNullOrWhiteSpace(Model.AttendeeName))
+                {
+                    <dt>Attendee</dt>
+                    <dd>@Model.AttendeeName</dd>
+                }
+
+                @if (Model.PurchaseGroupId != Guid.Empty)
+                {
+                    <dt>Group</dt>
+                    <dd>@(Model.IsPrimaryInPurchase ? "Main ticket" : "Group ticket")</dd>
+                }
+
                 <dt>Цена</dt>
                 <dd>@Model.Price.ToTicketPriceDisplay()</dd>
 

@@ -134,6 +134,8 @@ namespace EventsApp.Services
                     p.OwnerId == userId &&
                     p.IsActive &&
                     p.IsApproved &&
+                    p.Owner.OrganizerData != null &&
+                    p.Owner.OrganizerData.Approved &&
                     (p.BusinessWorkspace == null || p.BusinessWorkspace.Status == BusinessWorkspaceStatus.Active),
                     cancellationToken);
         }
@@ -164,6 +166,7 @@ namespace EventsApp.Services
 
             var conversation = await _db.Conversations
                 .AsNoTracking()
+                .Include(c => c.OrganizerProfile)
                 .FirstOrDefaultAsync(c => c.Id == conversationId && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId), cancellationToken);
             if (conversation == null)
             {
@@ -171,6 +174,26 @@ namespace EventsApp.Services
             }
 
             var otherUserId = conversation.ParticipantOneId == userId ? conversation.ParticipantTwoId : conversation.ParticipantOneId;
+            if (conversation.OrganizerProfileId.HasValue)
+            {
+                if (authorType == AuthorIdentityType.OrganizerPage)
+                {
+                    return organizerProfileId == conversation.OrganizerProfileId
+                        && conversation.Status == ConversationStatus.Accepted
+                        && await CanActAsOrganizerPageAsync(currentUser, organizerProfileId.Value, cancellationToken);
+                }
+
+                return conversation.OrganizerProfile?.OwnerId != userId
+                    && (authorType == AuthorIdentityType.User || authorType == AuthorIdentityType.Admin)
+                    && conversation.Status == ConversationStatus.Accepted
+                    && await CanCommentAsIdentityAsync(currentUser, authorType, organizerProfileId, cancellationToken);
+            }
+
+            if (authorType == AuthorIdentityType.OrganizerPage)
+            {
+                return false;
+            }
+
             return await CanMessageUserAsync(currentUser, otherUserId, cancellationToken)
                 && await CanCommentAsIdentityAsync(currentUser, authorType, organizerProfileId, cancellationToken);
         }
@@ -274,7 +297,7 @@ namespace EventsApp.Services
             var (one, two) = SortParticipants(senderId, receiverId);
             var existingConversationStatus = await _db.Conversations
                 .AsNoTracking()
-                .Where(c => c.ParticipantOneId == one && c.ParticipantTwoId == two)
+                .Where(c => c.ParticipantOneId == one && c.ParticipantTwoId == two && c.OrganizerProfileId == null)
                 .Select(c => (ConversationStatus?)c.Status)
                 .FirstOrDefaultAsync(cancellationToken);
             var existingConversation = existingConversationStatus.HasValue;

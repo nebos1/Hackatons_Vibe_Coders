@@ -1,6 +1,7 @@
 using EventsApp.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace EventsApp.Data
 {
@@ -25,7 +26,9 @@ namespace EventsApp.Data
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
-            optionsBuilder.UseSqlServer(connectionString);
+            optionsBuilder
+                .UseSqlServer(connectionString)
+                .ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.BoolWithDefaultWarning));
 
             return new ApplicationDbContext(optionsBuilder.Options);
         }

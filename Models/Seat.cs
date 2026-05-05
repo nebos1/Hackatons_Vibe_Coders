@@ -34,9 +34,21 @@ namespace EventsApp.Models
         [MaxLength(16)]
         public string Number { get; set; } = null!;
 
+        [MaxLength(48)]
+        public string? Label { get; set; }
+
         public double X { get; set; }
 
         public double Y { get; set; }
+
+        public double Radius { get; set; } = 16;
+
+        public double Rotation { get; set; }
+
+        [Range(1, 100)]
+        public int Capacity { get; set; } = 1;
+
+        public bool IsCapacityUnlimited { get; set; }
 
         [Required]
         public SeatType SeatType { get; set; }

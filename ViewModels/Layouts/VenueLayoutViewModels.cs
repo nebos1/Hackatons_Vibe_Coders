@@ -46,7 +46,20 @@ namespace EventsApp.ViewModels.Layouts
 
     public class VenueLayoutJsonModel
     {
+        public double CanvasWidth { get; set; } = 1200;
+
+        public double CanvasHeight { get; set; } = 760;
+
+        public List<LayoutFloorJsonModel> Floors { get; set; } = new();
+
         public List<LayoutSectionJsonModel> Sections { get; set; } = new();
+    }
+
+    public class LayoutFloorJsonModel
+    {
+        public string ClientId { get; set; } = "floor-1";
+
+        public string Name { get; set; } = "Floor 1";
     }
 
     public class LayoutSectionJsonModel
@@ -54,23 +67,48 @@ namespace EventsApp.ViewModels.Layouts
         public int? Id { get; set; }
         public string? ClientId { get; set; }
         public string Name { get; set; } = "Секция";
+        public string FloorId { get; set; } = "floor-1";
+
+        public string FloorName { get; set; } = "Floor 1";
+
         public LayoutSectionType Type { get; set; } = LayoutSectionType.Seated;
+
+        public string Shape { get; set; } = "Rectangle";
         public int Capacity { get; set; }
         public decimal PriceModifier { get; set; }
         public double X { get; set; }
         public double Y { get; set; }
         public double Width { get; set; } = 220;
         public double Height { get; set; } = 140;
+
+        public double Rotation { get; set; }
         public List<SeatJsonModel> Seats { get; set; } = new();
     }
 
     public class SeatJsonModel
     {
         public int? Id { get; set; }
+
+        public string? ClientId { get; set; }
+
         public string Row { get; set; } = "A";
+
         public string Number { get; set; } = "1";
+
+        public string? Label { get; set; }
+
         public double X { get; set; }
+
         public double Y { get; set; }
+
+        public double Radius { get; set; } = 16;
+
+        public double Rotation { get; set; }
+
+        public int Capacity { get; set; } = 1;
+
+        public bool IsCapacityUnlimited { get; set; }
+
         public SeatType SeatType { get; set; } = SeatType.Standard;
         public LayoutSeatStatus Status { get; set; } = LayoutSeatStatus.Active;
     }
@@ -79,6 +117,7 @@ namespace EventsApp.ViewModels.Layouts
     {
         public int LayoutId { get; set; }
         public string LayoutName { get; set; } = null!;
+        public IReadOnlyList<string> Floors { get; set; } = Array.Empty<string>();
         public IReadOnlyList<EventSeatSectionViewModel> Sections { get; set; } = Array.Empty<EventSeatSectionViewModel>();
     }
 
@@ -86,12 +125,15 @@ namespace EventsApp.ViewModels.Layouts
     {
         public int Id { get; set; }
         public string Name { get; set; } = null!;
+        public string FloorName { get; set; } = "Floor 1";
         public LayoutSectionType Type { get; set; }
+        public string Shape { get; set; } = "Rectangle";
         public decimal PriceModifier { get; set; }
         public double X { get; set; }
         public double Y { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
+        public double Rotation { get; set; }
         public IReadOnlyList<EventSeatViewModel> Seats { get; set; } = Array.Empty<EventSeatViewModel>();
     }
 
@@ -102,6 +144,10 @@ namespace EventsApp.ViewModels.Layouts
         public string Label { get; set; } = null!;
         public double X { get; set; }
         public double Y { get; set; }
+        public double Radius { get; set; } = 16;
+        public double Rotation { get; set; }
+        public int Capacity { get; set; } = 1;
+        public bool IsCapacityUnlimited { get; set; }
         public SeatType SeatType { get; set; }
         public EventSeatInventoryStatus Status { get; set; }
         public bool Selectable => Status == EventSeatInventoryStatus.Available;

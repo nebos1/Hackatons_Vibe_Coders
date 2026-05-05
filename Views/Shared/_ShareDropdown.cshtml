@@ -25,6 +25,12 @@
         <a class="evt-share__item is-x" href="@twUrl" target="_blank" rel="noopener">
             <i class="bi bi-twitter-x"></i> X (Twitter)
         </a>
+        @if (!string.IsNullOrWhiteSpace(Model.ChatShareAction) && Model.ChatShareId.HasValue)
+        {
+            <a class="evt-share__item" asp-controller="Messages" asp-action="@Model.ChatShareAction" asp-route-id="@Model.ChatShareId.Value">
+                <i class="bi bi-chat-dots"></i> <span data-i18n="share.chat">Send in chat</span>
+            </a>
+        }
         <button type="button" class="evt-share__item" data-share-copy data-share-url="@Model.Url">
             <i class="bi bi-link-45deg"></i> <span data-i18n="share.copy">Копирай линк</span>
         </button>

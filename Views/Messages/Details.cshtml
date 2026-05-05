@@ -7,64 +7,101 @@
 <section class="groove-app-page social-messages-page">
     <div class="social-chat-shell">
         <header class="social-chat-header">
-            <a asp-action="Index" class="btn btn-sm btn-outline-secondary" title="Назад" data-i18n-title="common.back">
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary" title="Back" data-i18n-title="common.back">
                 <i class="bi bi-arrow-left"></i>
             </a>
-            <a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OtherUserId" class="social-author-link">
-                @if (!string.IsNullOrWhiteSpace(Model.OtherUserImageUrl))
-                {
-                    <img src="@Model.OtherUserImageUrl" alt="@Model.OtherUserName" class="social-avatar-xs" />
-                }
-                else
-                {
-                    <span class="social-avatar-xs social-avatar-xs--fallback">@initial</span>
-                }
-                <strong>@Model.OtherUserName</strong>
-            </a>
+
+            @if (Model.IsPageConversation && !Model.CurrentUserOwnsPage)
+            {
+                <div class="social-author-link">
+                    @if (!string.IsNullOrWhiteSpace(Model.OtherUserImageUrl))
+                    {
+                        <img src="@Model.OtherUserImageUrl" alt="@Model.OtherUserName" class="social-avatar-xs" />
+                    }
+                    else
+                    {
+                        <span class="social-avatar-xs social-avatar-xs--fallback">@initial</span>
+                    }
+                    <span>
+                        <strong>@Model.OtherUserName</strong>
+                        <small data-i18n="messages.page.thread">Page conversation</small>
+                    </span>
+                </div>
+            }
+            else
+            {
+                <a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OtherUserId" class="social-author-link">
+                    @if (!string.IsNullOrWhiteSpace(Model.OtherUserImageUrl))
+                    {
+                        <img src="@Model.OtherUserImageUrl" alt="@Model.OtherUserName" class="social-avatar-xs" />
+                    }
+                    else
+                    {
+                        <span class="social-avatar-xs social-avatar-xs--fallback">@initial</span>
+                    }
+                    <span>
+                        <strong>@Model.OtherUserName</strong>
+                        @if (Model.IsPageConversation && Model.CurrentUserOwnsPage)
+                        {
+                            <small><span data-i18n="messages.replying.for.page">Replying for</span> @Model.PageName</small>
+                        }
+                    </span>
+                </a>
+            }
         </header>
 
         <div class="social-chat-thread">
             @if (Model.Status == ConversationStatus.Pending)
             {
-                <div class="social-message-request">
-                    @if (Model.CanRespondToRequest)
+                <div class="social-message-request @(Model.CanRespondToRequest ? "is-actionable" : "")">
+                    @if (Model.CanSendInitialRequestMessage)
                     {
-                        <strong data-i18n="messages.request.title">Заявка за съобщение</strong>
-                        <p data-i18n="messages.request.desc">Този човек иска да започне разговор с теб. Одобри заявката, за да можете да си пишете.</p>
+                        <strong data-i18n="messages.request.first.title">Send the first message</strong>
+                        <p data-i18n="messages.request.first.desc">This will create a request. The other person can read it once and approve the chat before you continue.</p>
+                    }
+                    else if (Model.CanRespondToRequest)
+                    {
+                        <strong data-i18n="messages.request.title">Message request</strong>
+                        <p data-i18n="messages.request.desc">Approve the request before the conversation can continue.</p>
                         <div class="groove-cta-row">
                             <form asp-action="Approve" asp-route-id="@Model.Id" method="post">
                                 @Html.AntiForgeryToken()
                                 <button class="groove-button groove-button-dark" type="submit">
-                                    <i class="bi bi-check2"></i> <span data-i18n="messages.approve">Одобри</span>
+                                    <i class="bi bi-check2"></i> <span data-i18n="messages.approve">Approve</span>
                                 </button>
                             </form>
                             <form asp-action="Decline" asp-route-id="@Model.Id" method="post">
                                 @Html.AntiForgeryToken()
                                 <button class="groove-button groove-button-paper" type="submit">
-                                    <i class="bi bi-x-lg"></i> <span data-i18n="messages.decline">Откажи</span>
+                                    <i class="bi bi-x-lg"></i> <span data-i18n="messages.decline">Decline</span>
                                 </button>
                             </form>
                         </div>
                     }
+                    else if (Model.IsWaitingForApproval)
+                    {
+                        <strong data-i18n="messages.request.waiting">Request sent</strong>
+                        <p data-i18n="messages.request.waiting.desc">You can continue after the request is approved.</p>
+                    }
                     else
                     {
-                        <strong data-i18n="messages.request.waiting">Заявката е изпратена</strong>
-                        <p data-i18n="messages.request.waiting.desc">Ще можете да си пишете, когато човекът отсреща я одобри.</p>
+                        <strong data-i18n="messages.request.empty.title">Waiting for a first message</strong>
+                        <p data-i18n="messages.request.empty.desc">This request will appear once the first message is sent.</p>
                     }
                 </div>
             }
             else if (Model.Status == ConversationStatus.Declined)
             {
                 <div class="social-message-request">
-                    <strong data-i18n="messages.request.declined">Заявката е отказана</strong>
-                    <p data-i18n="messages.request.declined.desc">Този разговор не е активен.</p>
+                    <strong data-i18n="messages.request.declined">Request declined</strong>
+                    <p data-i18n="messages.request.declined.desc">This conversation is not active.</p>
                 </div>
             }
 
             @foreach (var message in Model.Messages)
             {
                 <article class="social-message-bubble @(message.IsMine ? "is-mine" : "")">
-                    <div class="d-flex align-items-center gap-2 mb-1">
+                    <div class="social-message-bubble__head">
                         @if (!string.IsNullOrWhiteSpace(message.SenderImageUrl))
                         {
                             <img src="@message.SenderImageUrl" alt="@message.SenderName" class="social-avatar-xs" />
@@ -72,48 +109,84 @@
                         <strong class="small">@message.SenderName</strong>
                         <span class="groove-badge" data-i18n="@message.SenderBadgeKey">@message.SenderBadgeText</span>
                     </div>
+
+                    @if (message.SharedEventId.HasValue)
+                    {
+                        <a asp-controller="Events" asp-action="Details" asp-route-id="@message.SharedEventId.Value" class="social-message-share-card">
+                            @if (!string.IsNullOrWhiteSpace(message.SharedEventImageUrl))
+                            {
+                                <img src="@message.SharedEventImageUrl" alt="@message.SharedEventTitle" />
+                            }
+                            else
+                            {
+                                <span class="social-message-share-card__fallback"><i class="bi bi-calendar-event"></i></span>
+                            }
+                            <span>
+                                <em data-i18n="share.card.event">Event</em>
+                                <strong>@message.SharedEventTitle</strong>
+                                <small>@message.SharedEventMeta</small>
+                            </span>
+                            <i class="bi bi-arrow-up-right"></i>
+                        </a>
+                    }
+
+                    @if (message.SharedPostId.HasValue)
+                    {
+                        <a asp-controller="Posts" asp-action="Details" asp-route-id="@message.SharedPostId.Value" class="social-message-share-card">
+                            @if (!string.IsNullOrWhiteSpace(message.SharedPostImageUrl))
+                            {
+                                <img src="@message.SharedPostImageUrl" alt="@message.SharedPostTitle" />
+                            }
+                            else
+                            {
+                                <span class="social-message-share-card__fallback"><i class="bi bi-file-richtext"></i></span>
+                            }
+                            <span>
+                                <em data-i18n="share.card.post">Post</em>
+                                <strong>@message.SharedPostTitle</strong>
+                                <small>@message.SharedPostMeta</small>
+                            </span>
+                            <i class="bi bi-arrow-up-right"></i>
+                        </a>
+                    }
+
                     <p>@message.Content</p>
-                    <small>
-                        @message.CreatedAt.ToString("dd.MM.yyyy HH:mm")
-                        @if (message.IsMine && message.SeenAt.HasValue)
+                    <small class="social-message-bubble__meta">
+                        <span><i class="bi bi-clock"></i> <span data-i18n="messages.sent">Sent</span> @message.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                        @if (message.IsMine)
                         {
-                            <span> · <span data-i18n="messages.seen">видяно</span></span>
+                            @if (message.SeenAt.HasValue)
+                            {
+                                <span><i class="bi bi-check2-all"></i> <span data-i18n="messages.seen">Seen</span> @message.SeenAt.Value.ToString("dd.MM HH:mm")</span>
+                            }
+                            else
+                            {
+                                <span><i class="bi bi-check2"></i> <span data-i18n="messages.delivered">Delivered</span></span>
+                            }
                         }
                     </small>
                 </article>
             }
         </div>
 
-        @if (Model.CanSendMessage)
+        @if (Model.CanSendMessage && Model.ActingIdentities.Count > 0)
         {
             <form asp-action="Send" asp-route-id="@Model.Id" method="post" class="social-chat-compose">
                 @Html.AntiForgeryToken()
-                @if (Model.ActingIdentities.Count > 1)
-                {
-                    <select name="actingIdentityKey" class="form-select form-select-sm" aria-label="Replying as">
-                        @foreach (var identity in Model.ActingIdentities)
-                        {
-                            if (identity.IsDefault)
-                            {
-                                <option value="@identity.Key" selected>@identity.Label</option>
-                            }
-                            else
-                            {
-                                <option value="@identity.Key">@identity.Label</option>
-                            }
-                        }
-                    </select>
-                }
-                else if (Model.ActingIdentities.Count == 1)
-                {
-                    <input type="hidden" name="actingIdentityKey" value="@Model.ActingIdentities[0].Key" />
-                    <span class="small text-muted"><span data-i18n="identity.replying.as">Отговаряш като</span>: @Model.ActingIdentities[0].DisplayName</span>
-                }
-                <input type="text" name="content" maxlength="2000" placeholder="Напиши съобщение..." data-i18n-placeholder="messages.placeholder" required />
+                <input type="hidden" name="actingIdentityKey" value="@Model.ActingIdentities[0].Key" />
+                <span class="small text-muted"><span data-i18n="identity.replying.as">Replying as</span>: @Model.ActingIdentities[0].DisplayName</span>
+                <input type="text" name="content" maxlength="2000" placeholder="Write a message..." data-i18n-placeholder="messages.placeholder" required />
                 <button type="submit" class="groove-button groove-button-dark">
-                    <i class="bi bi-send"></i> <span data-i18n="common.send">Изпрати</span>
+                    <i class="bi bi-send"></i>
+                    <span data-i18n="@(Model.CanSendInitialRequestMessage ? "messages.send.request" : "common.send")">Send</span>
                 </button>
             </form>
+        }
+        else if (Model.CanSendMessage)
+        {
+            <div class="social-chat-compose">
+                <span class="text-muted" data-i18n="messages.identity.unavailable">This page identity is no longer available for your account.</span>
+            </div>
         }
     </div>
 </section>

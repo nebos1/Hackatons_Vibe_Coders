@@ -58,18 +58,22 @@ namespace EventsApp.Services
                 return Array.Empty<ActingIdentityOptionViewModel>();
             }
 
+            var canUseOrganizerPages = httpContext.User.IsInRole(GlobalConstants.Roles.Organizer)
+                && user.OrganizerData?.Approved == true;
             var context = await _businessContext.GetContextAsync(httpContext, cancellationToken);
-            var pages = await _db.OrganizerProfiles
-                .AsNoTracking()
-                .Include(p => p.BusinessWorkspace)
-                .Where(p => p.OwnerId == userId && p.IsActive && p.IsApproved)
-                .Where(p => p.BusinessWorkspace == null || p.BusinessWorkspace.Status == BusinessWorkspaceStatus.Active)
-                .OrderByDescending(p => preferredOrganizerProfileId.HasValue && p.Id == preferredOrganizerProfileId.Value)
-                .ThenByDescending(p => context.Page != null && p.Id == context.Page.Id)
-                .ThenByDescending(p => p.IsDefaultForWorkspace)
-                .ThenByDescending(p => p.IsDefault)
-                .ThenBy(p => p.DisplayName)
-                .ToListAsync(cancellationToken);
+            var pages = canUseOrganizerPages
+                ? await _db.OrganizerProfiles
+                    .AsNoTracking()
+                    .Include(p => p.BusinessWorkspace)
+                    .Where(p => p.OwnerId == userId && p.IsActive && p.IsApproved)
+                    .Where(p => p.BusinessWorkspace == null || p.BusinessWorkspace.Status == BusinessWorkspaceStatus.Active)
+                    .OrderByDescending(p => preferredOrganizerProfileId.HasValue && p.Id == preferredOrganizerProfileId.Value)
+                    .ThenByDescending(p => context.Page != null && p.Id == context.Page.Id)
+                    .ThenByDescending(p => p.IsDefaultForWorkspace)
+                    .ThenByDescending(p => p.IsDefault)
+                    .ThenBy(p => p.DisplayName)
+                    .ToListAsync(cancellationToken)
+                : new List<OrganizerProfile>();
 
             var defaultPageId = preferredOrganizerProfileId
                 ?? context.Page?.Id

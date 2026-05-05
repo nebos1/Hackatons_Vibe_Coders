@@ -34,7 +34,7 @@
         <a asp-controller="Home" asp-action="Index" class="groove-button groove-button-paper">
             <i class="bi bi-arrow-left"></i> <span data-i18n="common.back">Назад</span>
         </a>
-        <partial name="_ShareDropdown" model="@(new EventsApp.ViewModels.Shared.ShareModel { Url = shareUrl, Title = Model.Title })" />
+        <partial name="_ShareDropdown" model="@(new EventsApp.ViewModels.Shared.ShareModel { Url = shareUrl, Title = Model.Title, ChatShareAction = "ShareEvent", ChatShareId = Model.Id })" />
         @if (Model.CanEdit)
         {
             <a asp-action="Edit" asp-route-id="@Model.Id" class="groove-button groove-button-paper">
@@ -94,7 +94,16 @@
                 <dt data-i18n="ticket.end">Край</dt>
                 <dd>@Model.EndTime.ToString("dd.MM.yyyy HH:mm")</dd>
                 <dt data-i18n="profile.type.organizer">Организатор</dt>
-                <dd><a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OrganizerId">@Model.OrganizerName</a></dd>
+                <dd>
+                    @if (Model.OrganizerProfileId.HasValue)
+                    {
+                        <span>@Model.OrganizerName</span>
+                    }
+                    else
+                    {
+                        <a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OrganizerId">@Model.OrganizerName</a>
+                    }
+                </dd>
                 <dt data-i18n="event.social">Социално</dt>
                 <dd>@Model.LikesCount <span data-i18n="social.likes">харесвания</span> · @Model.SavesCount <span data-i18n="social.saves">запазвания</span></dd>
                 <dt data-i18n="event.attendance">Посещения</dt>
@@ -105,6 +114,16 @@
                 <button class="groove-button groove-button-paper social-share-button" type="button" data-share-url="@shareUrl" data-share-title="@Model.Title">
                     <i class="bi bi-share"></i> <span data-i18n="social.share">Сподели</span>
                 </button>
+                @if (User.Identity?.IsAuthenticated == true && Model.OrganizerProfileId.HasValue && User.FindFirstValue(ClaimTypes.NameIdentifier) != Model.OrganizerId)
+                {
+                    <form asp-controller="Messages" asp-action="StartPage" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="organizerProfileId" value="@Model.OrganizerProfileId" />
+                        <button class="groove-button groove-button-paper" type="submit">
+                            <i class="bi bi-chat-dots"></i> <span data-i18n="messages.message.page">Message page</span>
+                        </button>
+                    </form>
+                }
             </div>
 
             @if (User.Identity?.IsAuthenticated == true)
@@ -242,11 +261,24 @@
                     </div>
                     <span class="groove-status-badge groove-status-badge-muted" data-seat-selected-label data-i18n="seat.none">Няма избрано място</span>
                 </div>
+                @if (Model.SeatMap.Floors.Count > 1)
+                {
+                    <div class="event-seat-floor-tabs" role="tablist">
+                        @for (var i = 0; i < Model.SeatMap.Floors.Count; i++)
+                        {
+                            var floor = Model.SeatMap.Floors[i];
+                            <button type="button" class="@(i == 0 ? "is-active" : "")" data-seat-floor-tab="@floor">@floor</button>
+                        }
+                    </div>
+                }
                 <div class="event-seat-stage">
                     @foreach (var seatSection in Model.SeatMap.Sections)
                     {
-                        <div class="event-seat-section"
-                             style="left:@(seatSection.X)px;top:@(seatSection.Y)px;width:@(seatSection.Width)px;height:@(seatSection.Height)px;">
+                        var sectionShape = "shape-" + (seatSection.Shape ?? "Rectangle").ToLowerInvariant();
+                        <div class="event-seat-section @sectionShape"
+                             data-seat-floor="@seatSection.FloorName"
+                             data-section-type="@seatSection.Type"
+                             style="left:@(seatSection.X)px;top:@(seatSection.Y)px;width:@(seatSection.Width)px;height:@(seatSection.Height)px;transform:rotate(@(seatSection.Rotation)deg);">
                             <span class="event-seat-section__title">
                                 @seatSection.Name
                                 @if (seatSection.PriceModifier != 0)
@@ -256,14 +288,26 @@
                             </span>
                             @foreach (var seat in seatSection.Seats)
                             {
+                                var seatClass = seat.SeatType == SeatType.Table ? "is-table" : "";
                                 <button type="button"
-                                        class="event-seat-button"
+                                        class="event-seat-button @seatClass"
                                         data-seat-id="@seat.Id"
                                         data-seat-label="@seat.Label"
+                                        data-seat-capacity="@seat.Capacity"
+                                        data-seat-unlimited="@seat.IsCapacityUnlimited.ToString().ToLowerInvariant()"
+                                        data-seat-type="@seat.SeatType"
                                         data-status="@seat.Status"
-                                        style="left:@(seat.X)px;top:@(seat.Y)px;"
+                                        style="left:@(seat.X)px;top:@(seat.Y)px;width:@(seat.Radius * 2)px;height:@(seat.Radius * 2)px;transform:rotate(@(seat.Rotation)deg);"
                                         disabled="@(!seat.Selectable)">
-                                    @seat.Label
+                                    <span>@seat.Label</span>
+                                    @if (seat.SeatType == SeatType.Table && seat.IsCapacityUnlimited)
+                                    {
+                                        <small>∞</small>
+                                    }
+                                    else if (seat.SeatType == SeatType.Table && seat.Capacity > 1)
+                                    {
+                                        <small>@seat.Capacity</small>
+                                    }
                                 </button>
                             }
                         </div>
@@ -321,6 +365,19 @@
                                          @if (Model.HasSeatLayout)
                                          {
                                              <input type="hidden" name="seatId" data-seat-input />
+                                             <label class="visually-hidden" for="quantity-@t.Id" data-i18n="ticket.quantity">Ð‘Ñ€Ð¾Ð¹ Ð±Ð¸Ð»ÐµÑ‚Ð¸</label>
+                                             <select id="quantity-@t.Id"
+                                                     name="quantity"
+                                                     class="form-select form-select-sm groove-ticket-quantity"
+                                                     aria-label="Ð‘Ñ€Ð¾Ð¹ Ð±Ð¸Ð»ÐµÑ‚Ð¸"
+                                                     data-seat-quantity
+                                                     data-seat-quantity-max="@t.MaxPurchaseQuantity"
+                                                     disabled>
+                                                 @for (var q = 1; q <= t.MaxPurchaseQuantity; q++)
+                                                 {
+                                                     <option value="@q">@q</option>
+                                                 }
+                                             </select>
                                          }
                                          else
                                          {
@@ -331,6 +388,16 @@
                                                      <option value="@q">@q</option>
                                                  }
                                              </select>
+                                         }
+                                         @if (t.RequiresAttendeeNames)
+                                         {
+                                             <div class="ticket-attendee-panel" data-attendee-names>
+                                                 <div class="ticket-attendee-panel__head">
+                                                     <i class="bi bi-person-lines-fill"></i>
+                                                     <span>Names for the tickets</span>
+                                                 </div>
+                                                 <div class="ticket-attendee-panel__rows" data-attendee-rows></div>
+                                             </div>
                                          }
                                          <button type="submit" class="groove-button groove-button-dark">
                                              <i class="bi bi-bag-check"></i> <span data-i18n="@ticketActionKey">@ticketActionText</span>
@@ -555,6 +622,9 @@
             var inputs = document.querySelectorAll('[data-seat-input]');
             var label = document.querySelector('[data-seat-selected-label]');
             var buttons = map.querySelectorAll('.event-seat-button:not([disabled])');
+            var floorTabs = map.querySelectorAll('[data-seat-floor-tab]');
+            var sections = map.querySelectorAll('[data-seat-floor]');
+            var quantitySelects = document.querySelectorAll('[data-seat-quantity]');
             var submitButtons = Array.from(inputs).map(function (input) {
                 return input.closest('form') ? input.closest('form').querySelector('button[type="submit"]') : null;
             }).filter(Boolean);
@@ -565,20 +635,101 @@
                 });
             }
 
+            function setSeatQuantityLimit(maxQuantity) {
+                quantitySelects.forEach(function (select) {
+                    var ticketMax = parseInt(select.getAttribute('data-seat-quantity-max') || '1', 10);
+                    var limit = Math.max(1, Math.min(maxQuantity || 1, ticketMax, 50));
+                    var selected = parseInt(select.value || '1', 10);
+                    select.innerHTML = '';
+                    for (var i = 1; i <= limit; i += 1) {
+                        var option = document.createElement('option');
+                        option.value = i.toString();
+                        option.textContent = i.toString();
+                        select.appendChild(option);
+                    }
+                    select.value = Math.min(selected || 1, limit).toString();
+                    select.disabled = false;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+            }
+
             setSubmitEnabled(false);
+
+            function showFloor(floorName) {
+                if (!floorName) return;
+                floorTabs.forEach(function (tab) {
+                    tab.classList.toggle('is-active', tab.getAttribute('data-seat-floor-tab') === floorName);
+                });
+                sections.forEach(function (section) {
+                    section.hidden = section.getAttribute('data-seat-floor') !== floorName;
+                });
+            }
+
+            if (floorTabs.length) {
+                floorTabs.forEach(function (tab) {
+                    tab.addEventListener('click', function () {
+                        showFloor(tab.getAttribute('data-seat-floor-tab'));
+                    });
+                });
+                showFloor(floorTabs[0].getAttribute('data-seat-floor-tab'));
+            }
 
             buttons.forEach(function (button) {
                 button.addEventListener('click', function () {
                     buttons.forEach(function (item) { item.classList.remove('is-selected'); });
                     button.classList.add('is-selected');
                     inputs.forEach(function (input) { input.value = button.getAttribute('data-seat-id'); });
+                    var seatLabel = button.getAttribute('data-seat-label');
+                    var capacity = parseInt(button.getAttribute('data-seat-capacity') || '1', 10);
+                    var isTable = button.getAttribute('data-seat-type') === 'Table';
+                    var isUnlimited = button.getAttribute('data-seat-unlimited') === 'true';
+                    setSeatQuantityLimit(isTable ? (isUnlimited ? 50 : capacity) : 1);
                     if (label) {
                         var lang = (document.querySelector('meta[name="x-app-lang"]') || {}).content === 'en' ? 'en' : 'bg';
-                        var seatLabel = button.getAttribute('data-seat-label');
                         label.textContent = lang === 'en' ? 'Seat ' + seatLabel + ' selected' : 'Избрано място ' + seatLabel;
+                    }
+                    if (label && isTable && isUnlimited) {
+                        label.textContent = lang === 'en'
+                            ? 'Table ' + seatLabel + ' selected for one group'
+                            : 'ÐœÐ°ÑÐ° ' + seatLabel + ' Ð¸Ð·Ð±Ñ€Ð°Ð½Ð° Ð·Ð° ÐµÐ´Ð½Ð° Ð³Ñ€ÑƒÐ¿Ð°';
+                    }
+                    else if (label && isTable && capacity > 1) {
+                        label.textContent = lang === 'en'
+                            ? 'Table ' + seatLabel + ' selected for up to ' + capacity
+                            : 'Маса ' + seatLabel + ' избрана до ' + capacity + ' души';
                     }
                     setSubmitEnabled(true);
                 });
+            });
+        })();
+
+        (function () {
+            document.querySelectorAll('form').forEach(function (form) {
+                var panel = form.querySelector('[data-attendee-names]');
+                if (!panel) return;
+
+                var rows = panel.querySelector('[data-attendee-rows]');
+                var quantity = form.querySelector('select[name="quantity"]');
+
+                function renderRows() {
+                    var count = Math.max(1, parseInt(quantity && quantity.value ? quantity.value : '1', 10));
+                    rows.innerHTML = '';
+                    for (var i = 0; i < count; i += 1) {
+                        var label = document.createElement('label');
+                        label.className = 'ticket-attendee-row';
+                        label.innerHTML = '<span></span><input name="attendeeNames" maxlength="120" autocomplete="name" required />';
+                        label.querySelector('span').textContent = 'Ticket #' + (i + 1);
+                        label.querySelector('input').placeholder = i === 0 ? 'Full name' : 'Guest name';
+                        rows.appendChild(label);
+                    }
+                    panel.classList.toggle('is-multiple', count > 1);
+                }
+
+                if (quantity) {
+                    quantity.addEventListener('change', renderRows);
+                    quantity.addEventListener('input', renderRows);
+                }
+                renderRows();
             });
         })();
     </script>

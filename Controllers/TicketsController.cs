@@ -60,6 +60,7 @@ namespace EventsApp.Controllers
                     QuantityTotal = t.QuantityTotal,
                     QuantityRemaining = t.QuantityRemaining,
                     IsActive = t.IsActive,
+                    RequiresAttendeeNames = t.RequiresAttendeeNames,
                     Sold = t.UserTickets.Count,
                     Used = t.UserTickets.Count(ut => ut.IsUsed),
                 })
@@ -91,6 +92,7 @@ namespace EventsApp.Controllers
                 EventTitle = ev.Title,
                 IsActive = true,
                 IsFree = false,
+                RequiresAttendeeNames = false,
             };
 
             return View(vm);
@@ -125,6 +127,7 @@ namespace EventsApp.Controllers
                 QuantityTotal = input.QuantityTotal,
                 QuantityRemaining = input.QuantityRemaining ?? input.QuantityTotal,
                 IsActive = input.IsActive,
+                RequiresAttendeeNames = input.RequiresAttendeeNames,
             };
 
             await ApplyTicketImageAsync(ticket, input);
@@ -165,6 +168,7 @@ namespace EventsApp.Controllers
                 QuantityRemaining = ticket.QuantityRemaining,
                 ImageUrl = ticket.ImageUrl,
                 IsActive = ticket.IsActive,
+                RequiresAttendeeNames = ticket.RequiresAttendeeNames,
             };
 
             return View(vm);
@@ -208,6 +212,7 @@ namespace EventsApp.Controllers
             ticket.QuantityRemaining = remaining;
             await ApplyTicketImageAsync(ticket, input);
             ticket.IsActive = input.IsActive;
+            ticket.RequiresAttendeeNames = input.RequiresAttendeeNames;
 
             await _db.SaveChangesAsync();
             TempData["StatusMessage"] = "Типът билет е обновен.";
@@ -257,7 +262,7 @@ namespace EventsApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Buy(Guid id, int? occurrenceId, int? seatId, int quantity = 1)
+        public async Task<IActionResult> Buy(Guid id, int? occurrenceId, int? seatId, int quantity = 1, [FromForm] List<string>? attendeeNames = null)
         {
             var userId = _userManager.GetUserId(User)!;
 
@@ -314,11 +319,8 @@ namespace EventsApp.Controllers
 
             var requiresSeat = ticket.Event.VenueLayoutId.HasValue
                                && ticket.Event.TicketingMode != EventTicketingMode.GeneralAdmission;
-            if (requiresSeat)
-            {
-                quantity = 1;
-            }
-            else if (quantity < 1 || quantity > 10)
+            var maxRequestQuantity = requiresSeat ? 50 : 10;
+            if (quantity < 1 || quantity > maxRequestQuantity)
             {
                 TempData["StatusMessage"] = "Избери между 1 и 10 билета за една покупка.";
                 return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
@@ -387,6 +389,20 @@ namespace EventsApp.Controllers
                     return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
                 }
 
+                var isTableSeat = selectedSeat.SeatType == SeatType.Table || selectedSeat.Section.Type == LayoutSectionType.Table;
+                var maxSeatQuantity = isTableSeat
+                    ? selectedSeat.IsCapacityUnlimited
+                        ? 50
+                        : Math.Min(Math.Max(selectedSeat.Capacity, 1), 50)
+                    : 1;
+                if (quantity > maxSeatQuantity)
+                {
+                    TempData["StatusMessage"] = isTableSeat
+                        ? $"Ð¢Ð°Ð·Ð¸ Ð¼Ð°ÑÐ° Ðµ Ð´Ð¾ {maxSeatQuantity} Ð´ÑƒÑˆÐ¸."
+                        : "Ð—Ð° ÐµÐ´Ð¸Ð½Ð¸Ñ‡Ð½Ð¾ Ð¼ÑÑÑ‚Ð¾ Ð¼Ð¾Ð¶Ðµ Ð´Ð° ÑÐµ ÐºÑƒÐ¿Ð¸ ÑÐ°Ð¼Ð¾ 1 Ð±Ð¸Ð»ÐµÑ‚.";
+                    return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
+                }
+
                 var reservation = await _seatReservations.ReserveSeatAsync(
                     ticket.EventId,
                     occurrence?.Id,
@@ -401,7 +417,20 @@ namespace EventsApp.Controllers
                 }
             }
 
+            var cleanedAttendeeNames = NormalizeAttendeeNames(
+                attendeeNames,
+                quantity,
+                ticket.RequiresAttendeeNames,
+                out var attendeeNamesError);
+
+            if (attendeeNamesError != null)
+            {
+                TempData["StatusMessage"] = attendeeNamesError;
+                return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
+            }
+
             var unitPrice = ticket.Price + (selectedSeat?.Section.PriceModifier ?? 0m);
+            var purchaseGroupId = Guid.NewGuid();
             var transaction = new Transaction
             {
                 UserId = userId,
@@ -411,12 +440,15 @@ namespace EventsApp.Controllers
             };
 
             var userTickets = Enumerable.Range(0, quantity)
-                .Select(_ => new UserTicket
+                .Select(index => new UserTicket
                 {
                     TicketId = ticket.Id,
                     EventOccurrenceId = occurrence?.Id,
                     SeatId = selectedSeat?.Id,
                     TransactionId = transaction.Id,
+                    PurchaseGroupId = purchaseGroupId,
+                    IsPrimaryInPurchase = index == 0,
+                    AttendeeName = cleanedAttendeeNames[index],
                     QrCode = Guid.NewGuid().ToString("N"),
                     PricePaid = unitPrice,
                     IsUsed = false,
@@ -473,7 +505,10 @@ namespace EventsApp.Controllers
                     Address = ut.Ticket.Event.Address,
                     City = ut.Ticket.Event.City,
                     StartTime = ut.EventOccurrence != null ? ut.EventOccurrence.StartDateTime : ut.Ticket.Event.StartTime,
-                    SeatLabel = ut.Seat != null ? ut.Seat.Row + ut.Seat.Number : null,
+                    SeatLabel = ut.Seat != null ? GetSeatLabel(ut.Seat) : null,
+                    AttendeeName = ut.AttendeeName,
+                    PurchaseGroupId = ut.PurchaseGroupId,
+                    IsPrimaryInPurchase = ut.IsPrimaryInPurchase,
                     Price = ut.PricePaid > 0 ? ut.PricePaid : ut.Ticket.Price,
                     IsUsed = ut.IsUsed,
                     CreatedAt = ut.CreatedAt,
@@ -633,7 +668,10 @@ namespace EventsApp.Controllers
                 City = ut.Ticket.Event.City,
                 StartTime = ut.EventOccurrence?.StartDateTime ?? ut.Ticket.Event.StartTime,
                 EndTime = ut.EventOccurrence?.EndDateTime ?? ut.Ticket.Event.EndTime,
-                SeatLabel = ut.Seat != null ? ut.Seat.Row + ut.Seat.Number : null,
+                SeatLabel = ut.Seat != null ? GetSeatLabel(ut.Seat) : null,
+                AttendeeName = ut.AttendeeName,
+                PurchaseGroupId = ut.PurchaseGroupId,
+                IsPrimaryInPurchase = ut.IsPrimaryInPurchase,
                 Price = ut.PricePaid > 0
                     ? ut.PricePaid
                     : ut.Ticket.Price + (ut.Seat?.Section.PriceModifier ?? 0m),
@@ -646,6 +684,38 @@ namespace EventsApp.Controllers
                 OwnerUserName = ut.Transaction.User.UserName ?? string.Empty,
                 OwnerEmail = ut.Transaction.User.Email ?? string.Empty,
             };
+        }
+
+        private static string GetSeatLabel(Seat seat)
+        {
+            return string.IsNullOrWhiteSpace(seat.Label) ? seat.Row + seat.Number : seat.Label;
+        }
+
+        private static List<string?> NormalizeAttendeeNames(
+            List<string>? names,
+            int quantity,
+            bool required,
+            out string? error)
+        {
+            error = null;
+            var normalized = new List<string?>(quantity);
+            for (var i = 0; i < quantity; i++)
+            {
+                var value = names != null && i < names.Count ? names[i]?.Trim() : null;
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    if (required)
+                    {
+                        error = $"Ð’ÑŠÐ²ÐµÐ´Ð¸ Ð¸Ð¼Ðµ Ð·Ð° Ð±Ð¸Ð»ÐµÑ‚ #{i + 1}.";
+                    }
+                    normalized.Add(null);
+                    continue;
+                }
+
+                normalized.Add(value.Length > 120 ? value[..120] : value);
+            }
+
+            return normalized;
         }
 
         private void NormalizeFreeTicketInput(TicketCreateEditViewModel input)

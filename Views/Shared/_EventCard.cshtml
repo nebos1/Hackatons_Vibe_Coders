@@ -78,10 +78,20 @@
             }
         </div>
 
-        <a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OrganizerId" class="evt-card__organizer">
-            <span class="evt-card__organizer-avatar">@organizerInitial</span>
-            <span>@Model.OrganizerName</span>
-        </a>
+        @if (Model.OrganizerProfileId.HasValue)
+        {
+            <span class="evt-card__organizer">
+                <span class="evt-card__organizer-avatar">@organizerInitial</span>
+                <span>@Model.OrganizerName</span>
+            </span>
+        }
+        else
+        {
+            <a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OrganizerId" class="evt-card__organizer">
+                <span class="evt-card__organizer-avatar">@organizerInitial</span>
+                <span>@Model.OrganizerName</span>
+            </a>
+        }
 
         <div class="evt-card__actions">
             @if (User.Identity?.IsAuthenticated == true)
@@ -115,6 +125,10 @@
                         <i class="bi bi-star"></i> @Model.InterestedCount
                     </button>
                 </form>
+
+                <a asp-controller="Messages" asp-action="ShareEvent" asp-route-id="@Model.Id" class="evt-card__action" title="Send in chat" data-i18n-title="share.chat">
+                    <i class="bi bi-send"></i>
+                </a>
             }
             else
             {

@@ -21,6 +21,7 @@ namespace EventsApp.Infrastructure
 
             var rnd = new Random(20260425);
             var now = DateTime.UtcNow;
+            var organizerProfilesByUserId = new Dictionary<string, OrganizerProfile>();
 
             var organizers = new[]
             {
@@ -79,6 +80,24 @@ namespace EventsApp.Infrastructure
                     Approved = true,
                     CreatedAt = now.AddMonths(-6),
                 });
+
+                var profile = new OrganizerProfile
+                {
+                    OwnerId = u.Id,
+                    DisplayName = o.OrgName,
+                    Tagline = o.Bio,
+                    Description = o.Bio,
+                    AvatarImageUrl = o.Avatar,
+                    Website = o.Web,
+                    PhoneNumber = o.Phone,
+                    ContactEmail = o.Email,
+                    IsDefault = true,
+                    IsActive = true,
+                    IsApproved = true,
+                    CreatedAt = now.AddMonths(-6),
+                };
+                db.OrganizerProfiles.Add(profile);
+                organizerProfilesByUserId[u.Id] = profile;
                 orgUsers.Add(u);
             }
 
@@ -233,6 +252,7 @@ namespace EventsApp.Infrastructure
                     ImageUrl = e.Image,
                     StartTime = start,
                     EndTime = start.AddHours(e.DurationHours),
+                    OrganizerProfileId = organizerProfilesByUserId.TryGetValue(e.Org.Id, out var eventProfile) ? eventProfile.Id : null,
                     IsApproved = true,
                     CreatedAt = now.AddDays(-Math.Abs(e.StartOffsetDays) - 5),
                 };
@@ -368,6 +388,7 @@ namespace EventsApp.Infrastructure
                 var post = new Post
                 {
                     OrganizerId = p.Org.Id,
+                    OrganizerProfileId = organizerProfilesByUserId.TryGetValue(p.Org.Id, out var postProfile) ? postProfile.Id : null,
                     EventId = p.EventIdx.HasValue ? createdEvents[p.EventIdx.Value].Id : null,
                     Content = p.Content,
                     CreatedAt = now.AddDays(-rnd.Next(1, 25)).AddHours(-rnd.Next(0, 23)),

@@ -202,6 +202,7 @@ namespace EventsApp.Controllers
                 Genre = e.Genre,
                 IsApproved = e.IsApproved,
                 OrganizerId = e.OrganizerId,
+                OrganizerProfileId = e.OrganizerProfileId,
                 OrganizerName = e.OrganizerProfile != null ? e.OrganizerProfile.DisplayName : e.Organizer.UserName ?? string.Empty,
                 LikesCount = e.Likes.Count,
                 CommentsCount = e.Comments.Count,

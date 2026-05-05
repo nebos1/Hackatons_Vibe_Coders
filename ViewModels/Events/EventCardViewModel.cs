@@ -13,6 +13,7 @@ namespace EventsApp.ViewModels.Events
         public EventGenre Genre { get; set; }
         public bool IsApproved { get; set; }
         public string OrganizerId { get; set; } = null!;
+        public int? OrganizerProfileId { get; set; }
         public string OrganizerName { get; set; } = null!;
         public int LikesCount { get; set; }
         public int CommentsCount { get; set; }

@@ -169,6 +169,7 @@ namespace EventsApp.Controllers
                 Latitude = ev.Latitude,
                 Longitude = ev.Longitude,
                 OrganizerId = ev.OrganizerId,
+                OrganizerProfileId = ev.OrganizerProfileId,
                 OrganizerName = ev.OrganizerProfile != null
                     ? ev.OrganizerProfile.DisplayName
                     : ev.Organizer.UserName ?? string.Empty,
@@ -228,7 +229,7 @@ namespace EventsApp.Controllers
                         }
 
                         var maxPurchaseQuantity = ev.VenueLayoutId.HasValue && ev.TicketingMode != EventTicketingMode.GeneralAdmission
-                            ? Math.Min(remaining, 1)
+                            ? Math.Min(remaining, 50)
                             : Math.Min(remaining, 10);
 
                         return new EventsApp.ViewModels.Tickets.EventTicketOptionViewModel
@@ -240,6 +241,7 @@ namespace EventsApp.Controllers
                             QuantityRemaining = remaining,
                             MaxPurchaseQuantity = maxPurchaseQuantity,
                             IsActive = t.IsActive,
+                            RequiresAttendeeNames = t.RequiresAttendeeNames,
                         };
                     })
                     .ToList(),
@@ -280,7 +282,8 @@ namespace EventsApp.Controllers
                     Genre = e.Genre,
                     IsApproved = e.IsApproved,
                     OrganizerId = e.OrganizerId,
-                    OrganizerName = e.Organizer.UserName ?? string.Empty,
+                    OrganizerProfileId = e.OrganizerProfileId,
+                    OrganizerName = e.OrganizerProfile != null ? e.OrganizerProfile.DisplayName : e.Organizer.UserName ?? string.Empty,
                     LikesCount = e.Likes.Count,
                     SavesCount = e.Saves.Count,
                     GoingCount = e.Attendances.Count(a => a.Status == EventAttendanceStatus.Going),
@@ -1017,7 +1020,8 @@ namespace EventsApp.Controllers
                     Genre = e.Genre,
                     IsApproved = e.IsApproved,
                     OrganizerId = e.OrganizerId,
-                    OrganizerName = e.Organizer.UserName ?? string.Empty,
+                    OrganizerProfileId = e.OrganizerProfileId,
+                    OrganizerName = e.OrganizerProfile != null ? e.OrganizerProfile.DisplayName : e.Organizer.UserName ?? string.Empty,
                     LikesCount = e.Likes.Count,
                     CommentsCount = e.Comments.Count,
                     SavesCount = e.Saves.Count,
@@ -1071,18 +1075,26 @@ namespace EventsApp.Controllers
             {
                 LayoutId = layout.Id,
                 LayoutName = layout.Name,
+                Floors = layout.Sections
+                    .Select(s => string.IsNullOrWhiteSpace(s.FloorName) ? "Floor 1" : s.FloorName)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList(),
                 Sections = layout.Sections
-                    .OrderBy(s => s.Name)
+                    .OrderBy(s => s.FloorName)
+                    .ThenBy(s => s.Name)
                     .Select(section => new EventSeatSectionViewModel
                     {
                         Id = section.Id,
                         Name = section.Name,
+                        FloorName = string.IsNullOrWhiteSpace(section.FloorName) ? "Floor 1" : section.FloorName,
                         Type = section.Type,
+                        Shape = string.IsNullOrWhiteSpace(section.Shape) ? "Rectangle" : section.Shape,
                         PriceModifier = section.PriceModifier,
                         X = section.X,
                         Y = section.Y,
                         Width = section.Width,
                         Height = section.Height,
+                        Rotation = section.Rotation,
                         Seats = layout.Seats
                             .Where(seat => seat.SectionId == section.Id)
                             .OrderBy(seat => seat.Row)
@@ -1094,9 +1106,13 @@ namespace EventsApp.Controllers
                                 {
                                     Id = seat.Id,
                                     InventoryId = inv?.Id,
-                                    Label = $"{seat.Row}{seat.Number}",
+                                    Label = string.IsNullOrWhiteSpace(seat.Label) ? $"{seat.Row}{seat.Number}" : seat.Label,
                                     X = seat.X,
                                     Y = seat.Y,
+                                    Radius = seat.Radius <= 0 ? 16 : seat.Radius,
+                                    Rotation = seat.Rotation,
+                                    Capacity = Math.Max(1, seat.Capacity),
+                                    IsCapacityUnlimited = seat.IsCapacityUnlimited,
                                     SeatType = seat.SeatType,
                                     Status = seat.Status == LayoutSeatStatus.Blocked
                                         ? EventSeatInventoryStatus.Blocked

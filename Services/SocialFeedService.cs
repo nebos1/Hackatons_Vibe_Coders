@@ -338,6 +338,7 @@ namespace EventsApp.Services
                     Genre = e.Genre,
                     IsApproved = e.IsApproved,
                     OrganizerId = e.OrganizerId,
+                    OrganizerProfileId = e.OrganizerProfileId,
                     OrganizerName = e.OrganizerProfile != null
                         ? e.OrganizerProfile.DisplayName
                         : e.Organizer.OrganizerData != null && e.Organizer.OrganizerData.Approved
@@ -374,6 +375,7 @@ namespace EventsApp.Services
                 {
                     Id = p.Id,
                     OrganizerId = p.OrganizerId,
+                    OrganizerProfileId = p.OrganizerProfileId,
                     OrganizerName = p.OrganizerProfile != null
                         ? p.OrganizerProfile.DisplayName
                         : p.Organizer.OrganizerData != null && p.Organizer.OrganizerData.Approved

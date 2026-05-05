@@ -4,10 +4,13 @@ using EventsApp.Common;
 using EventsApp.Data;
 using EventsApp.Models;
 using EventsApp.Services;
+using EventsApp.Services.AI;
 using EventsApp.ViewModels.Layouts;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventsApp.Controllers
@@ -19,19 +22,24 @@ namespace EventsApp.Controllers
         {
             Converters = { new JsonStringEnumConverter() },
         };
+        private const int MaxAiDescriptionLength = 1200;
+        private const long MaxAiImageBytes = 5L * 1024 * 1024;
 
         private readonly ApplicationDbContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILayoutService _layouts;
+        private readonly ILayoutAiService _layoutAi;
 
         public LayoutsController(
             ApplicationDbContext db,
             UserManager<ApplicationUser> userManager,
-            ILayoutService layouts)
+            ILayoutService layouts,
+            ILayoutAiService layoutAi)
         {
             _db = db;
             _userManager = userManager;
             _layouts = layouts;
+            _layoutAi = layoutAi;
         }
 
         public async Task<IActionResult> Index()
@@ -192,6 +200,73 @@ namespace EventsApp.Controllers
             });
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [EnableRateLimiting("ai-heavy")]
+        [RequestSizeLimit(MaxAiImageBytes + 64 * 1024)]
+        public async Task<IActionResult> AiGenerate([FromForm] string? description, [FromForm] IFormFile? image, CancellationToken cancellationToken)
+        {
+            if (!string.IsNullOrWhiteSpace(description) && description.Length > MaxAiDescriptionLength)
+            {
+                return BadRequest(new
+                {
+                    ok = false,
+                    fallback = true,
+                    message = $"Описанието е твърде дълго. Максимумът е {MaxAiDescriptionLength} символа.",
+                });
+            }
+
+            if (image?.Length > MaxAiImageBytes)
+            {
+                return BadRequest(new
+                {
+                    ok = false,
+                    fallback = true,
+                    message = "Снимката е твърде голяма. Максимумът е 5 MB.",
+                });
+            }
+
+            if (image != null &&
+                image.Length > 0 &&
+                (string.IsNullOrWhiteSpace(image.ContentType) ||
+                 !image.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)))
+            {
+                return BadRequest(new
+                {
+                    ok = false,
+                    fallback = true,
+                    message = "Може да се качва само снимка.",
+                });
+            }
+
+            if ((string.IsNullOrWhiteSpace(description) && (image == null || image.Length == 0)) || !_layoutAi.IsEnabled)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+                {
+                    ok = false,
+                    fallback = true,
+                    message = string.IsNullOrWhiteSpace(_layoutAi.LastError)
+                        ? "AI не е наличен. Използвай локалния генератор."
+                        : _layoutAi.LastError,
+                });
+            }
+
+            var layout = await _layoutAi.GenerateLayoutAsync(description, image, cancellationToken);
+            if (layout == null)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+                {
+                    ok = false,
+                    fallback = true,
+                    message = string.IsNullOrWhiteSpace(_layoutAi.LastError)
+                        ? "AI не успя да върне валиден layout."
+                        : _layoutAi.LastError,
+                });
+            }
+
+            return new JsonResult(new { ok = true, layout }, JsonOptions);
+        }
+
         private async Task<VenueLayout?> FindOwnedLayoutAsync(int id, bool includeDetails)
         {
             var userId = _userManager.GetUserId(User)!;
@@ -227,13 +302,18 @@ namespace EventsApp.Controllers
                 {
                     VenueLayout = layout,
                     Name = string.IsNullOrWhiteSpace(inputSection.Name) ? "Секция" : inputSection.Name.Trim(),
+                    FloorName = NormalizeFloorName(inputSection.FloorName),
                     Type = inputSection.Type,
-                    Capacity = inputSection.Seats.Count > 0 ? inputSection.Seats.Count : Math.Max(0, inputSection.Capacity),
+                    Shape = NormalizeShape(inputSection.Shape),
+                    Capacity = inputSection.Seats.Count > 0
+                        ? inputSection.Seats.Sum(s => s.IsCapacityUnlimited ? 0 : Math.Max(1, s.Capacity))
+                        : Math.Max(0, inputSection.Capacity),
                     PriceModifier = inputSection.PriceModifier,
                     X = inputSection.X,
                     Y = inputSection.Y,
                     Width = inputSection.Width,
                     Height = inputSection.Height,
+                    Rotation = inputSection.Rotation,
                 };
 
                 layout.Sections.Add(section);
@@ -246,8 +326,13 @@ namespace EventsApp.Controllers
                         Section = section,
                         Row = string.IsNullOrWhiteSpace(inputSeat.Row) ? "A" : inputSeat.Row.Trim(),
                         Number = string.IsNullOrWhiteSpace(inputSeat.Number) ? "1" : inputSeat.Number.Trim(),
+                        Label = string.IsNullOrWhiteSpace(inputSeat.Label) ? null : inputSeat.Label.Trim(),
                         X = inputSeat.X,
                         Y = inputSeat.Y,
+                        Radius = inputSeat.Radius <= 0 ? 16 : inputSeat.Radius,
+                        Rotation = inputSeat.Rotation,
+                        Capacity = Math.Max(1, inputSeat.Capacity),
+                        IsCapacityUnlimited = inputSeat.IsCapacityUnlimited,
                         SeatType = inputSeat.SeatType,
                         Status = inputSeat.Status,
                     });
@@ -255,10 +340,30 @@ namespace EventsApp.Controllers
             }
         }
 
+        private static string NormalizeFloorName(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? "Floor 1" : value.Trim();
+        }
+
+        private static string NormalizeShape(string? value)
+        {
+            var shape = string.IsNullOrWhiteSpace(value) ? "Rectangle" : value.Trim();
+            return shape.Length > 32 ? shape[..32] : shape;
+        }
+
         private static string BuildLayoutJson(VenueLayout layout)
         {
             var payload = new VenueLayoutJsonModel
             {
+                Floors = layout.Sections
+                    .Select(s => NormalizeFloorName(s.FloorName))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Select((floorName, index) => new LayoutFloorJsonModel
+                    {
+                        ClientId = "floor-" + (index + 1),
+                        Name = floorName,
+                    })
+                    .ToList(),
                 Sections = layout.Sections
                     .OrderBy(s => s.Id)
                     .Select(section => new LayoutSectionJsonModel
@@ -266,13 +371,21 @@ namespace EventsApp.Controllers
                         Id = section.Id,
                         ClientId = "section-" + section.Id,
                         Name = section.Name,
+                        FloorId = "floor-" + (layout.Sections
+                            .Select(s => NormalizeFloorName(s.FloorName))
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .ToList()
+                            .FindIndex(f => string.Equals(f, NormalizeFloorName(section.FloorName), StringComparison.OrdinalIgnoreCase)) + 1),
+                        FloorName = NormalizeFloorName(section.FloorName),
                         Type = section.Type,
+                        Shape = NormalizeShape(section.Shape),
                         Capacity = section.Capacity,
                         PriceModifier = section.PriceModifier,
                         X = section.X,
                         Y = section.Y,
                         Width = section.Width,
                         Height = section.Height,
+                        Rotation = section.Rotation,
                         Seats = layout.Seats
                             .Where(seat => seat.SectionId == section.Id)
                             .OrderBy(seat => seat.Row)
@@ -282,8 +395,13 @@ namespace EventsApp.Controllers
                                 Id = seat.Id,
                                 Row = seat.Row,
                                 Number = seat.Number,
+                                Label = seat.Label,
                                 X = seat.X,
                                 Y = seat.Y,
+                                Radius = seat.Radius <= 0 ? 16 : seat.Radius,
+                                Rotation = seat.Rotation,
+                                Capacity = Math.Max(1, seat.Capacity),
+                                IsCapacityUnlimited = seat.IsCapacityUnlimited,
                                 SeatType = seat.SeatType,
                                 Status = seat.Status,
                             })

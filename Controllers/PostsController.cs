@@ -80,6 +80,7 @@ namespace EventsApp.Controllers
             {
                 Id = post.Id,
                 OrganizerId = post.OrganizerId,
+                OrganizerProfileId = post.OrganizerProfileId,
                 OrganizerName = !string.IsNullOrWhiteSpace(post.OrganizerProfile?.DisplayName)
                     ? post.OrganizerProfile.DisplayName
                     : post.Organizer?.OrganizerData?.Approved == true

@@ -46,6 +46,13 @@ namespace EventsApp.Models
         [StringLength(GlobalConstants.Ticket.QrCodeMaxLength)]
         public string QrCode { get; set; } = null!;
 
+        public Guid PurchaseGroupId { get; set; }
+
+        public bool IsPrimaryInPurchase { get; set; }
+
+        [StringLength(120)]
+        public string? AttendeeName { get; set; }
+
         [Required]
         public bool IsUsed { get; set; }
 

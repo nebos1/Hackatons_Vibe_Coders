@@ -158,7 +158,6 @@ namespace EventsApp.Data
                       .HasForeignKey(e => e.VenueLayoutId)
                       .OnDelete(DeleteBehavior.SetNull);
 
-                entity.Property(e => e.IsApproved).HasDefaultValue(true);
             });
 
             builder.Entity<EventSeries>(entity =>
@@ -414,7 +413,18 @@ namespace EventsApp.Data
                       .HasForeignKey(c => c.RequestedByUserId)
                       .OnDelete(DeleteBehavior.SetNull);
 
-                entity.HasIndex(c => new { c.ParticipantOneId, c.ParticipantTwoId }).IsUnique();
+                entity.HasOne(c => c.OrganizerProfile)
+                      .WithMany()
+                      .HasForeignKey(c => c.OrganizerProfileId)
+                      .OnDelete(DeleteBehavior.NoAction);
+
+                entity.HasIndex(c => new { c.ParticipantOneId, c.ParticipantTwoId })
+                      .IsUnique()
+                      .HasFilter("[OrganizerProfileId] IS NULL");
+
+                entity.HasIndex(c => new { c.ParticipantOneId, c.ParticipantTwoId, c.OrganizerProfileId })
+                      .IsUnique()
+                      .HasFilter("[OrganizerProfileId] IS NOT NULL");
             });
 
             builder.Entity<Message>(entity =>
@@ -439,7 +449,19 @@ namespace EventsApp.Data
                       .HasForeignKey(m => m.BusinessWorkspaceId)
                       .OnDelete(DeleteBehavior.NoAction);
 
+                entity.HasOne(m => m.SharedEvent)
+                      .WithMany()
+                      .HasForeignKey(m => m.SharedEventId)
+                      .OnDelete(DeleteBehavior.NoAction);
+
+                entity.HasOne(m => m.SharedPost)
+                      .WithMany()
+                      .HasForeignKey(m => m.SharedPostId)
+                      .OnDelete(DeleteBehavior.NoAction);
+
                 entity.HasIndex(m => new { m.ConversationId, m.CreatedAt });
+                entity.HasIndex(m => m.SharedEventId);
+                entity.HasIndex(m => m.SharedPostId);
             });
 
             builder.Entity<UserActivity>(entity =>
@@ -493,6 +515,9 @@ namespace EventsApp.Data
 
             builder.Entity<Ticket>(entity =>
             {
+                entity.Property(t => t.RequiresAttendeeNames)
+                      .HasDefaultValue(false);
+
                 entity.HasOne(t => t.Event)
                       .WithMany(e => e.Tickets)
                       .HasForeignKey(t => t.EventId)
@@ -514,6 +539,9 @@ namespace EventsApp.Data
 
             builder.Entity<UserTicket>(entity =>
             {
+                entity.Property(ut => ut.AttendeeName)
+                      .HasMaxLength(120);
+
                 entity.HasOne(ut => ut.Ticket)
                       .WithMany(t => t.UserTickets)
                       .HasForeignKey(ut => ut.TicketId)
@@ -540,6 +568,7 @@ namespace EventsApp.Data
                       .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(ut => ut.QrCode).IsUnique();
+                entity.HasIndex(ut => ut.PurchaseGroupId);
             });
 
             builder.Entity<VenueLayout>(entity =>
@@ -554,6 +583,14 @@ namespace EventsApp.Data
 
             builder.Entity<LayoutSection>(entity =>
             {
+                entity.Property(s => s.FloorName)
+                      .HasMaxLength(80)
+                      .HasDefaultValue("Floor 1");
+
+                entity.Property(s => s.Shape)
+                      .HasMaxLength(32)
+                      .HasDefaultValue("Rectangle");
+
                 entity.HasOne(s => s.VenueLayout)
                       .WithMany(l => l.Sections)
                       .HasForeignKey(s => s.VenueLayoutId)
@@ -564,6 +601,18 @@ namespace EventsApp.Data
 
             builder.Entity<Seat>(entity =>
             {
+                entity.Property(s => s.Label)
+                      .HasMaxLength(48);
+
+                entity.Property(s => s.Radius)
+                      .HasDefaultValue(16d);
+
+                entity.Property(s => s.Capacity)
+                      .HasDefaultValue(1);
+
+                entity.Property(s => s.IsCapacityUnlimited)
+                      .HasDefaultValue(false);
+
                 entity.HasOne(s => s.VenueLayout)
                       .WithMany(l => l.Seats)
                       .HasForeignKey(s => s.VenueLayoutId)
@@ -574,7 +623,7 @@ namespace EventsApp.Data
                       .HasForeignKey(s => s.SectionId)
                       .OnDelete(DeleteBehavior.Restrict);
 
-                entity.HasIndex(s => new { s.VenueLayoutId, s.Row, s.Number }).IsUnique();
+                entity.HasIndex(s => new { s.SectionId, s.Row, s.Number }).IsUnique();
             });
 
             builder.Entity<EventSeatInventory>(entity =>

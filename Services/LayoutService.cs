@@ -86,13 +86,16 @@ namespace EventsApp.Services
                 var sectionCopy = new LayoutSection
                 {
                     Name = section.Name,
+                    FloorName = section.FloorName,
                     Type = section.Type,
+                    Shape = section.Shape,
                     Capacity = section.Capacity,
                     PriceModifier = section.PriceModifier,
                     X = section.X,
                     Y = section.Y,
                     Width = section.Width,
                     Height = section.Height,
+                    Rotation = section.Rotation,
                 };
 
                 copy.Sections.Add(sectionCopy);
@@ -112,8 +115,13 @@ namespace EventsApp.Services
                     Section = sectionCopy,
                     Row = seat.Row,
                     Number = seat.Number,
+                    Label = seat.Label,
                     X = seat.X,
                     Y = seat.Y,
+                    Radius = seat.Radius,
+                    Rotation = seat.Rotation,
+                    Capacity = seat.Capacity,
+                    IsCapacityUnlimited = seat.IsCapacityUnlimited,
                     SeatType = seat.SeatType,
                     Status = seat.Status,
                 });

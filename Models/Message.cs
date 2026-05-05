@@ -38,6 +38,16 @@ namespace EventsApp.Models
 
         public BusinessWorkspace? BusinessWorkspace { get; set; }
 
+        [ForeignKey(nameof(SharedEvent))]
+        public int? SharedEventId { get; set; }
+
+        public Event? SharedEvent { get; set; }
+
+        [ForeignKey(nameof(SharedPost))]
+        public int? SharedPostId { get; set; }
+
+        public Post? SharedPost { get; set; }
+
         [Required]
         [MinLength(GlobalConstants.Social.MessageContentMinLength)]
         [MaxLength(GlobalConstants.Social.MessageContentMaxLength)]

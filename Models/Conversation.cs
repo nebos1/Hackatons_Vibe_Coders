@@ -27,6 +27,11 @@ namespace EventsApp.Models
 
         public ApplicationUser ParticipantTwo { get; set; } = null!;
 
+        [ForeignKey(nameof(OrganizerProfile))]
+        public int? OrganizerProfileId { get; set; }
+
+        public OrganizerProfile? OrganizerProfile { get; set; }
+
         [Required]
         public DateTime CreatedAt { get; set; }
 

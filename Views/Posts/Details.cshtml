@@ -37,7 +37,17 @@
         <a asp-action="Index" class="groove-button groove-button-paper">
             <i class="bi bi-arrow-left"></i> Back
         </a>
-        <partial name="_ShareDropdown" model="@(new EventsApp.ViewModels.Shared.ShareModel { Url = shareUrl, Title = ogTitle })" />
+        <partial name="_ShareDropdown" model="@(new EventsApp.ViewModels.Shared.ShareModel { Url = shareUrl, Title = ogTitle, ChatShareAction = "SharePost", ChatShareId = Model.Id })" />
+        @if (User.Identity?.IsAuthenticated == true && Model.OrganizerProfileId.HasValue && User.FindFirstValue(ClaimTypes.NameIdentifier) != Model.OrganizerId)
+        {
+            <form asp-controller="Messages" asp-action="StartPage" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="organizerProfileId" value="@Model.OrganizerProfileId" />
+                <button class="groove-button groove-button-paper" type="submit">
+                    <i class="bi bi-chat-dots"></i> <span data-i18n="messages.message.page">Message page</span>
+                </button>
+            </form>
+        }
         @if (Model.CanEdit)
         {
             <a asp-action="Edit" asp-route-id="@Model.Id" class="groove-button groove-button-paper">
@@ -54,23 +64,43 @@
 
     <article class="groove-paper-card social-post-detail">
         <div class="social-post-card__author">
-            <a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OrganizerId" class="social-author-link">
-                @if (!string.IsNullOrWhiteSpace(Model.OrganizerImageUrl))
-                {
-                    <img src="@Model.OrganizerImageUrl" alt="@Model.OrganizerName" class="social-avatar-xs" />
-                }
-                else
-                {
-                    <span class="social-avatar-xs social-avatar-xs--fallback">@authorInitial</span>
-                }
-                <span>
-                    <strong>@Model.OrganizerName</strong>
-                    @if (Model.OrganizerIsOrganizer)
+            @if (Model.OrganizerProfileId.HasValue)
+            {
+                <span class="social-author-link">
+                    @if (!string.IsNullOrWhiteSpace(Model.OrganizerImageUrl))
                     {
-                        <small><i class="bi bi-patch-check-fill"></i> Organizer</small>
+                        <img src="@Model.OrganizerImageUrl" alt="@Model.OrganizerName" class="social-avatar-xs" />
                     }
+                    else
+                    {
+                        <span class="social-avatar-xs social-avatar-xs--fallback">@authorInitial</span>
+                    }
+                    <span>
+                        <strong>@Model.OrganizerName</strong>
+                        <small><i class="bi bi-patch-check-fill"></i> Public page</small>
+                    </span>
                 </span>
-            </a>
+            }
+            else
+            {
+                <a asp-controller="Profiles" asp-action="Details" asp-route-id="@Model.OrganizerId" class="social-author-link">
+                    @if (!string.IsNullOrWhiteSpace(Model.OrganizerImageUrl))
+                    {
+                        <img src="@Model.OrganizerImageUrl" alt="@Model.OrganizerName" class="social-avatar-xs" />
+                    }
+                    else
+                    {
+                        <span class="social-avatar-xs social-avatar-xs--fallback">@authorInitial</span>
+                    }
+                    <span>
+                        <strong>@Model.OrganizerName</strong>
+                        @if (Model.OrganizerIsOrganizer)
+                        {
+                            <small><i class="bi bi-patch-check-fill"></i> Organizer</small>
+                        }
+                    </span>
+                </a>
+            }
             <small class="text-muted">@Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
         </div>
 
