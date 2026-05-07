@@ -44,6 +44,7 @@ namespace EventsApp.Controllers
                 .Select(c => new
                 {
                     c.Id,
+                    c.Token,
                     c.UpdatedAt,
                     c.Status,
                     c.RequestedByUserId,
@@ -85,6 +86,7 @@ namespace EventsApp.Controllers
                     return new ConversationListItemViewModel
                     {
                         Id = c.Id,
+                        Token = c.Token,
                         OtherUserId = c.Other.Id,
                         OtherUserName = displayName,
                         OtherUserImageUrl = imageUrl,
@@ -123,7 +125,7 @@ namespace EventsApp.Controllers
             return View(vm);
         }
 
-        public async Task<IActionResult> Details(int id)
+        public async Task<IActionResult> Details(Guid token)
         {
             var userId = _userManager.GetUserId(User)!;
             var conversation = await _db.Conversations
@@ -141,7 +143,7 @@ namespace EventsApp.Controllers
                 .Include(c => c.Messages)
                     .ThenInclude(m => m.SharedPost)
                         .ThenInclude(p => p!.Images)
-                .FirstOrDefaultAsync(c => c.Id == id && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
+                .FirstOrDefaultAsync(c => c.Token == token && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
 
             if (conversation == null)
             {
@@ -190,6 +192,7 @@ namespace EventsApp.Controllers
             var vm = new ConversationDetailsViewModel
             {
                 Id = conversation.Id,
+                Token = conversation.Token,
                 OtherUserId = other.Id,
                 OtherUserName = displayName,
                 OtherUserImageUrl = imageUrl,
@@ -313,7 +316,7 @@ namespace EventsApp.Controllers
                 TempData["StatusMessage"] = "Write one message to send the request.";
             }
 
-            return RedirectToAction(nameof(Details), new { id = conversation.Id });
+            return RedirectToAction(nameof(Details), new { token = conversation.Token });
         }
 
         [HttpPost]
@@ -398,7 +401,7 @@ namespace EventsApp.Controllers
                 TempData["StatusMessage"] = "Write one message to send the request.";
             }
 
-            return RedirectToAction(nameof(Details), new { id = conversation.Id });
+            return RedirectToAction(nameof(Details), new { token = conversation.Token });
         }
 
         [HttpGet]
@@ -495,12 +498,12 @@ namespace EventsApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Approve(int id)
+        public async Task<IActionResult> Approve(Guid token)
         {
             var userId = _userManager.GetUserId(User)!;
             var conversation = await _db.Conversations
                 .Include(c => c.OrganizerProfile)
-                .FirstOrDefaultAsync(c => c.Id == id && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
+                .FirstOrDefaultAsync(c => c.Token == token && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
 
             if (conversation == null)
             {
@@ -512,10 +515,10 @@ namespace EventsApp.Controllers
                 return Forbid();
             }
 
-            if (!await _db.Messages.AnyAsync(m => m.ConversationId == id))
+            if (!await _db.Messages.AnyAsync(m => m.ConversationId == conversation.Id))
             {
                 TempData["StatusMessage"] = "The request appears after the first message is sent.";
-                return RedirectToAction(nameof(Details), new { id });
+                return RedirectToAction(nameof(Details), new { token });
             }
 
             if (conversation.OrganizerProfileId.HasValue
@@ -531,17 +534,17 @@ namespace EventsApp.Controllers
             await _db.SaveChangesAsync();
 
             TempData["StatusMessage"] = "Заявката е одобрена. Вече можете да си пишете.";
-            return RedirectToAction(nameof(Details), new { id });
+            return RedirectToAction(nameof(Details), new { token });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Decline(int id)
+        public async Task<IActionResult> Decline(Guid token)
         {
             var userId = _userManager.GetUserId(User)!;
             var conversation = await _db.Conversations
                 .Include(c => c.OrganizerProfile)
-                .FirstOrDefaultAsync(c => c.Id == id && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
+                .FirstOrDefaultAsync(c => c.Token == token && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
 
             if (conversation == null)
             {
@@ -571,19 +574,19 @@ namespace EventsApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Send(int id, string content, string? actingIdentityKey)
+        public async Task<IActionResult> Send(Guid token, string content, string? actingIdentityKey)
         {
             var userId = _userManager.GetUserId(User)!;
             var conversation = await _db.Conversations
                 .Include(c => c.OrganizerProfile)
-                .FirstOrDefaultAsync(c => c.Id == id && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
+                .FirstOrDefaultAsync(c => c.Token == token && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
 
             if (conversation == null)
             {
                 return NotFound();
             }
 
-            var hasMessages = await _db.Messages.AnyAsync(m => m.ConversationId == id);
+            var hasMessages = await _db.Messages.AnyAsync(m => m.ConversationId == conversation.Id);
             var isInitialRequestMessage = conversation.Status == ConversationStatus.Pending
                 && conversation.RequestedByUserId == userId
                 && !hasMessages;
@@ -593,7 +596,7 @@ namespace EventsApp.Controllers
                 TempData["StatusMessage"] = conversation.Status == ConversationStatus.Pending
                     ? "Първо заявката за съобщение трябва да бъде одобрена."
                     : "Този разговор не е активен.";
-                return RedirectToAction(nameof(Details), new { id });
+                return RedirectToAction(nameof(Details), new { token });
             }
 
             var otherUserId = conversation.ParticipantOneId == userId
@@ -611,7 +614,7 @@ namespace EventsApp.Controllers
             if (string.IsNullOrWhiteSpace(content))
             {
                 TempData["StatusMessage"] = "Message cannot be empty.";
-                return RedirectToAction(nameof(Details), new { id });
+                return RedirectToAction(nameof(Details), new { token });
             }
 
             content = content.Trim();
@@ -629,7 +632,7 @@ namespace EventsApp.Controllers
             if (string.IsNullOrWhiteSpace(identityKey))
             {
                 TempData["StatusMessage"] = "You cannot reply from this identity anymore.";
-                return RedirectToAction(nameof(Details), new { id });
+                return RedirectToAction(nameof(Details), new { token });
             }
 
             var identity = await _actingIdentity.ResolveAsync(HttpContext, identityKey, conversation.OrganizerProfileId);
@@ -640,7 +643,7 @@ namespace EventsApp.Controllers
 
             var canSendAsIdentity = isInitialRequestMessage
                 ? await _permissions.CanCommentAsIdentityAsync(User, identity.Type, identity.OrganizerProfileId)
-                : await _permissions.CanMessageAsIdentityAsync(User, id, identity.Type, identity.OrganizerProfileId);
+                : await _permissions.CanMessageAsIdentityAsync(User, conversation.Id, identity.Type, identity.OrganizerProfileId);
 
             if (!canSendAsIdentity)
             {
@@ -649,7 +652,7 @@ namespace EventsApp.Controllers
 
             _db.Messages.Add(new Message
             {
-                ConversationId = id,
+                ConversationId = conversation.Id,
                 SenderId = userId,
                 AuthorType = identity.Type,
                 AuthorOrganizerProfileId = identity.OrganizerProfileId,
@@ -666,7 +669,55 @@ namespace EventsApp.Controllers
                 TempData["StatusMessage"] = "Message request sent. The conversation will unlock after approval.";
             }
 
-            return RedirectToAction(nameof(Details), new { id });
+            return RedirectToAction(nameof(Details), new { token });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Poll(Guid token, int afterId)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var conversation = await _db.Conversations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Token == token && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
+
+            if (conversation == null) return NotFound();
+            if (conversation.Status != ConversationStatus.Accepted)
+                return Ok(new { messages = Array.Empty<object>() });
+
+            var messages = await _db.Messages
+                .Where(m => m.ConversationId == conversation.Id && m.Id > afterId)
+                .Include(m => m.Sender)
+                .Include(m => m.AuthorOrganizerProfile)
+                .OrderBy(m => m.CreatedAt)
+                .ToListAsync();
+
+            var unseenIds = messages
+                .Where(m => m.SenderId != userId && m.SeenAt == null)
+                .Select(m => m.Id)
+                .ToList();
+
+            if (unseenIds.Count > 0)
+            {
+                await _db.Messages
+                    .Where(m => unseenIds.Contains(m.Id))
+                    .ExecuteUpdateAsync(s => s.SetProperty(m => m.SeenAt, DateTime.UtcNow));
+            }
+
+            var result = messages.Select(m => new
+            {
+                id = m.Id,
+                isMine = m.SenderId == userId,
+                senderName = GetMessageDisplayName(m, userId),
+                senderImageUrl = m.AuthorType == AuthorIdentityType.OrganizerPage
+                    ? m.AuthorOrganizerProfile?.AvatarImageUrl
+                    : m.Sender.ProfileImageUrl,
+                senderBadgeText = GetAuthorBadgeText(m.AuthorType, m.SenderId == userId),
+                content = m.Content,
+                createdAt = m.CreatedAt.ToString("dd.MM.yyyy HH:mm"),
+                seenAt = (string?)null,
+            });
+
+            return Ok(new { messages = result });
         }
 
         private async Task<IActionResult> SendSharedCardAsync(
@@ -696,7 +747,7 @@ namespace EventsApp.Controllers
                 TempData["StatusMessage"] = conversation.Status == ConversationStatus.Pending
                     ? "The request must be approved before you can send more messages."
                     : "This conversation is not active.";
-                return RedirectToAction(nameof(Details), new { id = conversationId });
+                return RedirectToAction(nameof(Details), new { token = conversation.Token });
             }
 
             var otherUserId = conversation.ParticipantOneId == userId
@@ -722,7 +773,7 @@ namespace EventsApp.Controllers
             if (string.IsNullOrWhiteSpace(identityKey))
             {
                 TempData["StatusMessage"] = "You cannot reply from this identity anymore.";
-                return RedirectToAction(nameof(Details), new { id = conversationId });
+                return RedirectToAction(nameof(Details), new { token = conversation.Token });
             }
 
             var identity = await _actingIdentity.ResolveAsync(HttpContext, identityKey, conversation.OrganizerProfileId);
@@ -773,6 +824,7 @@ namespace EventsApp.Controllers
                 .Select(c => new
                 {
                     c.Id,
+                    c.Token,
                     c.UpdatedAt,
                     c.Status,
                     c.RequestedByUserId,
@@ -817,6 +869,7 @@ namespace EventsApp.Controllers
                     return new ConversationListItemViewModel
                     {
                         Id = c.Id,
+                        Token = c.Token,
                         OtherUserId = c.Other.Id,
                         OtherUserName = displayName,
                         OtherUserImageUrl = imageUrl,

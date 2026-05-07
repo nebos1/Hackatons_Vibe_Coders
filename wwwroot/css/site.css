@@ -7486,6 +7486,17 @@ html[data-theme="dark"] .social-share-chat-note input {
 html[data-theme="dark"] .groove-link { color: #d8dce8; }
 html[data-theme="dark"] .groove-link:hover { color: #6b85ff; }
 
+/* Social pages use their own CSS variables — override in dark mode */
+html[data-theme="dark"] .social-feed-page,
+html[data-theme="dark"] .social-profile-page,
+html[data-theme="dark"] .social-messages-page {
+    --social-surface: #1b2030;
+    --social-soft: #232940;
+    --social-line: rgba(255, 255, 255, 0.08);
+    --social-ink: #d8dce8;
+    --social-muted: #9ca3b8;
+}
+
 /* Chat bubbles */
 html[data-theme="dark"] .social-message-bubble {
     background: #232940;
@@ -7497,16 +7508,80 @@ html[data-theme="dark"] .social-message-bubble.is-mine {
 }
 html[data-theme="dark"] .social-message-bubble__meta { color: #9ca3b8; }
 
-/* Social pages use their own CSS variables — override in dark mode */
-html[data-theme="dark"] .social-feed-page,
-html[data-theme="dark"] .social-profile-page,
-html[data-theme="dark"] .social-messages-page {
-    --social-surface: #1b2030;
-    --social-soft: #232940;
-    --social-line: rgba(255, 255, 255, 0.08);
-    --social-ink: #d8dce8;
-    --social-muted: #9ca3b8;
+/* Post & event cards */
+html[data-theme="dark"] .social-post-card,
+html[data-theme="dark"] .social-event-card,
+html[data-theme="dark"] .groove-mini-card,
+html[data-theme="dark"] .groove-stat-card,
+html[data-theme="dark"] .social-post-list--stream .social-post-card {
+    background: #1b2030 !important;
+    border-color: #2a3142 !important;
+    color: #d8dce8 !important;
 }
+html[data-theme="dark"] .card-img-top-fixed { background: #232940 !important; }
+
+/* Account overview & stat strip */
+html[data-theme="dark"] .account-stat-strip a,
+html[data-theme="dark"] .account-stat-strip span {
+    background: #1b2030 !important;
+    border-color: #2a3142 !important;
+    color: #d8dce8 !important;
+}
+html[data-theme="dark"] .account-stat-strip strong { color: #ecedf3 !important; }
+html[data-theme="dark"] .organizer-profile-card__avatar { border-color: #1b2030 !important; }
+
+/* Chat compose & forms */
+html[data-theme="dark"] .social-chat-compose {
+    background: #1b2030;
+    border-color: #2a3142;
+}
+html[data-theme="dark"] .social-chat-compose input,
+html[data-theme="dark"] .groove-form-panel .form-control,
+html[data-theme="dark"] .groove-form-panel .form-select,
+html[data-theme="dark"] .groove-form-panel textarea,
+html[data-theme="dark"] .groove-filter select {
+    background: #232940 !important;
+    border-color: #2a3142 !important;
+    color: #d8dce8 !important;
+}
+
+/* Comment replies & like button */
+html[data-theme="dark"] .social-comment-reply-item {
+    background: rgba(35, 41, 64, 0.9) !important;
+    border-color: #2a3142 !important;
+}
+html[data-theme="dark"] .comment-like-button {
+    background: rgba(35, 41, 64, 0.9) !important;
+    border-color: rgba(239, 68, 68, 0.28) !important;
+    color: #f87171 !important;
+}
+html[data-theme="dark"] .comment-like-button:hover {
+    background: rgba(50, 20, 20, 0.9) !important;
+    border-color: rgba(239, 68, 68, 0.5) !important;
+}
+
+/* Story create card & share fallback */
+html[data-theme="dark"] .social-story-card--create {
+    background: linear-gradient(180deg, #232940, #1b2030) !important;
+    border-color: #2a3142 !important;
+}
+html[data-theme="dark"] .social-message-share-card__fallback {
+    background: #232940 !important;
+    color: #6b85ff !important;
+}
+
+/* groove-app-page theming */
+html[data-theme="dark"] .groove-app-page {
+    --groove-paper: #0b0e17;
+    --groove-card: #1b2030;
+    --groove-ink: #d8dce8;
+    --groove-muted: #9ca3b8;
+    background: #0b0e17;
+    color: #d8dce8;
+}
+html[data-theme="dark"] .groove-app-page .groove-panel-intro,
+html[data-theme="dark"] .groove-app-page .groove-muted-copy,
+html[data-theme="dark"] .groove-page-section p { color: #9ca3b8 !important; }
 
 html[data-theme="dark"] .social-message-panel {
     background: #1b2030;
@@ -10369,10 +10444,10 @@ video {
     background: #0d1424;
     color: #fff;
     border-radius: 18px;
-    padding: 12px 16px;
+    padding: 14px 16px 14px;
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    gap: 10px;
     box-shadow: 0 8px 40px rgba(0,0,0,0.4);
     animation: pwa-slide-up 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
 }
@@ -10381,7 +10456,7 @@ video {
         left: auto;
         right: 24px;
         bottom: 24px;
-        max-width: 400px;
+        max-width: 380px;
     }
 }
 @media (max-width: 767.98px) {
@@ -10392,6 +10467,26 @@ video {
 @keyframes pwa-slide-up {
     from { transform: translateY(120%); opacity: 0; }
     to   { transform: translateY(0);    opacity: 1; }
+}
+.evt-pwa-banner__close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background .15s;
+}
+.evt-pwa-banner__close:hover { background: rgba(255,255,255,0.22); }
+.evt-pwa-banner__main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-right: 28px;
 }
 .evt-pwa-banner__logo {
     width: 38px;
@@ -10415,31 +10510,37 @@ video {
     font-size: 0.76rem;
     opacity: 0.75;
 }
-.evt-pwa-banner__btn {
-    background: #6c5ce7;
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    padding: 8px 14px;
-    font-weight: 700;
-    font-size: 0.82rem;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: background .15s;
-    flex-shrink: 0;
+.evt-pwa-banner__choose {
+    display: flex;
+    gap: 8px;
 }
-.evt-pwa-banner__btn:hover { background: #5a4bd1; }
-.evt-pwa-banner__close {
+.evt-pwa-banner__platform-btn {
+    flex: 1;
     background: rgba(255,255,255,0.1);
     color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 6px 8px;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
     cursor: pointer;
-    flex-shrink: 0;
     transition: background .15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
-.evt-pwa-banner__close:hover { background: rgba(255,255,255,0.2); }
+.evt-pwa-banner__platform-btn:hover { background: rgba(255,255,255,0.2); }
+.evt-pwa-banner__steps {
+    font-size: 0.8rem;
+    opacity: 0.9;
+    padding: 2px 0;
+}
+.evt-pwa-banner__steps ol {
+    margin: 0;
+    padding-left: 18px;
+    line-height: 1.7;
+}
 
 /* ===========================
    User Onboarding Checklist

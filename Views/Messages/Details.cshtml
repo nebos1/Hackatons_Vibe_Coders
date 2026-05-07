@@ -64,13 +64,13 @@
                         <strong data-i18n="messages.request.title">Message request</strong>
                         <p data-i18n="messages.request.desc">Approve the request before the conversation can continue.</p>
                         <div class="groove-cta-row">
-                            <form asp-action="Approve" asp-route-id="@Model.Id" method="post">
+                            <form asp-action="Approve" asp-route-token="@Model.Token" method="post">
                                 @Html.AntiForgeryToken()
                                 <button class="groove-button groove-button-dark" type="submit">
                                     <i class="bi bi-check2"></i> <span data-i18n="messages.approve">Approve</span>
                                 </button>
                             </form>
-                            <form asp-action="Decline" asp-route-id="@Model.Id" method="post">
+                            <form asp-action="Decline" asp-route-token="@Model.Token" method="post">
                                 @Html.AntiForgeryToken()
                                 <button class="groove-button groove-button-paper" type="submit">
                                     <i class="bi bi-x-lg"></i> <span data-i18n="messages.decline">Decline</span>
@@ -171,7 +171,7 @@
 
         @if (Model.CanSendMessage && Model.ActingIdentities.Count > 0)
         {
-            <form asp-action="Send" asp-route-id="@Model.Id" method="post" class="social-chat-compose">
+            <form asp-action="Send" asp-route-token="@Model.Token" method="post" class="social-chat-compose">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="actingIdentityKey" value="@Model.ActingIdentities[0].Key" />
                 <span class="small text-muted"><span data-i18n="identity.replying.as">Replying as</span>: @Model.ActingIdentities[0].DisplayName</span>
@@ -191,18 +191,101 @@
     </div>
 </section>
 
-<script>
+@if (Model.Status == ConversationStatus.Accepted)
+{
+    <script>
     (function () {
+        var conversationToken = '@Model.Token';
         var thread = document.querySelector('.social-chat-thread');
-        if (!thread) return;
-        var scrollToBottom = function () {
-            thread.scrollTop = thread.scrollHeight;
-        };
-        scrollToBottom();
-        window.addEventListener('load', scrollToBottom);
-        var lastMessage = thread.querySelector('.social-message-bubble:last-of-type img');
-        if (lastMessage && !lastMessage.complete) {
-            lastMessage.addEventListener('load', scrollToBottom);
+        var lastId = @(Model.Messages.Count > 0 ? Model.Messages[^1].Id : 0);
+        var polling = true;
+
+        function scrollBottom() {
+            if (thread) thread.scrollTop = thread.scrollHeight;
+        }
+        scrollBottom();
+        window.addEventListener('load', scrollBottom);
+        var lastImg = thread ? thread.querySelector('.social-message-bubble:last-of-type img') : null;
+        if (lastImg && !lastImg.complete) lastImg.addEventListener('load', scrollBottom);
+
+        function buildBubble(m) {
+            var article = document.createElement('article');
+            article.className = 'social-message-bubble' + (m.isMine ? ' is-mine' : '');
+
+            var head = document.createElement('div');
+            head.className = 'social-message-bubble__head';
+            if (m.senderImageUrl) {
+                var img = document.createElement('img');
+                img.src = m.senderImageUrl;
+                img.alt = m.senderName;
+                img.className = 'social-avatar-xs';
+                head.appendChild(img);
+            }
+            var name = document.createElement('strong');
+            name.className = 'small';
+            name.textContent = m.senderName;
+            head.appendChild(name);
+            if (m.senderBadgeText) {
+                var badge = document.createElement('span');
+                badge.className = 'groove-badge';
+                badge.textContent = m.senderBadgeText;
+                head.appendChild(badge);
+            }
+            article.appendChild(head);
+
+            var p = document.createElement('p');
+            p.textContent = m.content;
+            article.appendChild(p);
+
+            var meta = document.createElement('small');
+            meta.className = 'social-message-bubble__meta';
+            meta.innerHTML = '<span><i class="bi bi-clock"></i> ' + m.createdAt + '</span>';
+            if (m.isMine) {
+                meta.innerHTML += '<span><i class="bi bi-check2"></i> Delivered</span>';
+            }
+            article.appendChild(meta);
+            return article;
+        }
+
+        function poll() {
+            if (!polling) return;
+            fetch('/Messages/Poll/' + conversationToken + '?afterId=' + lastId, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (!data || !data.messages || data.messages.length === 0) return;
+                var wasAtBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 60;
+                data.messages.forEach(function (m) {
+                    thread.appendChild(buildBubble(m));
+                    lastId = m.id;
+                });
+                if (wasAtBottom) scrollBottom();
+            })
+            .catch(function () {})
+            .finally(function () {
+                if (polling) window.setTimeout(poll, 5000);
+            });
+        }
+
+        window.setTimeout(poll, 5000);
+
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) {
+                polling = false;
+            } else {
+                polling = true;
+                poll();
+            }
+        });
+
+        var form = document.querySelector('.social-chat-compose');
+        if (form) {
+            form.addEventListener('submit', function () {
+                polling = false;
+                window.setTimeout(function () { polling = false; }, 100);
+            });
         }
     })();
-</script>
+    </script>
+}

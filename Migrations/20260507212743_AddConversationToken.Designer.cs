@@ -3,6 +3,7 @@ using System;
 using EventsApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EventsApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260507212743_AddConversationToken")]
+    partial class AddConversationToken
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -261,106 +264,6 @@ namespace EventsApp.Migrations
                         .HasFilter("\"OrganizerProfileId\" IS NOT NULL");
 
                     b.ToTable("Conversations");
-                });
-
-            modelBuilder.Entity("EventsApp.Models.DayPlan", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Intro")
-                        .HasMaxLength(800)
-                        .HasColumnType("character varying(800)");
-
-                    b.Property<DateTime>("PlannedFor")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("ShareToken")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("Title")
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserRequest")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("Vibe")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ShareToken")
-                        .IsUnique()
-                        .HasFilter("\"ShareToken\" IS NOT NULL");
-
-                    b.HasIndex("UserId", "PlannedFor");
-
-                    b.ToTable("DayPlans");
-                });
-
-            modelBuilder.Entity("EventsApp.Models.DayPlanItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DayPlanId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("EndTime")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
-
-                    b.Property<int?>("EventId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Slot")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("StartTime")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EventId");
-
-                    b.HasIndex("DayPlanId", "Order");
-
-                    b.ToTable("DayPlanItems");
                 });
 
             modelBuilder.Entity("EventsApp.Models.Event", b =>
@@ -1702,10 +1605,6 @@ namespace EventsApp.Migrations
                     b.Property<int?>("PreferredGenre")
                         .HasColumnType("integer");
 
-                    b.Property<string>("PreferredGenresCsv")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -2045,35 +1944,6 @@ namespace EventsApp.Migrations
                     b.Navigation("ParticipantTwo");
 
                     b.Navigation("RequestedByUser");
-                });
-
-            modelBuilder.Entity("EventsApp.Models.DayPlan", b =>
-                {
-                    b.HasOne("EventsApp.Models.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("EventsApp.Models.DayPlanItem", b =>
-                {
-                    b.HasOne("EventsApp.Models.DayPlan", "DayPlan")
-                        .WithMany("Items")
-                        .HasForeignKey("DayPlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EventsApp.Models.Event", "Event")
-                        .WithMany()
-                        .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("DayPlan");
-
-                    b.Navigation("Event");
                 });
 
             modelBuilder.Entity("EventsApp.Models.Event", b =>
@@ -2923,11 +2793,6 @@ namespace EventsApp.Migrations
             modelBuilder.Entity("EventsApp.Models.Conversation", b =>
                 {
                     b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("EventsApp.Models.DayPlan", b =>
-                {
-                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("EventsApp.Models.Event", b =>

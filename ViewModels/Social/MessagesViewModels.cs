@@ -5,6 +5,7 @@ namespace EventsApp.ViewModels.Social
     public class ConversationListItemViewModel
     {
         public int Id { get; set; }
+        public Guid Token { get; set; }
         public string OtherUserId { get; set; } = null!;
         public string OtherUserName { get; set; } = null!;
         public string? OtherUserImageUrl { get; set; }
@@ -63,6 +64,7 @@ namespace EventsApp.ViewModels.Social
     public class ConversationDetailsViewModel
     {
         public int Id { get; set; }
+        public Guid Token { get; set; }
         public string OtherUserId { get; set; } = null!;
         public string OtherUserName { get; set; } = null!;
         public string? OtherUserImageUrl { get; set; }

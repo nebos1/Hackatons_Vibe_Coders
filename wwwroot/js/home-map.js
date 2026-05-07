@@ -202,6 +202,7 @@
             setupMap(mapEl);
         }
 
+        window.GrooveHomeStartMap = startMap;
         whenMapsReady(startMap);
         var mapPollCount = 0;
         var mapPoll = window.setInterval(function () {

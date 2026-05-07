@@ -258,8 +258,12 @@
                 autoDisplay: false
             }, 'google_translate_element');
             window.setTimeout(function () {
-                if (window.GrooveHomeMapRefresh) window.GrooveHomeMapRefresh();
-            }, 1200);
+                if (window.GrooveHomeMapRefresh) {
+                    window.GrooveHomeMapRefresh();
+                } else if (window.GrooveHomeStartMap) {
+                    window.GrooveHomeStartMap();
+                }
+            }, 1500);
         }
         window.googleTranslateElementInit = googleTranslateElementInit;
     </script>
@@ -267,33 +271,44 @@
 
     <partial name="_MobileNav" />
 
-    <!-- PWA install banners -->
+    <!-- PWA install banner -->
     <div id="evt-pwa-banner" hidden class="evt-pwa-banner">
-        <img src="/img/logo.svg" alt="Evento" class="evt-pwa-banner__logo" />
-        <div class="evt-pwa-banner__text">
-            <strong>Инсталирай Evento</strong>
-            <span>Добави към началния екран</span>
-        </div>
-        <button id="evt-pwa-install-btn" type="button" class="evt-pwa-banner__btn">
-            <i class="bi bi-download"></i> Инсталирай
-        </button>
         <button id="evt-pwa-close-btn" type="button" class="evt-pwa-banner__close" aria-label="Затвори">
             <i class="bi bi-x-lg"></i>
         </button>
-    </div>
-    <div id="evt-ios-banner" hidden class="evt-pwa-banner">
-        <img src="/img/logo.svg" alt="Evento" class="evt-pwa-banner__logo" />
-        <div class="evt-pwa-banner__text">
-            <strong>Инсталирай Evento на iPhone</strong>
-            <span>Натисни <i class="bi bi-box-arrow-up"></i> &rarr; "Добави към начален екран"</span>
+        <div class="evt-pwa-banner__main">
+            <img src="/img/logo.svg" alt="Evento" class="evt-pwa-banner__logo" />
+            <div class="evt-pwa-banner__text">
+                <strong>Инсталирай Evento</strong>
+                <span>Добави към началния екран за по-добро изживяване</span>
+            </div>
         </div>
-        <button id="evt-ios-close-btn" type="button" class="evt-pwa-banner__close" aria-label="Затвори">
-            <i class="bi bi-x-lg"></i>
-        </button>
+        <!-- Step 1: choose platform -->
+        <div id="evt-pwa-choose" class="evt-pwa-banner__choose">
+            <button id="evt-pwa-android-btn" type="button" class="evt-pwa-banner__platform-btn">
+                <i class="bi bi-android2"></i> Android
+            </button>
+            <button id="evt-pwa-ios-btn" type="button" class="evt-pwa-banner__platform-btn">
+                <i class="bi bi-apple"></i> iOS
+            </button>
+        </div>
+        <!-- Step 2a: Android instructions (shown only when deferred prompt unavailable) -->
+        <div id="evt-pwa-android-steps" hidden class="evt-pwa-banner__steps">
+            <ol>
+                <li>Натисни <i class="bi bi-three-dots-vertical"></i> менюто на браузъра</li>
+                <li>Избери <strong>"Добави към началния екран"</strong></li>
+            </ol>
+        </div>
+        <!-- Step 2b: iOS instructions -->
+        <div id="evt-pwa-ios-steps" hidden class="evt-pwa-banner__steps">
+            <ol>
+                <li>Натисни <i class="bi bi-box-arrow-up"></i> бутона за споделяне</li>
+                <li>Избери <strong>"Добави към началния екран"</strong></li>
+            </ol>
+        </div>
     </div>
     <script>
         (function () {
-            // Already installed — never show
             if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return;
 
             if ('serviceWorker' in navigator) {
@@ -302,59 +317,51 @@
                 });
             }
 
-            // Dismiss flag resets each browser session
-            if (sessionStorage.getItem('evt_pwa_dismissed')) return;
+            var dismissed = localStorage.getItem('evt_pwa_dismissed');
+            if (dismissed && Date.now() - parseInt(dismissed, 10) < 7 * 24 * 3600 * 1000) return;
+
+            var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            if (!isMobile) return;
 
             var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            var isSafariOnly = isIOS && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
             var deferred = null;
             var banner = document.getElementById('evt-pwa-banner');
-            var iosBanner = document.getElementById('evt-ios-banner');
+            var choose = document.getElementById('evt-pwa-choose');
+            var androidSteps = document.getElementById('evt-pwa-android-steps');
+            var iosSteps = document.getElementById('evt-pwa-ios-steps');
 
-            function showBanner(el) {
-                if (!el) return;
-                // Ensure only one banner is visible at a time
-                if (el === banner && iosBanner) iosBanner.hidden = true;
-                if (el === iosBanner && banner) banner.hidden = true;
-                el.hidden = false;
-            }
-            function dismissBanner(el) {
-                if (el) el.hidden = true;
-                sessionStorage.setItem('evt_pwa_dismissed', '1');
-            }
-
-            // Android / Chrome / desktop Edge
             window.addEventListener('beforeinstallprompt', function (e) {
                 e.preventDefault();
                 deferred = e;
-                setTimeout(function () { showBanner(banner); }, 3500);
             });
 
-            // iOS Safari — only show if no Android-style install prompt is available
-            if (isSafariOnly) {
-                setTimeout(function () {
-                    if (!deferred) showBanner(iosBanner);
-                }, 4500);
+            function dismiss() {
+                banner.hidden = true;
+                localStorage.setItem('evt_pwa_dismissed', String(Date.now()));
             }
 
-            var installBtn = document.getElementById('evt-pwa-install-btn');
-            if (installBtn) {
-                installBtn.addEventListener('click', function () {
-                    if (!deferred) return;
+            document.getElementById('evt-pwa-close-btn').addEventListener('click', dismiss);
+
+            document.getElementById('evt-pwa-android-btn').addEventListener('click', function () {
+                if (deferred) {
                     deferred.prompt();
-                    deferred.userChoice.finally(function () { deferred = null; dismissBanner(banner); });
-                });
-            }
-
-            var closeBtn = document.getElementById('evt-pwa-close-btn');
-            if (closeBtn) closeBtn.addEventListener('click', function () { dismissBanner(banner); });
-
-            var iosClose = document.getElementById('evt-ios-close-btn');
-            if (iosClose) iosClose.addEventListener('click', function () { dismissBanner(iosBanner); });
-
-            window.addEventListener('appinstalled', function () {
-                dismissBanner(banner); dismissBanner(iosBanner);
+                    deferred.userChoice.finally(function () { deferred = null; dismiss(); });
+                } else {
+                    choose.hidden = true;
+                    androidSteps.hidden = false;
+                }
             });
+
+            document.getElementById('evt-pwa-ios-btn').addEventListener('click', function () {
+                choose.hidden = true;
+                iosSteps.hidden = false;
+            });
+
+            window.addEventListener('appinstalled', dismiss);
+
+            setTimeout(function () {
+                if (isIOS || deferred || isMobile) banner.hidden = false;
+            }, 4000);
         })();
     </script>
 </body>

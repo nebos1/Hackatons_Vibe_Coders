@@ -33,6 +33,9 @@ namespace EventsApp.Models
         public OrganizerProfile? OrganizerProfile { get; set; }
 
         [Required]
+        public Guid Token { get; set; } = Guid.NewGuid();
+
+        [Required]
         public DateTime CreatedAt { get; set; }
 
         [Required]
