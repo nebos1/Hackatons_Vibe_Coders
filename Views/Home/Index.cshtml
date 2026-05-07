@@ -309,7 +309,7 @@
                     {
                         var heat = ev.GoingCount * 2 + ev.InterestedCount + ev.LikesCount + ev.CommentsCount + ev.SavesCount;
                         var rank = trendingEvents.IndexOf(ev) + 1;
-                        <button type="button" class="evt-trending__row" data-show-on-map="@ev.Id">
+                        <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="evt-trending__row">
                             @if (!string.IsNullOrWhiteSpace(ev.ImageUrl))
                             {
                                 <img src="@ev.ImageUrl" alt="@ev.Title" />
@@ -323,7 +323,7 @@
                                 <small>@ev.City · @ev.StartTime.ToString("dd.MM HH:mm")</small>
                             </div>
                             <span class="evt-trending__rank">#@rank</span>
-                        </button>
+                        </a>
                     }
                     @if (trendingEvents.Count == 0)
                     {
