@@ -886,7 +886,8 @@ namespace EventsApp.Controllers
             if (IsAjaxRequest())
             {
                 var likesCount = await _db.EventLikes.CountAsync(l => l.EventId == id);
-                return Json(new { liked = true, likesCount });
+                var heat = await GetHeatAsync(id);
+                return Json(new { liked = true, likesCount, heat = heat.Heat, isHot = heat.IsHot });
             }
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
@@ -911,7 +912,8 @@ namespace EventsApp.Controllers
 
             if (IsAjaxRequest())
             {
-                return Json(new { saved = true });
+                var heat = await GetHeatAsync(id);
+                return Json(new { saved = true, heat = heat.Heat, isHot = heat.IsHot });
             }
 
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -936,7 +938,8 @@ namespace EventsApp.Controllers
 
             if (IsAjaxRequest())
             {
-                return Json(new { saved = false });
+                var heat = await GetHeatAsync(id);
+                return Json(new { saved = false, heat = heat.Heat, isHot = heat.IsHot });
             }
 
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -992,11 +995,14 @@ namespace EventsApp.Controllers
                     .CountAsync(a => a.EventId == id && a.Status == EventAttendanceStatus.Going);
                 var interestedCount = await _db.EventAttendances
                     .CountAsync(a => a.EventId == id && a.Status == EventAttendanceStatus.Interested);
+                var heat = await GetHeatAsync(id);
                 return Json(new
                 {
                     attendanceStatus = current?.Status.ToString(),
                     goingCount,
                     interestedCount,
+                    heat = heat.Heat,
+                    isHot = heat.IsHot,
                 });
             }
 
@@ -1022,7 +1028,8 @@ namespace EventsApp.Controllers
             if (IsAjaxRequest())
             {
                 var likesCount = await _db.EventLikes.CountAsync(l => l.EventId == id);
-                return Json(new { liked = false, likesCount });
+                var heat = await GetHeatAsync(id);
+                return Json(new { liked = false, likesCount, heat = heat.Heat, isHot = heat.IsHot });
             }
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
@@ -1757,6 +1764,26 @@ namespace EventsApp.Controllers
                 Request.Headers["X-Requested-With"].ToString(),
                 "XMLHttpRequest",
                 StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task<(int Heat, bool IsHot)> GetHeatAsync(int eventId)
+        {
+            var stats = await _db.Events
+                .AsNoTracking()
+                .Where(e => e.Id == eventId)
+                .Select(e => new
+                {
+                    Going = e.Attendances.Count(a => a.Status == EventAttendanceStatus.Going),
+                    Interested = e.Attendances.Count(a => a.Status == EventAttendanceStatus.Interested),
+                    Likes = e.Likes.Count,
+                    Comments = e.Comments.Count,
+                    Saves = e.Saves.Count,
+                    Views = e.UserActivities.Count(a => a.ActivityType == UserActivityType.EventViewed),
+                })
+                .FirstOrDefaultAsync();
+            if (stats == null) return (0, false);
+            var heat = stats.Going * 2 + stats.Interested + stats.Likes + stats.Comments + stats.Saves + (stats.Views / 3);
+            return (heat, heat >= 8);
         }
 
         private static string GetCommentDisplayName(EventComment comment)

@@ -78,5 +78,51 @@
                 interestedBtn.innerHTML = '<i class="bi bi-star"></i> ' + data.interestedCount;
             }
         }
+
+        if (typeof data.heat === 'number') {
+            updateHeat(card, data.heat, data.isHot === true);
+        }
+    }
+
+    function updateHeat(card, heat, isHot) {
+        var meta = card.querySelector('.evt-card__meta');
+        var rating = card.querySelector('.evt-card__rating');
+        if (heat > 0) {
+            if (rating) {
+                rating.innerHTML = '<i class="bi bi-fire"></i> ' + heat;
+            } else if (meta) {
+                rating = document.createElement('span');
+                rating.className = 'evt-card__rating';
+                rating.title = 'Heat';
+                rating.innerHTML = '<i class="bi bi-fire"></i> ' + heat;
+                meta.appendChild(rating);
+            }
+        } else if (rating) {
+            rating.remove();
+        }
+
+        var firstChip = card.querySelector('.evt-card__media .evt-card__chip');
+        if (!firstChip) return;
+        if (firstChip.classList.contains('evt-card__chip--vip')
+            || firstChip.classList.contains('evt-card__chip--pending')) {
+            return;
+        }
+        if (isHot) {
+            if (!firstChip.classList.contains('evt-card__chip--hot')) {
+                firstChip.dataset.originalHtml = firstChip.innerHTML;
+                firstChip.dataset.originalI18n = firstChip.getAttribute('data-i18n') || '';
+                firstChip.removeAttribute('data-i18n');
+                firstChip.classList.add('evt-card__chip--hot');
+                firstChip.innerHTML = '<i class="bi bi-fire"></i> Hot';
+            }
+        } else {
+            if (firstChip.classList.contains('evt-card__chip--hot') && firstChip.dataset.originalHtml) {
+                firstChip.classList.remove('evt-card__chip--hot');
+                firstChip.innerHTML = firstChip.dataset.originalHtml;
+                if (firstChip.dataset.originalI18n) {
+                    firstChip.setAttribute('data-i18n', firstChip.dataset.originalI18n);
+                }
+            }
+        }
     }
 })();
