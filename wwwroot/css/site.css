@@ -7471,6 +7471,68 @@ html[data-theme="dark"] .social-message-bubble.is-mine {
 }
 html[data-theme="dark"] .social-message-bubble__meta { color: #9ca3b8; }
 
+/* Social pages use their own CSS variables — override in dark mode */
+html[data-theme="dark"] .social-feed-page,
+html[data-theme="dark"] .social-profile-page,
+html[data-theme="dark"] .social-messages-page {
+    --social-surface: #1b2030;
+    --social-soft: #232940;
+    --social-line: rgba(255, 255, 255, 0.08);
+    --social-ink: #d8dce8;
+    --social-muted: #9ca3b8;
+}
+
+html[data-theme="dark"] .social-message-panel {
+    background: #1b2030;
+    border-color: #2a3142;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+html[data-theme="dark"] .social-message-panel--requests {
+    background: linear-gradient(135deg, rgba(74, 111, 255, 0.10), rgba(27, 32, 48, 0.95));
+    border-color: rgba(107, 133, 255, 0.3);
+}
+html[data-theme="dark"] .social-message-panel__head h2,
+html[data-theme="dark"] .social-conversation-row strong { color: #ecedf3; }
+html[data-theme="dark"] .social-conversation-row small,
+html[data-theme="dark"] .social-conversation-row time { color: #9ca3b8; }
+html[data-theme="dark"] .social-conversation-row:hover { background: #232940; }
+html[data-theme="dark"] .social-conversation-row__fallback {
+    background: #4a6fff;
+    color: #fff;
+}
+html[data-theme="dark"] .social-conversation-row b {
+    background: #ff5a3c;
+    color: #fff;
+}
+html[data-theme="dark"] .social-empty-panel {
+    background: #232940;
+    border-color: #2a3142;
+    color: #9ca3b8;
+}
+
+/* Posts/feed surfaces */
+html[data-theme="dark"] .social-feed-search,
+html[data-theme="dark"] .social-feed-section,
+html[data-theme="dark"] .social-card,
+html[data-theme="dark"] .social-search-results {
+    background: #1b2030;
+    border-color: #2a3142;
+    color: #d8dce8;
+}
+html[data-theme="dark"] .social-card h2,
+html[data-theme="dark"] .social-card h3,
+html[data-theme="dark"] .social-card strong { color: #ecedf3; }
+html[data-theme="dark"] .social-card p,
+html[data-theme="dark"] .social-card small { color: #9ca3b8; }
+
+/* Profile pages */
+html[data-theme="dark"] .social-profile-hero,
+html[data-theme="dark"] .account-overview-hero,
+html[data-theme="dark"] .organizer-profile-card {
+    background: #1b2030;
+    border-color: #2a3142;
+}
+
 /* Soft scrollbar that doesn't fight the surface */
 html[data-theme="dark"] ::-webkit-scrollbar { width: 10px; height: 10px; }
 html[data-theme="dark"] ::-webkit-scrollbar-track { background: #131826; }
@@ -10633,9 +10695,9 @@ video {
 html[data-theme="dark"] .groove-app-page,
 html[data-theme="dark"] .groove-feed-page,
 html[data-theme="dark"] .groove-form-shell {
-    --groove-card: #151a26;
-    --groove-ink: #e8eaf2;
-    --groove-muted: #9ba2b5;
+    --groove-card: #1b2030;
+    --groove-ink: #d8dce8;
+    --groove-muted: #9ca3b8;
     color: var(--groove-ink);
 }
 
