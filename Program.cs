@@ -165,6 +165,7 @@ using (var scope = app.Services.CreateScope())
 
     await RoleSeeder.SeedRolesAsync(services);
     await AdminSeeder.SeedAdminAsync(services, app.Configuration, app.Environment);
+    await EventsSeeder.SeedAsync(services);
 
     if (app.Environment.IsDevelopment() && app.Configuration.GetValue("SeedDemoData", false))
     {
