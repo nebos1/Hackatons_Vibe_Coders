@@ -7558,6 +7558,35 @@ html[data-theme="dark"] .evt-card__chip--hot { background: #ff5a3c; color: #fff;
 html[data-theme="dark"] .evt-card__chip--free { background: rgba(6, 78, 59, 0.85); color: #6ee7b7; }
 html[data-theme="dark"] .evt-card__chip--pending { background: rgba(120, 90, 0, 0.85); color: #fde68a; }
 
+/* Free / price pill on event cards — must not be a bright bar in dark mode */
+.evt-card__price,
+.evt-card__price--free {
+    display: inline-flex !important;
+    align-items: center;
+    align-self: flex-start !important;
+    width: auto !important;
+    max-width: max-content;
+    flex: 0 0 auto;
+}
+html[data-theme="dark"] .evt-card__price {
+    background: rgba(6, 78, 59, 0.4);
+    border-color: rgba(110, 231, 183, 0.4);
+    color: #6ee7b7;
+}
+html[data-theme="dark"] .evt-card__price--free {
+    background: rgba(6, 78, 59, 0.4);
+    border-color: transparent;
+    color: #6ee7b7;
+}
+
+/* Other light pill backgrounds that were invisible on dark cards */
+html[data-theme="dark"] .bg-light { background: #232940 !important; color: #d8dce8; }
+html[data-theme="dark"] .badge.bg-light,
+html[data-theme="dark"] .badge.text-bg-light {
+    background: #232940 !important;
+    color: #d8dce8 !important;
+}
+
 html[data-theme="dark"] .event-card.evt-card,
 html[data-theme="dark"] .event-card { border-color: #2a3142 !important; }
 html[data-theme="dark"] .text-muted,
