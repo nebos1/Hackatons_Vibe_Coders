@@ -1,12 +1,18 @@
 @using EventsApp.Common
 @inject IConfiguration Configuration
 @{
-    var googleSiteVerification = Configuration["Google:SiteVerification"]
-        ?? Configuration["GOOGLE_SITE_VERIFICATION"]
-        ?? Configuration["GOOGLE_SEARCH_CONSOLE_VERIFICATION"];
-    var publicUrl = (Configuration["App:PublicUrl"]
-        ?? Configuration["APP_PUBLIC_URL"]
-        ?? Configuration["PUBLIC_URL"])?.TrimEnd('/');
+    var googleSiteVerification = new[]
+    {
+        Configuration["GOOGLE_SITE_VERIFICATION"],
+        Configuration["GOOGLE_SEARCH_CONSOLE_VERIFICATION"],
+        Configuration["Google:SiteVerification"]
+    }.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+    var publicUrl = new[]
+    {
+        Configuration["APP_PUBLIC_URL"],
+        Configuration["PUBLIC_URL"],
+        Configuration["App:PublicUrl"]
+    }.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.TrimEnd('/');
     var requestPath = $"{Context.Request.PathBase}{Context.Request.Path}";
     var canonicalUrl = string.IsNullOrWhiteSpace(publicUrl)
         ? null

@@ -16,9 +16,7 @@ namespace EventsApp.Services
 
         public string ToAbsoluteUrl(HttpRequest request, string? pathAndQuery)
         {
-            var configuredUrl = _configuration["App:PublicUrl"]
-                ?? _configuration["APP_PUBLIC_URL"]
-                ?? _configuration["PUBLIC_URL"];
+            var configuredUrl = GetSetting("APP_PUBLIC_URL", "PUBLIC_URL", "App:PublicUrl");
 
             var baseUrl = BuildBaseUrl(configuredUrl, request).TrimEnd('/') + "/";
             if (string.IsNullOrWhiteSpace(pathAndQuery))
@@ -32,6 +30,20 @@ namespace EventsApp.Services
             }
 
             return new Uri(new Uri(baseUrl), pathAndQuery.TrimStart('/')).ToString();
+        }
+
+        private string? GetSetting(params string[] keys)
+        {
+            foreach (var key in keys)
+            {
+                var value = _configuration[key];
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    return value;
+                }
+            }
+
+            return null;
         }
 
         private static string BuildBaseUrl(string? configuredUrl, HttpRequest request)

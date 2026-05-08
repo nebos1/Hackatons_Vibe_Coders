@@ -17,7 +17,7 @@ namespace EventsApp.Services.Email
 
         public async Task SendEmailAsync(string email, string subject, string htmlMessage)
         {
-            if (!GetBool(false, "Email:Enabled", "EMAIL_ENABLED"))
+            if (!GetBool(false, "EMAIL_ENABLED", "Email:Enabled"))
             {
                 _logger.LogInformation("Email sending is disabled. Skipping message to {Email} with subject {Subject}.", email, subject);
                 return;
@@ -33,7 +33,7 @@ namespace EventsApp.Services.Email
             }
 
             var port = GetInt(587, "Email:Smtp:Port", "SMTP_PORT");
-            var enableSsl = GetBool(true, "Email:Smtp:EnableSsl", "SMTP_ENABLE_SSL", "SMTP_SSL");
+            var enableSsl = GetBool(true, "SMTP_ENABLE_SSL", "SMTP_SSL", "Email:Smtp:EnableSsl");
             var password = GetSetting("Email:Smtp:Password", "SMTP_PASSWORD", "SMTP_PASS");
             var fromName = GetSetting("Email:From:Name", "SMTP_FROM_NAME") ?? "Evento";
 
