@@ -49,6 +49,8 @@ namespace EventsApp.ViewModels.Social
         public string Content { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
         public DateTime? SeenAt { get; set; }
+        public DateTime? EditedAt { get; set; }
+        public bool IsDeleted { get; set; }
         public bool IsMine { get; set; }
         public int? SharedEventId { get; set; }
         public string? SharedEventTitle { get; set; }

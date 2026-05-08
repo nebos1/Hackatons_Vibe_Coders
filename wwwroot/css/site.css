@@ -2757,6 +2757,127 @@ video.card-img-top-fixed {
     align-items: center;
 }
 
+.social-message-bubble.is-deleted {
+    opacity: 0.7;
+}
+
+.social-message-bubble__deleted {
+    margin: 0;
+    color: var(--social-muted, #5b6275);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.92rem;
+}
+.social-message-bubble__deleted i { font-size: 1rem; }
+
+.social-message-bubble__menu {
+    position: relative;
+    margin-left: auto;
+}
+.social-message-bubble__menu-trigger {
+    background: transparent;
+    border: none;
+    color: inherit;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: opacity .12s, background .12s;
+}
+.social-message-bubble__menu-trigger:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.06);
+}
+html[data-theme="dark"] .social-message-bubble__menu-trigger:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.social-message-bubble__menu-pop {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 160px;
+    background: #fff;
+    border: 1px solid #e5e7ef;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 10;
+}
+html[data-theme="dark"] .social-message-bubble__menu-pop {
+    background: #1b2030;
+    border-color: #2a3142;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.social-message-bubble__menu-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #0d1424;
+    text-align: left;
+    width: 100%;
+}
+html[data-theme="dark"] .social-message-bubble__menu-item { color: #d8dce8; }
+.social-message-bubble__menu-item:hover {
+    background: #f1f3f8;
+}
+html[data-theme="dark"] .social-message-bubble__menu-item:hover {
+    background: #232940;
+}
+.social-message-bubble__menu-item--danger {
+    color: #c0392b;
+}
+html[data-theme="dark"] .social-message-bubble__menu-item--danger {
+    color: #ff8a85;
+}
+.social-message-bubble__menu form {
+    margin: 0;
+}
+
+.social-message-bubble__edit {
+    margin: 6px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.social-message-bubble__edit textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #d8dce6;
+    background: #fff;
+    color: #0d1424;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    min-height: 60px;
+}
+html[data-theme="dark"] .social-message-bubble__edit textarea {
+    background: #131826;
+    border-color: #2a3142;
+    color: #d8dce8;
+}
+.social-message-bubble__edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
 .social-message-bubble__meta span {
     display: inline-flex;
     align-items: center;

@@ -58,6 +58,12 @@ namespace EventsApp.Models
 
         public DateTime? SeenAt { get; set; }
 
+        public DateTime? EditedAt { get; set; }
+
+        public bool IsDeleted { get; set; }
+
+        public DateTime? DeletedAt { get; set; }
+
         // TODO: Add MessageStatus and report metadata when message moderation moves
         // beyond the current MVP permission/rate-limit checks.
     }

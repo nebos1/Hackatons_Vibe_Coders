@@ -3,6 +3,7 @@ using System;
 using EventsApp.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace EventsApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260508080137_AddMessageEditDelete")]
+    partial class AddMessageEditDelete
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -237,9 +240,6 @@ namespace EventsApp.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
-
-                    b.Property<Guid>("Token")
-                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -1514,6 +1514,53 @@ namespace EventsApp.Migrations
                     b.ToTable("Seats");
                 });
 
+            modelBuilder.Entity("EventsApp.Models.Story", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("BusinessWorkspaceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Caption")
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("MediaType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MediaUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("OrganizerProfileId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("BusinessWorkspaceId");
+
+                    b.HasIndex("OrganizerProfileId");
+
+                    b.ToTable("Stories");
+                });
+
             modelBuilder.Entity("EventsApp.Models.Ticket", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2602,6 +2649,31 @@ namespace EventsApp.Migrations
                     b.Navigation("VenueLayout");
                 });
 
+            modelBuilder.Entity("EventsApp.Models.Story", b =>
+                {
+                    b.HasOne("EventsApp.Models.ApplicationUser", "Author")
+                        .WithMany("Stories")
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EventsApp.Models.BusinessWorkspace", "BusinessWorkspace")
+                        .WithMany("Stories")
+                        .HasForeignKey("BusinessWorkspaceId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("EventsApp.Models.OrganizerProfile", "OrganizerProfile")
+                        .WithMany("Stories")
+                        .HasForeignKey("OrganizerProfileId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Author");
+
+                    b.Navigation("BusinessWorkspace");
+
+                    b.Navigation("OrganizerProfile");
+                });
+
             modelBuilder.Entity("EventsApp.Models.Ticket", b =>
                 {
                     b.HasOne("EventsApp.Models.Event", "Event")
@@ -2835,6 +2907,8 @@ namespace EventsApp.Migrations
 
                     b.Navigation("SentMessages");
 
+                    b.Navigation("Stories");
+
                     b.Navigation("UserActivities");
 
                     b.Navigation("UserPreferences");
@@ -2849,6 +2923,8 @@ namespace EventsApp.Migrations
                     b.Navigation("OrganizerProfiles");
 
                     b.Navigation("Posts");
+
+                    b.Navigation("Stories");
 
                     b.Navigation("Transactions");
                 });
@@ -2919,6 +2995,8 @@ namespace EventsApp.Migrations
                     b.Navigation("Events");
 
                     b.Navigation("Posts");
+
+                    b.Navigation("Stories");
                 });
 
             modelBuilder.Entity("EventsApp.Models.Post", b =>

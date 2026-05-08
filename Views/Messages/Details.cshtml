@@ -100,7 +100,9 @@
 
             @foreach (var message in Model.Messages)
             {
-                <article class="social-message-bubble @(message.IsMine ? "is-mine" : "")">
+                var canEditOrDelete = message.IsMine && !message.IsDeleted
+                    && !message.SharedEventId.HasValue && !message.SharedPostId.HasValue;
+                <article class="social-message-bubble @(message.IsMine ? "is-mine" : "") @(message.IsDeleted ? "is-deleted" : "")" data-message-id="@message.Id">
                     <div class="social-message-bubble__head">
                         @if (!string.IsNullOrWhiteSpace(message.SenderImageUrl))
                         {
@@ -108,52 +110,99 @@
                         }
                         <strong class="small">@message.SenderName</strong>
                         <span class="groove-badge" data-i18n="@message.SenderBadgeKey">@message.SenderBadgeText</span>
+
+                        @if (canEditOrDelete)
+                        {
+                            <div class="social-message-bubble__menu">
+                                <button type="button" class="social-message-bubble__menu-trigger" data-bubble-menu-trigger title="Опции">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <div class="social-message-bubble__menu-pop" data-bubble-menu-pop hidden>
+                                    <button type="button" class="social-message-bubble__menu-item" data-bubble-edit data-content="@message.Content">
+                                        <i class="bi bi-pencil"></i> Редактирай
+                                    </button>
+                                    <form asp-action="DeleteMessage" asp-route-id="@message.Id" method="post" onsubmit="return confirm('Изтриване на това съобщение?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="social-message-bubble__menu-item social-message-bubble__menu-item--danger">
+                                            <i class="bi bi-trash"></i> Изтрий
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
                     </div>
 
-                    @if (message.SharedEventId.HasValue)
+                    @if (message.IsDeleted)
                     {
-                        <a asp-controller="Events" asp-action="Details" asp-route-id="@message.SharedEventId.Value" class="social-message-share-card">
-                            @if (!string.IsNullOrWhiteSpace(message.SharedEventImageUrl))
-                            {
-                                <img src="@message.SharedEventImageUrl" alt="@message.SharedEventTitle" />
-                            }
-                            else
-                            {
-                                <span class="social-message-share-card__fallback"><i class="bi bi-calendar-event"></i></span>
-                            }
-                            <span>
-                                <em data-i18n="share.card.event">Event</em>
-                                <strong>@message.SharedEventTitle</strong>
-                                <small>@message.SharedEventMeta</small>
-                            </span>
-                            <i class="bi bi-arrow-up-right"></i>
-                        </a>
+                        <p class="social-message-bubble__deleted">
+                            <i class="bi bi-slash-circle"></i>
+                            <em>Това съобщение беше изтрито</em>
+                        </p>
+                    }
+                    else
+                    {
+                        @if (message.SharedEventId.HasValue)
+                        {
+                            <a asp-controller="Events" asp-action="Details" asp-route-id="@message.SharedEventId.Value" class="social-message-share-card">
+                                @if (!string.IsNullOrWhiteSpace(message.SharedEventImageUrl))
+                                {
+                                    <img src="@message.SharedEventImageUrl" alt="@message.SharedEventTitle" />
+                                }
+                                else
+                                {
+                                    <span class="social-message-share-card__fallback"><i class="bi bi-calendar-event"></i></span>
+                                }
+                                <span>
+                                    <em data-i18n="share.card.event">Event</em>
+                                    <strong>@message.SharedEventTitle</strong>
+                                    <small>@message.SharedEventMeta</small>
+                                </span>
+                                <i class="bi bi-arrow-up-right"></i>
+                            </a>
+                        }
+
+                        @if (message.SharedPostId.HasValue)
+                        {
+                            <a asp-controller="Posts" asp-action="Details" asp-route-id="@message.SharedPostId.Value" class="social-message-share-card">
+                                @if (!string.IsNullOrWhiteSpace(message.SharedPostImageUrl))
+                                {
+                                    <img src="@message.SharedPostImageUrl" alt="@message.SharedPostTitle" />
+                                }
+                                else
+                                {
+                                    <span class="social-message-share-card__fallback"><i class="bi bi-file-richtext"></i></span>
+                                }
+                                <span>
+                                    <em data-i18n="share.card.post">Post</em>
+                                    <strong>@message.SharedPostTitle</strong>
+                                    <small>@message.SharedPostMeta</small>
+                                </span>
+                                <i class="bi bi-arrow-up-right"></i>
+                            </a>
+                        }
+
+                        <p data-bubble-content>@message.Content</p>
+
+                        @if (canEditOrDelete)
+                        {
+                            <form asp-action="EditMessage" asp-route-id="@message.Id" method="post" class="social-message-bubble__edit" data-bubble-edit-form hidden>
+                                @Html.AntiForgeryToken()
+                                <textarea name="content" maxlength="2000" rows="2" required>@message.Content</textarea>
+                                <div class="social-message-bubble__edit-actions">
+                                    <button type="button" class="groove-button groove-button-paper" data-bubble-edit-cancel>Отказ</button>
+                                    <button type="submit" class="groove-button groove-button-dark"><i class="bi bi-check2"></i> Запази</button>
+                                </div>
+                            </form>
+                        }
                     }
 
-                    @if (message.SharedPostId.HasValue)
-                    {
-                        <a asp-controller="Posts" asp-action="Details" asp-route-id="@message.SharedPostId.Value" class="social-message-share-card">
-                            @if (!string.IsNullOrWhiteSpace(message.SharedPostImageUrl))
-                            {
-                                <img src="@message.SharedPostImageUrl" alt="@message.SharedPostTitle" />
-                            }
-                            else
-                            {
-                                <span class="social-message-share-card__fallback"><i class="bi bi-file-richtext"></i></span>
-                            }
-                            <span>
-                                <em data-i18n="share.card.post">Post</em>
-                                <strong>@message.SharedPostTitle</strong>
-                                <small>@message.SharedPostMeta</small>
-                            </span>
-                            <i class="bi bi-arrow-up-right"></i>
-                        </a>
-                    }
-
-                    <p>@message.Content</p>
                     <small class="social-message-bubble__meta">
                         <span><i class="bi bi-clock"></i> <span data-i18n="messages.sent">Sent</span> @message.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
-                        @if (message.IsMine)
+                        @if (message.EditedAt.HasValue && !message.IsDeleted)
+                        {
+                            <span title="@message.EditedAt.Value.ToString("dd.MM.yyyy HH:mm")"><i class="bi bi-pencil"></i> редактирано</span>
+                        }
+                        @if (message.IsMine && !message.IsDeleted)
                         {
                             @if (message.SeenAt.HasValue)
                             {
@@ -289,3 +338,55 @@
     })();
     </script>
 }
+
+<script>
+    (function () {
+        function closeAllMenus() {
+            document.querySelectorAll('[data-bubble-menu-pop]').forEach(function (m) { m.hidden = true; });
+        }
+        document.addEventListener('click', function (e) {
+            var trigger = e.target.closest('[data-bubble-menu-trigger]');
+            if (trigger) {
+                e.preventDefault();
+                e.stopPropagation();
+                var pop = trigger.parentElement.querySelector('[data-bubble-menu-pop]');
+                var wasOpen = pop && !pop.hidden;
+                closeAllMenus();
+                if (pop && !wasOpen) pop.hidden = false;
+                return;
+            }
+            if (!e.target.closest('[data-bubble-menu-pop]')) {
+                closeAllMenus();
+            }
+        });
+
+        document.addEventListener('click', function (e) {
+            var editBtn = e.target.closest('[data-bubble-edit]');
+            if (!editBtn) return;
+            e.preventDefault();
+            var bubble = editBtn.closest('.social-message-bubble');
+            if (!bubble) return;
+            closeAllMenus();
+            var content = bubble.querySelector('[data-bubble-content]');
+            var form = bubble.querySelector('[data-bubble-edit-form]');
+            if (content) content.hidden = true;
+            if (form) {
+                form.hidden = false;
+                var ta = form.querySelector('textarea');
+                if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+            }
+        });
+
+        document.addEventListener('click', function (e) {
+            var cancelBtn = e.target.closest('[data-bubble-edit-cancel]');
+            if (!cancelBtn) return;
+            e.preventDefault();
+            var bubble = cancelBtn.closest('.social-message-bubble');
+            if (!bubble) return;
+            var content = bubble.querySelector('[data-bubble-content]');
+            var form = bubble.querySelector('[data-bubble-edit-form]');
+            if (content) content.hidden = false;
+            if (form) form.hidden = true;
+        });
+    })();
+</script>

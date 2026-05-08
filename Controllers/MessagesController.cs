@@ -223,6 +223,8 @@ namespace EventsApp.Controllers
                         Content = m.Content,
                         CreatedAt = m.CreatedAt,
                         SeenAt = m.SeenAt,
+                        EditedAt = m.EditedAt,
+                        IsDeleted = m.IsDeleted,
                         IsMine = m.SenderId == userId,
                         SharedEventId = m.SharedEventId,
                         SharedEventTitle = m.SharedEvent?.Title,
@@ -244,6 +246,72 @@ namespace EventsApp.Controllers
             };
 
             return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditMessage(int id, string content)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var message = await _db.Messages
+                .Include(m => m.Conversation)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (message == null) return NotFound();
+            if (message.SenderId != userId) return Forbid();
+
+            var token = message.Conversation.Token;
+
+            if (message.IsDeleted)
+            {
+                TempData["StatusMessage"] = "Изтрито съобщение не може да се редактира.";
+                return RedirectToAction(nameof(Details), new { token });
+            }
+            if (message.SharedEventId.HasValue || message.SharedPostId.HasValue)
+            {
+                TempData["StatusMessage"] = "Споделените картички не могат да се редактират.";
+                return RedirectToAction(nameof(Details), new { token });
+            }
+            var trimmed = (content ?? string.Empty).Trim();
+            if (trimmed.Length < GlobalConstants.Social.MessageContentMinLength
+                || trimmed.Length > GlobalConstants.Social.MessageContentMaxLength)
+            {
+                TempData["StatusMessage"] = "Съобщението е празно или твърде дълго.";
+                return RedirectToAction(nameof(Details), new { token });
+            }
+
+            message.Content = trimmed;
+            message.EditedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Details), new { token });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteMessage(int id)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var message = await _db.Messages
+                .Include(m => m.Conversation)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (message == null) return NotFound();
+            if (message.SenderId != userId) return Forbid();
+
+            var token = message.Conversation.Token;
+
+            if (message.IsDeleted)
+            {
+                return RedirectToAction(nameof(Details), new { token });
+            }
+
+            message.IsDeleted = true;
+            message.DeletedAt = DateTime.UtcNow;
+            message.Content = string.Empty;
+            message.SharedEventId = null;
+            message.SharedPostId = null;
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Details), new { token });
         }
 
         [HttpPost]
