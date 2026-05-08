@@ -30,6 +30,7 @@ namespace EventsApp.Controllers
         private readonly IPlatformPermissionService _permissions;
         private readonly IBusinessContextService _businessContext;
         private readonly IActingIdentityService _actingIdentity;
+        private readonly IMentionService _mentions;
 
         public EventsController(
             ApplicationDbContext db,
@@ -42,7 +43,8 @@ namespace EventsApp.Controllers
             ILayoutService layouts,
             IPlatformPermissionService permissions,
             IBusinessContextService businessContext,
-            IActingIdentityService actingIdentity)
+            IActingIdentityService actingIdentity,
+            IMentionService mentions)
         {
             _db = db;
             _userManager = userManager;
@@ -55,6 +57,7 @@ namespace EventsApp.Controllers
             _permissions = permissions;
             _businessContext = businessContext;
             _actingIdentity = actingIdentity;
+            _mentions = mentions;
         }
 
         public class GenerateDescriptionRequest
@@ -1145,6 +1148,11 @@ namespace EventsApp.Controllers
                 Content = content,
             });
             await _db.SaveChangesAsync();
+
+            var senderName = (await _userManager.FindByIdAsync(userId))?.UserName ?? "Evento";
+            var url = Url.Action(nameof(Details), "Events", new { id }) ?? "/";
+            await _mentions.NotifyMentionsAsync(content, userId, senderName, "Коментар", url);
+
             return RedirectToAction(nameof(Details), new { id });
         }
 

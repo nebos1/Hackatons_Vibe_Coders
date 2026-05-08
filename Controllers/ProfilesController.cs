@@ -35,6 +35,18 @@ namespace EventsApp.Controllers
             _pushNotifications = pushNotifications;
         }
 
+        [HttpGet("Profiles/ByName/{username}")]
+        public async Task<IActionResult> ByName(string username)
+        {
+            if (string.IsNullOrWhiteSpace(username)) return NotFound();
+            var normalized = username.ToUpperInvariant();
+            var user = await _db.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.NormalizedUserName == normalized);
+            if (user == null) return NotFound();
+            return RedirectToAction(nameof(Details), new { id = user.Id });
+        }
+
         public async Task<IActionResult> Details(string id)
         {
             if (string.IsNullOrWhiteSpace(id))

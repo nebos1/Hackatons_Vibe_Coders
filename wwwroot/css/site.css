@@ -12643,3 +12643,85 @@ html[data-theme="dark"] .evt-pwa-banner__install *,
 html[data-theme="dark"] .evt-notification-prompt [data-push-allow] * {
     color: #0f172a !important;
 }
+
+/* =====================================================
+   @MENTIONS — autocomplete + rendered links
+   ===================================================== */
+.evt-mention {
+    display: inline;
+    padding: 0 4px;
+    border-radius: 6px;
+    background: rgba(74, 111, 255, 0.12);
+    color: #2456ff;
+    font-weight: 700;
+    text-decoration: none;
+}
+.evt-mention:hover {
+    background: rgba(74, 111, 255, 0.2);
+    color: #2456ff;
+    text-decoration: none;
+}
+html[data-theme="dark"] .evt-mention {
+    background: rgba(107, 133, 255, 0.18);
+    color: #93a4ff;
+}
+html[data-theme="dark"] .evt-mention:hover {
+    background: rgba(107, 133, 255, 0.28);
+    color: #c5cdff;
+}
+
+.evt-mention-pop {
+    position: absolute;
+    z-index: 9999;
+    max-height: 280px;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid #d8dce6;
+    border-radius: 12px;
+    box-shadow: 0 14px 36px -12px rgba(15, 23, 42, 0.25);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 220px;
+}
+html[data-theme="dark"] .evt-mention-pop {
+    background: #1b2030;
+    border-color: #2a3142;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
+}
+.evt-mention-pop__item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    color: #0d1424;
+    font-family: inherit;
+}
+html[data-theme="dark"] .evt-mention-pop__item { color: #e8eaf2; }
+.evt-mention-pop__item:hover,
+.evt-mention-pop__item.is-active {
+    background: rgba(74, 111, 255, 0.12);
+}
+html[data-theme="dark"] .evt-mention-pop__item:hover,
+html[data-theme="dark"] .evt-mention-pop__item.is-active {
+    background: rgba(107, 133, 255, 0.18);
+}
+.evt-mention-pop__name {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: #2456ff;
+}
+html[data-theme="dark"] .evt-mention-pop__name { color: #93a4ff; }
+.evt-mention-pop__sub {
+    font-size: 0.78rem;
+    color: #8a91a4;
+}
+html[data-theme="dark"] .evt-mention-pop__sub { color: #9ca3b8; }

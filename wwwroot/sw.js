@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'evento-v2';
+const CACHE_VERSION = 'evento-v3';
 const APP_SHELL = [
     '/',
     '/css/site.css',
@@ -105,6 +105,11 @@ self.addEventListener('push', (event) => {
         tag: data.tag || 'evento',
         data: { url: data.url || '/' },
         renotify: true,
+        // Vibration pattern (Android/Chrome). iOS Safari ignores this but plays system sound.
+        vibrate: data.vibrate || [200, 100, 200],
+        // Make sure the system notification sound plays.
+        silent: false,
+        requireInteraction: data.requireInteraction === true,
     };
 
     const tasks = [self.registration.showNotification(title, options)];

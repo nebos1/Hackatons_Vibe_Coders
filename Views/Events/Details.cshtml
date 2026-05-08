@@ -592,7 +592,7 @@
                     <p class="small text-muted mb-2"><span data-i18n="identity.commenting.as">Коментираш като</span>: @Model.ActingIdentities[0].DisplayName</p>
                 }
                 <div class="input-group">
-                    <input type="text" name="content" class="form-control" placeholder="Напиши коментар..." data-i18n-placeholder="comments.placeholder" maxlength="1000" required />
+                    <input type="text" name="content" class="form-control" placeholder="Напиши коментар... (@@username за тагване)" data-i18n-placeholder="comments.placeholder" maxlength="1000" data-mentions required />
                     <button class="btn btn-primary" type="submit"><i class="bi bi-send"></i> <span data-i18n="common.send">Изпрати</span></button>
                 </div>
             </form>
@@ -632,7 +632,7 @@
                                     }
                                     <span class="groove-badge ms-2" data-i18n="@c.AuthorBadgeKey">@c.AuthorBadgeText</span>
                                     <p class="groove-list-meta mt-1">@c.CreatedAt.ToString("dd.MM.yyyy HH:mm")</p>
-                                    <p id="evctext-@c.Id">@c.Content</p>
+                                    <p id="evctext-@c.Id">@EventsApp.Common.MentionRenderer.RenderWithMentions(c.Content)</p>
                                     <button class="groove-translate-btn" data-target="#evctext-@c.Id" onclick="gtTranslate(this)">
                                         <i class="bi bi-translate"></i> Translate
                                     </button>
@@ -683,7 +683,7 @@
                                                     <input type="hidden" name="actingIdentityKey" value="@Model.ActingIdentities[0].Key" />
                                                 }
                                                 <div class="input-group input-group-sm">
-                                                    <input type="text" name="content" class="form-control" placeholder="Напиши отговор..." data-i18n-placeholder="comments.reply.placeholder" maxlength="1000" required />
+                                                    <input type="text" name="content" class="form-control" placeholder="Напиши отговор... (@@username за тагване)" data-i18n-placeholder="comments.reply.placeholder" maxlength="1000" data-mentions required />
                                                     <button class="btn btn-primary" type="submit"><i class="bi bi-send"></i></button>
                                                 </div>
                                             </form>
@@ -716,7 +716,7 @@
                                                 }
                                                 <span class="groove-badge ms-2" data-i18n="@reply.AuthorBadgeKey">@reply.AuthorBadgeText</span>
                                                 <p class="groove-list-meta mt-1">@reply.CreatedAt.ToString("dd.MM.yyyy HH:mm")</p>
-                                                <p id="evrtext-@reply.Id">@reply.Content</p>
+                                                <p id="evrtext-@reply.Id">@EventsApp.Common.MentionRenderer.RenderWithMentions(reply.Content)</p>
                                                 <button class="groove-translate-btn" data-target="#evrtext-@reply.Id" onclick="gtTranslate(this)">
                                                     <i class="bi bi-translate"></i> Translate
                                                 </button>

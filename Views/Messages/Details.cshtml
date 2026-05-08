@@ -181,7 +181,7 @@
                             </a>
                         }
 
-                        <p data-bubble-content>@message.Content</p>
+                        <p data-bubble-content>@EventsApp.Common.MentionRenderer.RenderWithMentions(message.Content)</p>
 
                         @if (canEditOrDelete)
                         {
@@ -224,7 +224,7 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="actingIdentityKey" value="@Model.ActingIdentities[0].Key" />
                 <span class="small text-muted"><span data-i18n="identity.replying.as">Replying as</span>: @Model.ActingIdentities[0].DisplayName</span>
-                <input type="text" name="content" maxlength="2000" placeholder="Write a message..." data-i18n-placeholder="messages.placeholder" required />
+                <input type="text" name="content" maxlength="2000" placeholder="Write a message..." data-i18n-placeholder="messages.placeholder" data-mentions required />
                 <button type="submit" class="groove-button groove-button-dark">
                     <i class="bi bi-send"></i>
                     <span data-i18n="@(Model.CanSendInitialRequestMessage ? "messages.send.request" : "common.send")">Send</span>
@@ -263,6 +263,19 @@
         var lastImg = thread ? thread.querySelector('.social-message-bubble:last-of-type img') : null;
         if (lastImg && !lastImg.complete) lastImg.addEventListener('load', scrollBottom);
 
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+        function renderMentions(text) {
+            return escapeHtml(text).replace(/(^|\s)@@([A-Za-z0-9._]{3,30})/g, function (_m, lead, name) {
+                return lead + '<a class="evt-mention" href="/Profiles/ByName/' +
+                    encodeURIComponent(name) + '" data-mention="' + escapeHtml(name) + '">@@' +
+                    escapeHtml(name) + '</a>';
+            });
+        }
+
         function buildBubble(m) {
             var article = document.createElement('article');
             article.className = 'social-message-bubble' + (m.isMine ? ' is-mine' : '');
@@ -289,7 +302,7 @@
             article.appendChild(head);
 
             var p = document.createElement('p');
-            p.textContent = m.content;
+            p.innerHTML = renderMentions(m.content || '');
             article.appendChild(p);
 
             var meta = document.createElement('small');

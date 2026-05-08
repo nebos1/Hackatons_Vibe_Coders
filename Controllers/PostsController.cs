@@ -23,6 +23,7 @@ namespace EventsApp.Controllers
         private readonly IPlatformPermissionService _permissions;
         private readonly IBusinessContextService _businessContext;
         private readonly IActingIdentityService _actingIdentity;
+        private readonly IMentionService _mentions;
 
         public PostsController(
             ApplicationDbContext db,
@@ -31,7 +32,8 @@ namespace EventsApp.Controllers
             ISocialFeedService socialFeed,
             IPlatformPermissionService permissions,
             IBusinessContextService businessContext,
-            IActingIdentityService actingIdentity)
+            IActingIdentityService actingIdentity,
+            IMentionService mentions)
         {
             _db = db;
             _userManager = userManager;
@@ -40,6 +42,7 @@ namespace EventsApp.Controllers
             _permissions = permissions;
             _businessContext = businessContext;
             _actingIdentity = actingIdentity;
+            _mentions = mentions;
         }
 
         public async Task<IActionResult> Index(string? q)
@@ -229,6 +232,10 @@ namespace EventsApp.Controllers
                 });
                 await _db.SaveChangesAsync();
             }
+
+            var senderName = (await _userManager.FindByIdAsync(userId))?.UserName ?? "Evento";
+            var postUrl = Url.Action(nameof(Details), "Posts", new { id = post.Id }) ?? "/";
+            await _mentions.NotifyMentionsAsync(post.Content, userId, senderName, "Пост", postUrl);
 
             TempData["StatusMessage"] = "Post created.";
             return RedirectToAction(nameof(Details), new { id = post.Id });
@@ -463,6 +470,11 @@ namespace EventsApp.Controllers
                 Content = content,
             });
             await _db.SaveChangesAsync();
+
+            var senderName = (await _userManager.FindByIdAsync(userId))?.UserName ?? "Evento";
+            var url = Url.Action(nameof(Details), "Posts", new { id }) ?? "/";
+            await _mentions.NotifyMentionsAsync(content, userId, senderName, "Коментар", url);
+
             return RedirectToAction(nameof(Details), new { id });
         }
 
