@@ -1,7 +1,7 @@
 @model UserTicketDetailsViewModel
 @{
     ViewData["Title"] = "Детайли за билет";
-    var qrUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=240x240&data={Uri.EscapeDataString(Model.QrCode)}";
+    var qrUrl = Url.Action("Qr", "Tickets", new { id = Model.Id }) ?? string.Empty;
     var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
     var isOwner = string.Equals(User.Identity?.Name, Model.OwnerUserName, StringComparison.OrdinalIgnoreCase);
     var backAction = isOwner ? "MyTickets" : isAdmin ? "Index" : "Dashboard";
@@ -56,14 +56,14 @@
 
                 @if (!string.IsNullOrWhiteSpace(Model.AttendeeName))
                 {
-                    <dt>Attendee</dt>
+                    <dt>Име на билета</dt>
                     <dd>@Model.AttendeeName</dd>
                 }
 
                 @if (Model.PurchaseGroupId != Guid.Empty)
                 {
-                    <dt>Group</dt>
-                    <dd>@(Model.IsPrimaryInPurchase ? "Main ticket" : "Group ticket")</dd>
+                    <dt>Група</dt>
+                    <dd>@(Model.IsPrimaryInPurchase ? "Основен билет" : "Допълнителен билет")</dd>
                 }
 
                 <dt>Цена</dt>

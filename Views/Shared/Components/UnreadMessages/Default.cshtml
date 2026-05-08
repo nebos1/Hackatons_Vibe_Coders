@@ -2,5 +2,9 @@
 
 @if (Model > 0)
 {
-    <span class="nav-unread-badge" title="@Model непрочетени">@(Model > 99 ? "99+" : Model.ToString())</span>
+    <span class="nav-unread-badge" data-unread-badge title="@Model непрочетени">@(Model > 99 ? "99+" : Model.ToString())</span>
+}
+else
+{
+    <span class="nav-unread-badge" data-unread-badge title="0 непрочетени" hidden>0</span>
 }

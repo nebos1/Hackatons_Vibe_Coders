@@ -63,13 +63,20 @@ namespace EventsApp.Areas.Identity.Pages.Account
 
             var code = await _userManager.GeneratePasswordResetTokenAsync(user);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-            var resetPath = Url.Page(
-                "/Account/ResetPassword",
-                pageHandler: null,
-                values: new { area = "Identity", code, email },
-                protocol: null)
-                ?? $"/Identity/Account/ResetPassword?code={Uri.EscapeDataString(code)}&email={Uri.EscapeDataString(email)}";
+            var resetQuery = new Dictionary<string, string?>
+            {
+                ["code"] = code,
+                ["email"] = email,
+            };
+            var resetPath = QueryHelpers.AddQueryString("/reset-password", resetQuery);
             var resetUrl = _appLinks.ToAbsoluteUrl(Request, resetPath);
+            if (!Uri.TryCreate(resetUrl, UriKind.Absolute, out var resetUri) ||
+                string.IsNullOrWhiteSpace(resetUri.Host) ||
+                (!string.Equals(resetUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+                 !string.Equals(resetUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+            {
+                resetUrl = QueryHelpers.AddQueryString("https://evento.business/reset-password", resetQuery);
+            }
             var encodedUrl = HtmlEncoder.Default.Encode(resetUrl);
 
             try
@@ -81,9 +88,9 @@ namespace EventsApp.Areas.Identity.Pages.Account
                     <div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827">
                         <h2>Смяна на парола</h2>
                         <p>Получихме заявка за смяна на паролата в Evento.</p>
-                        <p><a href="{encodedUrl}" style="display:inline-block;background:#5b4bff;color:#ffffff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700">Смени паролата</a></p>
+                        <p><a href="{encodedUrl}" target="_blank" rel="noopener" style="display:inline-block;background:#5b4bff;color:#ffffff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:700">Смени паролата</a></p>
                         <p style="margin-top:18px">Ако бутонът не се отваря, копирай този линк в браузъра:</p>
-                        <p style="word-break:break-all"><a href="{encodedUrl}">{encodedUrl}</a></p>
+                        <p style="word-break:break-all"><a href="{encodedUrl}" target="_blank" rel="noopener">{encodedUrl}</a></p>
                         <p>Ако не си заявил това, можеш спокойно да игнорираш този имейл.</p>
                     </div>
                     """);

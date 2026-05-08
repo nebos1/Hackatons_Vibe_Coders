@@ -83,7 +83,7 @@
 
                 @if (result.Ticket != null)
                 {
-                    var qrUrl = $"https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={Uri.EscapeDataString(result.Ticket.QrCode)}";
+                    var qrUrl = Url.Action("Qr", "Tickets", new { id = result.Ticket.Id }) ?? string.Empty;
 
                     <div class="ticket-validation-card__body">
                         <div>
@@ -152,17 +152,21 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script>
         (function () {
             var startButton = document.getElementById('ticket-camera-start');
             var stopButton = document.getElementById('ticket-camera-stop');
             var video = document.getElementById('ticket-qr-video');
+            var cameraBox = video ? video.closest('.ticket-camera-box') : null;
             var status = document.getElementById('ticket-camera-status');
             var form = document.getElementById('ticket-validate-form');
             var qrInput = document.getElementById('QrCode');
             var stream = null;
             var scanning = false;
             var detector = null;
+            var canvas = document.createElement('canvas');
+            var canvasContext = canvas.getContext('2d', { willReadFrequently: true });
 
             function setStatus(text) {
                 if (status) status.textContent = text;
@@ -175,21 +179,38 @@
                     stream = null;
                 }
                 if (video) video.srcObject = null;
+                if (cameraBox) cameraBox.classList.remove('is-active');
                 if (startButton) startButton.hidden = false;
                 if (stopButton) stopButton.hidden = true;
                 setStatus('Камерата е изключена.');
             }
 
             async function scanFrame() {
-                if (!scanning || !detector || !video || video.readyState < 2) {
+                if (!scanning || !video || video.readyState < 2) {
                     if (scanning) requestAnimationFrame(scanFrame);
                     return;
                 }
 
                 try {
-                    var codes = await detector.detect(video);
-                    if (codes && codes.length > 0 && codes[0].rawValue) {
-                        qrInput.value = codes[0].rawValue.trim();
+                    var value = '';
+                    if (detector) {
+                        var codes = await detector.detect(video);
+                        if (codes && codes.length > 0 && codes[0].rawValue) {
+                            value = codes[0].rawValue;
+                        }
+                    } else if (window.jsQR && canvasContext) {
+                        canvas.width = video.videoWidth || 640;
+                        canvas.height = video.videoHeight || 480;
+                        canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        var imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+                        var code = window.jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+                        if (code && code.data) {
+                            value = code.data;
+                        }
+                    }
+
+                    if (value) {
+                        qrInput.value = value.trim();
                         setStatus('QR кодът е намерен. Отварям данните.');
                         stopCamera();
                         form.submit();
@@ -211,20 +232,34 @@
                     setStatus('Браузърът няма достъп до камера.');
                     return;
                 }
-                if (!('BarcodeDetector' in window)) {
-                    setStatus('Този браузър не поддържа QR сканиране. Въведи кода ръчно.');
-                    return;
-                }
-
                 try {
-                    detector = new BarcodeDetector({ formats: ['qr_code'] });
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: { ideal: 'environment' } },
-                        audio: false
-                    });
+                    detector = null;
+                    if ('BarcodeDetector' in window) {
+                        try {
+                            detector = new BarcodeDetector({ formats: ['qr_code'] });
+                        } catch (error) {
+                            detector = null;
+                        }
+                    }
+
+                    if (!detector && !window.jsQR) {
+                        setStatus('Зареждам QR четеца. Опитай отново след секунда.');
+                        return;
+                    }
+
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({
+                            video: { facingMode: { ideal: 'environment' } },
+                            audio: false
+                        });
+                    } catch (error) {
+                        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    }
+
                     video.srcObject = stream;
                     await video.play();
                     scanning = true;
+                    if (cameraBox) cameraBox.classList.add('is-active');
                     startButton.hidden = true;
                     stopButton.hidden = false;
                     setStatus('Насочи камерата към QR кода.');

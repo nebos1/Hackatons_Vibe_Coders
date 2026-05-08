@@ -15,13 +15,16 @@ namespace EventsApp.ViewModels.Tickets
 
         [Required]
         [StringLength(GlobalConstants.Ticket.NameMaxLength, MinimumLength = GlobalConstants.Ticket.NameMinLength)]
+        [Display(Name = "Име на билета")]
         public string Name { get; set; } = null!;
 
         [StringLength(GlobalConstants.Ticket.DescriptionMaxLength)]
+        [Display(Name = "Описание")]
         public string? Description { get; set; }
 
         [Required]
         [Range(0, 1_000_000)]
+        [Display(Name = "Цена")]
         public decimal Price { get; set; }
 
         [Display(Name = "Безплатен билет")]
@@ -29,22 +32,22 @@ namespace EventsApp.ViewModels.Tickets
 
         [Required]
         [Range(0, int.MaxValue)]
-        [Display(Name = "Total quantity")]
+        [Display(Name = "Общо количество")]
         public int QuantityTotal { get; set; }
 
         [Range(0, int.MaxValue)]
-        [Display(Name = "Remaining (defaults to total)")]
+        [Display(Name = "Оставащи билети")]
         public int? QuantityRemaining { get; set; }
 
         public string? ImageUrl { get; set; }
 
-        [Display(Name = "Ticket image")]
+        [Display(Name = "Снимка на билет")]
         public IFormFile? ImageFile { get; set; }
 
-        [Display(Name = "Active")]
+        [Display(Name = "Активен")]
         public bool IsActive { get; set; } = true;
 
-        [Display(Name = "Require attendee names")]
+        [Display(Name = "Изисквай имена на посетители")]
         public bool RequiresAttendeeNames { get; set; }
     }
 }

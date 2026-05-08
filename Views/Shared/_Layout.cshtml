@@ -1,5 +1,6 @@
 @using EventsApp.Common
 @inject IConfiguration Configuration
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @{
     var googleSiteVerification = new[]
     {
@@ -17,6 +18,9 @@
     var canonicalUrl = string.IsNullOrWhiteSpace(publicUrl)
         ? null
         : publicUrl + (string.IsNullOrWhiteSpace(requestPath) ? "/" : requestPath);
+    var antiforgeryToken = User.Identity?.IsAuthenticated == true
+        ? Antiforgery.GetAndStoreTokens(Context).RequestToken
+        : null;
 }
 <!DOCTYPE html>
 <html lang="bg">
@@ -24,6 +28,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="x-app-lang" content="bg" />
+    @if (!string.IsNullOrWhiteSpace(antiforgeryToken))
+    {
+        <meta name="request-verification-token" content="@antiforgeryToken" />
+    }
     <meta name="description" content="Evento - събития, билети и парти вечери около теб." />
     @if (!string.IsNullOrWhiteSpace(googleSiteVerification))
     {
@@ -211,6 +219,10 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/i18n.js" asp-append-version="true"></script>
     <script src="~/js/event-actions.js" asp-append-version="true"></script>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script src="~/js/realtime-messages.js" asp-append-version="true"></script>
+    }
 
     <script>
         function toggleAppTheme() {

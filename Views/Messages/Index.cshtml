@@ -3,7 +3,7 @@
     ViewData["Title"] = "Messages";
 }
 
-<section class="groove-app-page social-messages-page">
+<section class="groove-app-page social-messages-page" data-messages-index>
     <div class="groove-page-hero">
         <div class="groove-page-hero__copy">
             <span class="groove-stamp groove-stamp-teal" data-i18n="nav.messages">Messages</span>
@@ -21,11 +21,11 @@
                     <h2 data-i18n="messages.requests.title">Needs approval</h2>
                 </div>
 
-                <div class="social-message-list social-message-list--compact">
+                <div class="social-message-list social-message-list--compact" data-message-list="requests">
                     @foreach (var conversation in Model.RequestConversations)
                     {
                         var initial = string.IsNullOrWhiteSpace(conversation.OtherUserName) ? "?" : conversation.OtherUserName[..1].ToUpperInvariant();
-                        <a asp-action="Details" asp-route-token="@conversation.Token" class="social-conversation-row is-request">
+                        <a asp-action="Details" asp-route-token="@conversation.Token" class="social-conversation-row is-request" data-conversation-row data-token="@conversation.Token" data-list-key="requests" data-unseen="@conversation.UnseenCount">
                             @if (!string.IsNullOrWhiteSpace(conversation.OtherUserImageUrl))
                             {
                                 <img src="@conversation.OtherUserImageUrl" alt="@conversation.OtherUserName" />
@@ -35,8 +35,8 @@
                                 <span class="social-conversation-row__fallback">@initial</span>
                             }
                             <div>
-                                <strong>@conversation.OtherUserName</strong>
-                                <small>
+                                <strong data-conversation-name>@conversation.OtherUserName</strong>
+                                <small data-conversation-last>
                                     <span data-i18n="messages.request.incoming">New message request</span>
                                     @if (!string.IsNullOrWhiteSpace(conversation.LastMessage))
                                     {
@@ -44,10 +44,10 @@
                                     }
                                 </small>
                             </div>
-                            <time>@conversation.UpdatedAt.ToString("dd.MM HH:mm")</time>
+                            <time data-conversation-time>@conversation.UpdatedAt.ToString("dd.MM HH:mm")</time>
                             @if (conversation.UnseenCount > 0)
                             {
-                                <b>@conversation.UnseenCount</b>
+                                <b data-conversation-badge>@conversation.UnseenCount</b>
                             }
                         </a>
                     }
@@ -61,10 +61,10 @@
                 <h2 data-i18n="messages.personal.title">Personal messages</h2>
             </div>
 
-            <div class="social-message-list">
+            <div class="social-message-list" data-message-list="personal">
                 @if (!Model.PersonalConversations.Any())
                 {
-                    <div class="social-empty-panel">
+                    <div class="social-empty-panel" data-message-empty>
                         <i class="bi bi-chat-dots"></i>
                         <span data-i18n="messages.empty">No conversations yet. Open a profile and start a message.</span>
                     </div>
@@ -74,7 +74,7 @@
                     @foreach (var conversation in Model.PersonalConversations)
                     {
                         var initial = string.IsNullOrWhiteSpace(conversation.OtherUserName) ? "?" : conversation.OtherUserName[..1].ToUpperInvariant();
-                        <a asp-action="Details" asp-route-token="@conversation.Token" class="social-conversation-row">
+                        <a asp-action="Details" asp-route-token="@conversation.Token" class="social-conversation-row" data-conversation-row data-token="@conversation.Token" data-list-key="personal" data-unseen="@conversation.UnseenCount">
                             @if (!string.IsNullOrWhiteSpace(conversation.OtherUserImageUrl))
                             {
                                 <img src="@conversation.OtherUserImageUrl" alt="@conversation.OtherUserName" />
@@ -84,8 +84,8 @@
                                 <span class="social-conversation-row__fallback">@initial</span>
                             }
                             <div>
-                                <strong>@conversation.OtherUserName</strong>
-                                <small>
+                                <strong data-conversation-name>@conversation.OtherUserName</strong>
+                                <small data-conversation-last>
                                     @if (conversation.Status == ConversationStatus.Pending)
                                     {
                                         if (conversation.IsRequestedByCurrentUser && !conversation.HasMessages)
@@ -111,10 +111,10 @@
                                     }
                                 </small>
                             </div>
-                            <time>@conversation.UpdatedAt.ToString("dd.MM HH:mm")</time>
+                            <time data-conversation-time>@conversation.UpdatedAt.ToString("dd.MM HH:mm")</time>
                             @if (conversation.UnseenCount > 0)
                             {
-                                <b>@conversation.UnseenCount</b>
+                                <b data-conversation-badge>@conversation.UnseenCount</b>
                             }
                         </a>
                     }
@@ -130,10 +130,10 @@
                     <h2 data-i18n="messages.pages.title">Messages to your public pages</h2>
                 </div>
 
-                <div class="social-message-list">
+                <div class="social-message-list" data-message-list="page">
                     @if (!Model.PageConversations.Any())
                     {
-                        <div class="social-empty-panel">
+                        <div class="social-empty-panel" data-message-empty>
                             <i class="bi bi-building"></i>
                             <span data-i18n="messages.pages.empty">No one has written to your pages yet.</span>
                         </div>
@@ -143,7 +143,7 @@
                         @foreach (var conversation in Model.PageConversations)
                         {
                             var initial = string.IsNullOrWhiteSpace(conversation.OtherUserName) ? "?" : conversation.OtherUserName[..1].ToUpperInvariant();
-                            <a asp-action="Details" asp-route-token="@conversation.Token" class="social-conversation-row">
+                            <a asp-action="Details" asp-route-token="@conversation.Token" class="social-conversation-row" data-conversation-row data-token="@conversation.Token" data-list-key="page" data-unseen="@conversation.UnseenCount">
                                 @if (!string.IsNullOrWhiteSpace(conversation.OtherUserImageUrl))
                                 {
                                     <img src="@conversation.OtherUserImageUrl" alt="@conversation.OtherUserName" />
@@ -153,8 +153,8 @@
                                     <span class="social-conversation-row__fallback">@initial</span>
                                 }
                                 <div>
-                                    <strong>@conversation.OtherUserName</strong>
-                                    <small>
+                                    <strong data-conversation-name>@conversation.OtherUserName</strong>
+                                    <small data-conversation-last>
                                         @if (conversation.CurrentUserOwnsPage)
                                         {
                                             <span><span data-i18n="messages.scope.page.inbox">Page inbox</span>: @conversation.PageName</span>
@@ -173,10 +173,10 @@
                                         }
                                     </small>
                                 </div>
-                                <time>@conversation.UpdatedAt.ToString("dd.MM HH:mm")</time>
+                                <time data-conversation-time>@conversation.UpdatedAt.ToString("dd.MM HH:mm")</time>
                                 @if (conversation.UnseenCount > 0)
                                 {
-                                    <b>@conversation.UnseenCount</b>
+                                    <b data-conversation-badge>@conversation.UnseenCount</b>
                                 }
                             </a>
                         }

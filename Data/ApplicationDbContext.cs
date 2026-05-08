@@ -84,6 +84,8 @@ namespace EventsApp.Data
 
         public DbSet<DayPlanItem> DayPlanItems { get; set; } = null!;
 
+        public DbSet<UserPushSubscription> UserPushSubscriptions { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -598,6 +600,17 @@ namespace EventsApp.Data
 
                 entity.HasIndex(s => new { s.UserId, s.EventId }).IsUnique();
                 entity.HasIndex(s => new { s.UserId, s.CreatedAt });
+            });
+
+            builder.Entity<UserPushSubscription>(entity =>
+            {
+                entity.HasOne(s => s.User)
+                      .WithMany()
+                      .HasForeignKey(s => s.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(s => s.Endpoint).IsUnique();
+                entity.HasIndex(s => new { s.UserId, s.LastSeenAt });
             });
 
             builder.Entity<Ticket>(entity =>

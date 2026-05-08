@@ -47,7 +47,7 @@
                         <input asp-for="IsFree" id="IsFree" class="form-check-input" />
                         <label asp-for="IsFree" class="form-check-label"></label>
                     </div>
-                    <div class="form-text">Стойност `0` или отметка на `Безплатен билет` ще се показва като Free.</div>
+                    <div class="form-text">Стойност 0 или отметка „Безплатен билет“ ще се показва като безплатен билет.</div>
                 </div>
                 <div class="mb-3">
                     <label asp-for="QuantityTotal" class="form-label"></label>
@@ -64,8 +64,8 @@
             @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
             {
                 <div class="mb-3">
-                    <label class="form-label">Current image</label>
-                    <div><img src="@Model.ImageUrl" alt="Current ticket" style="max-height:140px;border-radius:6px;" /></div>
+                    <label class="form-label">Текуща снимка</label>
+                    <div><img src="@Model.ImageUrl" alt="Текущ билет" style="max-height:140px;border-radius:6px;" /></div>
                     <input asp-for="ImageUrl" type="hidden" />
                 </div>
             }
@@ -84,7 +84,7 @@
             <div class="form-check mb-3">
                 <input asp-for="RequiresAttendeeNames" class="form-check-input" />
                 <label asp-for="RequiresAttendeeNames" class="form-check-label"></label>
-                <div class="form-text">ÐÐºÐ¾ Ðµ Ð²ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¾, ÐºÑƒÐ¿ÑƒÐ²Ð°Ñ‡ÑŠÑ‚ Ð¿Ð¾Ð¿ÑŠÐ»Ð²Ð° Ð¸Ð¼Ðµ Ð·Ð° Ð²ÑÐµÐºÐ¸ Ð±Ð¸Ð»ÐµÑ‚.</div>
+                <div class="form-text">Когато е включено, купувачът попълва име за всеки билет.</div>
             </div>
 
             <div class="groove-form-actions">

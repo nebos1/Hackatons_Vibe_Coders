@@ -30,7 +30,7 @@ namespace EventsApp.Services.Email
                 return;
             }
 
-            var brevoApiKey = GetSetting("BREVO_API_KEY", "BREVO__APIKEY", "Email:Brevo:ApiKey");
+            var brevoApiKey = GetSetting("BREVO_API_KEY", "BREVO_APIKEY", "BREVO__APIKEY", "Brevo__ApiKey", "Email:Brevo:ApiKey");
             if (!string.IsNullOrWhiteSpace(brevoApiKey))
             {
                 await SendWithBrevoApiAsync(brevoApiKey, email, subject, htmlMessage);

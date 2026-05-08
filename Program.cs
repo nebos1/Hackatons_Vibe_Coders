@@ -89,6 +89,7 @@ else
 builder.Services.AddSingleton<ITicketDocumentService, TicketDocumentService>();
 builder.Services.AddSingleton<IAppLinkService, AppLinkService>();
 builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IPushNotificationService, WebPushNotificationService>();
 builder.Services.AddScoped<ISocialFeedService, SocialFeedService>();
 builder.Services.AddScoped<IRecurringEventService, RecurringEventService>();
 builder.Services.AddScoped<ILayoutService, LayoutService>();
@@ -327,6 +328,8 @@ app.MapRazorPages()
             && route.RoutePattern.RawText is string pattern
             && (pattern.Contains("Account/ForgotPassword", StringComparison.OrdinalIgnoreCase)
                 || pattern.Contains("Account/ResetPassword", StringComparison.OrdinalIgnoreCase)
+                || pattern.Contains("forgot-password", StringComparison.OrdinalIgnoreCase)
+                || pattern.Contains("reset-password", StringComparison.OrdinalIgnoreCase)
                 || pattern.Contains("Account/ResendEmailConfirmation", StringComparison.OrdinalIgnoreCase)))
         {
             builder.Metadata.Add(new EnableRateLimitingAttribute("auth"));

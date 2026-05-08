@@ -488,11 +488,11 @@
                                          @if (Model.HasSeatLayout)
                                          {
                                              <input type="hidden" name="seatId" data-seat-input />
-                                             <label class="visually-hidden" for="quantity-@t.Id" data-i18n="ticket.quantity">Ð‘Ñ€Ð¾Ð¹ Ð±Ð¸Ð»ÐµÑ‚Ð¸</label>
+                                             <label class="visually-hidden" for="quantity-@t.Id" data-i18n="ticket.quantity">Брой билети</label>
                                              <select id="quantity-@t.Id"
                                                      name="quantity"
                                                      class="form-select form-select-sm groove-ticket-quantity"
-                                                     aria-label="Ð‘Ñ€Ð¾Ð¹ Ð±Ð¸Ð»ÐµÑ‚Ð¸"
+                                                     aria-label="Брой билети"
                                                      data-seat-quantity
                                                      data-seat-quantity-max="@t.MaxPurchaseQuantity"
                                                      disabled>
@@ -517,8 +517,9 @@
                                              <div class="ticket-attendee-panel" data-attendee-names>
                                                  <div class="ticket-attendee-panel__head">
                                                      <i class="bi bi-person-lines-fill"></i>
-                                                     <span>Names for the tickets</span>
+                                                     <span>Имена за билетите</span>
                                                  </div>
+                                                 <p class="ticket-attendee-panel__hint">Първо избери брой билети, после попълни имената.</p>
                                                  <div class="ticket-attendee-panel__rows" data-attendee-rows></div>
                                              </div>
                                          }
@@ -878,7 +879,7 @@
                     if (label && isTable && isUnlimited) {
                         label.textContent = lang === 'en'
                             ? 'Table ' + seatLabel + ' selected for one group'
-                            : 'ÐœÐ°ÑÐ° ' + seatLabel + ' Ð¸Ð·Ð±Ñ€Ð°Ð½Ð° Ð·Ð° ÐµÐ´Ð½Ð° Ð³Ñ€ÑƒÐ¿Ð°';
+                            : 'Маса ' + seatLabel + ' избрана за една група';
                     }
                     else if (label && isTable && capacity > 1) {
                         label.textContent = lang === 'en'
@@ -905,8 +906,8 @@
                         var label = document.createElement('label');
                         label.className = 'ticket-attendee-row';
                         label.innerHTML = '<span></span><input name="attendeeNames" maxlength="120" autocomplete="name" required />';
-                        label.querySelector('span').textContent = 'Ticket #' + (i + 1);
-                        label.querySelector('input').placeholder = i === 0 ? 'Full name' : 'Guest name';
+                        label.querySelector('span').textContent = 'Билет #' + (i + 1);
+                        label.querySelector('input').placeholder = i === 0 ? 'Пълно име' : 'Име на гост';
                         rows.appendChild(label);
                     }
                     panel.classList.toggle('is-multiple', count > 1);

@@ -212,7 +212,7 @@ namespace EventsApp.Controllers
             if (remaining > input.QuantityTotal)
             {
                 ModelState.AddModelError(nameof(input.QuantityRemaining),
-                    "Remaining cannot exceed total.");
+                    "Оставащите билети не могат да са повече от общото количество.");
             }
 
             if (!ModelState.IsValid)
@@ -392,8 +392,8 @@ namespace EventsApp.Controllers
                 if (quantity > maxSeatQuantity)
                 {
                     TempData["StatusMessage"] = isTableSeat
-                        ? $"Ð¢Ð°Ð·Ð¸ Ð¼Ð°ÑÐ° Ðµ Ð´Ð¾ {maxSeatQuantity} Ð´ÑƒÑˆÐ¸."
-                        : "Ð—Ð° ÐµÐ´Ð¸Ð½Ð¸Ñ‡Ð½Ð¾ Ð¼ÑÑÑ‚Ð¾ Ð¼Ð¾Ð¶Ðµ Ð´Ð° ÑÐµ ÐºÑƒÐ¿Ð¸ ÑÐ°Ð¼Ð¾ 1 Ð±Ð¸Ð»ÐµÑ‚.";
+                        ? $"Тази маса е до {maxSeatQuantity} души."
+                        : "За единично място може да се купи само 1 билет.";
                     return RedirectToAction("Details", "Events", new { id = ticket.EventId, occurrenceId });
                 }
 
@@ -622,6 +622,39 @@ namespace EventsApp.Controllers
             var vm = ToDetails(ut);
             var bytes = _docs.GenerateTicketPdf(vm);
             return File(bytes, "application/pdf", $"Evento-Ticket-{ut.Id}.pdf");
+        }
+
+        public async Task<IActionResult> Qr(Guid id)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
+
+            var ut = await _db.UserTickets
+                .AsNoTracking()
+                .Include(x => x.Ticket).ThenInclude(t => t.Event)
+                .Include(x => x.Transaction)
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (ut == null)
+            {
+                return NotFound();
+            }
+
+            var isOwner = ut.Transaction.UserId == userId;
+            var isOrganizerOfEvent = ut.Ticket.Event.OrganizerId == userId;
+            var canValidate = isAdmin || isOwner || isOrganizerOfEvent || await CanValidateEventAsync(userId, ut.Ticket.Event);
+            if (!canValidate)
+            {
+                return Forbid();
+            }
+
+            if (string.IsNullOrWhiteSpace(ut.QrCode))
+            {
+                return NotFound();
+            }
+
+            var bytes = _docs.GenerateQrPng(ut.QrCode);
+            return File(bytes, "image/png");
         }
 
         // ---------- VALIDATION ----------
@@ -993,7 +1026,7 @@ namespace EventsApp.Controllers
                 {
                     if (required)
                     {
-                        error = $"Ð’ÑŠÐ²ÐµÐ´Ð¸ Ð¸Ð¼Ðµ Ð·Ð° Ð±Ð¸Ð»ÐµÑ‚ #{i + 1}.";
+                        error = $"Въведи име за билет #{i + 1}.";
                     }
                     normalized.Add(null);
                     continue;

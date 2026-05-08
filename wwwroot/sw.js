@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'evento-v1';
+const CACHE_VERSION = 'evento-v2';
 const APP_SHELL = [
     '/',
     '/css/site.css',
@@ -85,4 +85,63 @@ self.addEventListener('fetch', (event) => {
                 .catch(() => caches.match(req).then((m) => m || caches.match('/')))
         );
     }
+});
+
+self.addEventListener('push', (event) => {
+    if (!event.data) return;
+
+    let data = {};
+    try {
+        data = event.data.json();
+    } catch {
+        data = { title: 'Evento', body: event.data.text() };
+    }
+
+    const title = data.title || 'Evento';
+    const options = {
+        body: data.body || '',
+        icon: data.icon || '/img/logo.svg',
+        badge: data.badge || '/img/logo.svg',
+        tag: data.tag || 'evento',
+        data: { url: data.url || '/' },
+        renotify: true,
+    };
+
+    const tasks = [self.registration.showNotification(title, options)];
+    const badgeCount = Number(data.badgeCount || 0);
+    if (Number.isFinite(badgeCount) && typeof navigator !== 'undefined') {
+        try {
+            if (badgeCount > 0 && 'setAppBadge' in navigator) {
+                tasks.push(navigator.setAppBadge(badgeCount));
+            } else if ('clearAppBadge' in navigator) {
+                tasks.push(navigator.clearAppBadge());
+            }
+        } catch {
+            // App badging is browser/PWA-mode dependent.
+        }
+    }
+
+    event.waitUntil(Promise.all(tasks));
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const url = event.notification.data && event.notification.data.url
+        ? event.notification.data.url
+        : '/';
+    const targetUrl = new URL(url, self.location.origin).href;
+
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+            for (const client of clients) {
+                if ('focus' in client && client.url === targetUrl) {
+                    return client.focus();
+                }
+            }
+
+            if (self.clients.openWindow) {
+                return self.clients.openWindow(targetUrl);
+            }
+        })
+    );
 });

@@ -22,19 +22,22 @@ namespace EventsApp.Controllers
         private readonly IPlatformPermissionService _permissions;
         private readonly IActingIdentityService _actingIdentity;
         private readonly IHubContext<ChatHub> _hubContext;
+        private readonly IPushNotificationService _pushNotifications;
 
         public MessagesController(
             ApplicationDbContext db,
             UserManager<ApplicationUser> userManager,
             IPlatformPermissionService permissions,
             IActingIdentityService actingIdentity,
-            IHubContext<ChatHub> hubContext)
+            IHubContext<ChatHub> hubContext,
+            IPushNotificationService pushNotifications)
         {
             _db = db;
             _userManager = userManager;
             _permissions = permissions;
             _actingIdentity = actingIdentity;
             _hubContext = hubContext;
+            _pushNotifications = pushNotifications;
         }
 
         public async Task<IActionResult> Index()
@@ -747,24 +750,9 @@ namespace EventsApp.Controllers
 
             if (saved != null)
             {
-                var payload = new
-                {
-                    id = saved.Id,
-                    senderId = saved.SenderId,
-                    isMine = saved.SenderId == userId,
-                    senderName = saved.AuthorType == AuthorIdentityType.OrganizerPage && saved.AuthorOrganizerProfile != null
-                        ? saved.AuthorOrganizerProfile.DisplayName
-                        : (saved.Sender != null ? GetDisplayName(saved.Sender) : string.Empty),
-                    senderImageUrl = saved.AuthorType == AuthorIdentityType.OrganizerPage && saved.AuthorOrganizerProfile != null
-                        ? saved.AuthorOrganizerProfile.AvatarImageUrl
-                        : saved.Sender?.ProfileImageUrl,
-                    senderBadgeText = GetAuthorBadgeText(saved.AuthorType, saved.SenderId == userId),
-                    content = saved.Content,
-                    createdAt = saved.CreatedAt.ToString("dd.MM.yyyy HH:mm"),
-                };
-
-                await _hubContext.Clients.Group(conversation.Token.ToString())
-                    .SendAsync("NewMessage", payload);
+                var payload = BuildMessagePayload(saved, userId);
+                await _hubContext.Clients.Group(conversation.Token.ToString()).SendAsync("NewMessage", payload);
+                await NotifyConversationParticipantsAsync(conversation.Id, saved);
             }
 
             if (isInitialRequestMessage)
@@ -922,30 +910,125 @@ namespace EventsApp.Controllers
 
             if (saved != null)
             {
-                var payload = new
-                {
-                    id = saved.Id,
-                    senderId = saved.SenderId,
-                    isMine = saved.SenderId == userId,
-                    senderName = saved.AuthorType == AuthorIdentityType.OrganizerPage && saved.AuthorOrganizerProfile != null
-                        ? saved.AuthorOrganizerProfile.DisplayName
-                        : (saved.Sender != null ? GetDisplayName(saved.Sender) : string.Empty),
-                    senderImageUrl = saved.AuthorType == AuthorIdentityType.OrganizerPage && saved.AuthorOrganizerProfile != null
-                        ? saved.AuthorOrganizerProfile.AvatarImageUrl
-                        : saved.Sender?.ProfileImageUrl,
-                    senderBadgeText = GetAuthorBadgeText(saved.AuthorType, saved.SenderId == userId),
-                    content = saved.Content,
-                    createdAt = saved.CreatedAt.ToString("dd.MM.yyyy HH:mm"),
-                };
-
-                await _hubContext.Clients.Group(conversation.Token.ToString())
-                    .SendAsync("NewMessage", payload);
+                var payload = BuildMessagePayload(saved, userId);
+                await _hubContext.Clients.Group(conversation.Token.ToString()).SendAsync("NewMessage", payload);
+                await NotifyConversationParticipantsAsync(conversation.Id, saved);
             }
 
             TempData["StatusMessage"] = isInitialRequestMessage
                 ? "Message request sent. The conversation will unlock after approval."
                 : "Sent in chat.";
-            return RedirectToAction(nameof(Details), new { id = conversationId });
+            return RedirectToAction(nameof(Details), new { token = conversation.Token });
+        }
+
+        private object BuildMessagePayload(Message message, string viewerUserId)
+        {
+            return new
+            {
+                id = message.Id,
+                senderId = message.SenderId,
+                isMine = message.SenderId == viewerUserId,
+                senderName = message.AuthorType == AuthorIdentityType.OrganizerPage && message.AuthorOrganizerProfile != null
+                    ? message.AuthorOrganizerProfile.DisplayName
+                    : (message.Sender != null ? GetDisplayName(message.Sender) : string.Empty),
+                senderImageUrl = message.AuthorType == AuthorIdentityType.OrganizerPage && message.AuthorOrganizerProfile != null
+                    ? message.AuthorOrganizerProfile.AvatarImageUrl
+                    : message.Sender?.ProfileImageUrl,
+                senderBadgeText = GetAuthorBadgeText(message.AuthorType, message.SenderId == viewerUserId),
+                content = message.Content,
+                createdAt = message.CreatedAt.ToString("dd.MM.yyyy HH:mm"),
+            };
+        }
+
+        private async Task NotifyConversationParticipantsAsync(int conversationId, Message message)
+        {
+            var conversation = await _db.Conversations
+                .AsNoTracking()
+                .Include(c => c.ParticipantOne)
+                .Include(c => c.ParticipantTwo)
+                .Include(c => c.OrganizerProfile)
+                .FirstOrDefaultAsync(c => c.Id == conversationId);
+
+            if (conversation == null)
+            {
+                return;
+            }
+
+            var participantIds = new[] { conversation.ParticipantOneId, conversation.ParticipantTwoId }
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct()
+                .ToList();
+
+            foreach (var viewerUserId in participantIds)
+            {
+                var payload = await BuildConversationUpdatePayloadAsync(conversation, message, viewerUserId);
+                await _hubContext.Clients.User(viewerUserId).SendAsync("ConversationUpdated", payload);
+
+                if (viewerUserId != message.SenderId)
+                {
+                    var senderName = message.AuthorType == AuthorIdentityType.OrganizerPage && message.AuthorOrganizerProfile != null
+                        ? message.AuthorOrganizerProfile.DisplayName
+                        : message.Sender != null ? GetDisplayName(message.Sender) : "Evento";
+                    var body = message.Content.Length > 120 ? message.Content[..120] + "..." : message.Content;
+                    var url = Url.Action(nameof(Details), "Messages", new { token = conversation.Token }) ?? "/Messages";
+                    var badgeCount = await CountUnreadMessagesForUserAsync(viewerUserId);
+                    await _pushNotifications.SendMessageNotificationAsync(
+                        viewerUserId,
+                        $"Ново съобщение от {senderName}",
+                        body,
+                        url,
+                        badgeCount);
+                }
+            }
+        }
+
+        private async Task<object> BuildConversationUpdatePayloadAsync(Conversation conversation, Message message, string viewerUserId)
+        {
+            var other = conversation.ParticipantOneId == viewerUserId
+                ? conversation.ParticipantTwo
+                : conversation.ParticipantOne;
+            var currentUserOwnsPage = conversation.OrganizerProfile?.OwnerId == viewerUserId;
+            var displayName = conversation.OrganizerProfileId.HasValue && !currentUserOwnsPage
+                ? conversation.OrganizerProfile?.DisplayName ?? GetDisplayName(other)
+                : GetDisplayName(other);
+            var imageUrl = conversation.OrganizerProfileId.HasValue && !currentUserOwnsPage
+                ? conversation.OrganizerProfile?.AvatarImageUrl ?? other.ProfileImageUrl
+                : other.ProfileImageUrl;
+            var listKey = conversation.Status == ConversationStatus.Pending && conversation.RequestedByUserId != viewerUserId
+                ? "requests"
+                : conversation.OrganizerProfileId.HasValue ? "page" : "personal";
+            var unseenCount = await _db.Messages
+                .AsNoTracking()
+                .CountAsync(m => m.ConversationId == conversation.Id && m.SenderId != viewerUserId && m.SeenAt == null);
+            var totalUnreadCount = await CountUnreadMessagesForUserAsync(viewerUserId);
+            var url = Url.Action(nameof(Details), "Messages", new { token = conversation.Token }) ?? "/Messages";
+            var initial = string.IsNullOrWhiteSpace(displayName) ? "?" : displayName[..1].ToUpperInvariant();
+
+            return new
+            {
+                conversationId = conversation.Id,
+                token = conversation.Token,
+                listKey,
+                url,
+                name = displayName,
+                imageUrl,
+                initial,
+                lastMessage = message.Content,
+                updatedAt = message.CreatedAt.ToString("dd.MM HH:mm"),
+                unseenCount,
+                totalUnreadCount,
+                senderId = message.SenderId,
+                isMine = message.SenderId == viewerUserId,
+            };
+        }
+
+        private Task<int> CountUnreadMessagesForUserAsync(string userId)
+        {
+            return _db.Messages
+                .AsNoTracking()
+                .CountAsync(m => m.SenderId != userId
+                    && m.SeenAt == null
+                    && (m.Conversation.ParticipantOneId == userId || m.Conversation.ParticipantTwoId == userId));
         }
 
         private async Task<IReadOnlyList<ConversationListItemViewModel>> BuildShareTargetsAsync(string userId)
