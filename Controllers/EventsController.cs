@@ -490,9 +490,9 @@ namespace EventsApp.Controllers
                 var uploadResult = await _mediaUploadService.SaveAsync(input.Photo, "events");
                 if (uploadResult != null)
                 {
-                    // Save as main image if not set
                     ev.ImageUrl = uploadResult.Url;
-                    // Optionally, add to Images collection
+                    var oldImages = _db.EventImages.Where(i => i.EventId == ev.Id);
+                    _db.EventImages.RemoveRange(oldImages);
                     _db.EventImages.Add(new EventImage { EventId = ev.Id, ImageUrl = uploadResult.Url });
                     await _db.SaveChangesAsync();
 
@@ -764,6 +764,8 @@ namespace EventsApp.Controllers
                 if (uploadResult != null)
                 {
                     ev.ImageUrl = uploadResult.Url;
+                    var oldImages = _db.EventImages.Where(i => i.EventId == ev.Id);
+                    _db.EventImages.RemoveRange(oldImages);
                     _db.EventImages.Add(new EventImage { EventId = ev.Id, ImageUrl = uploadResult.Url });
                 }
             }
