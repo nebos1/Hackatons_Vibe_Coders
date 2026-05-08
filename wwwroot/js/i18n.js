@@ -267,6 +267,7 @@
         'comments.show.more': { bg: 'Покажи още коментари', en: 'Show more comments' },
         'event.price.free': { bg: 'Безплатно', en: 'Free' },
         'event.price.from': { bg: 'от', en: 'from' },
+        'event.tag.today': { bg: 'Днес', en: 'Today' },
 
         // RECURRING EVENTS
         'event.schedule.kicker': { bg: 'График', en: 'Schedule' },
@@ -503,7 +504,7 @@
         'home.personal.city': { bg: 'Показваме ти повече събития около', en: 'Showing more events around' },
         'home.quick.filters': { bg: 'Бързи филтри', en: 'Quick filters' },
         'home.quick.filters.title': { bg: 'Намери точната вечер по-бързо.', en: 'Find the right night faster.' },
-        'home.tonight': { bg: 'Тази вечер', en: 'Tonight' },
+        'home.tonight': { bg: 'Днес', en: 'Today' },
         'home.weekend': { bg: 'Този уикенд', en: 'This Weekend' },
         'home.free': { bg: 'Безплатни', en: 'Free' },
         'home.near.me': { bg: 'Наблизо', en: 'Near Me' },
@@ -511,7 +512,7 @@
         'home.new': { bg: 'Нови', en: 'New' },
         'home.tonight.title': { bg: 'Какво се случва днес.', en: 'What is happening today.' },
         'home.weekend.title': { bg: 'План за събота и неделя.', en: 'Plans for Saturday and Sunday.' },
-        'home.tonight.empty': { bg: 'Няма събития за тази вечер.', en: 'No events tonight.' },
+        'home.tonight.empty': { bg: 'Няма събития за днес.', en: 'No events today.' },
         'home.weekend.empty': { bg: 'Няма събития за този уикенд.', en: 'No events this weekend.' },
         'home.all.events': { bg: 'Разгледай всички събития', en: 'Browse all events' },
         'home.recently.viewed': { bg: 'Последно разглеждани', en: 'Recently Viewed' },
@@ -530,7 +531,7 @@
 
         // HOME SEARCH TABS
         'search.tab.all':     { bg: 'Всички',       en: 'All' },
-        'search.tab.tonight': { bg: 'Тази вечер',   en: 'Tonight' },
+        'search.tab.tonight': { bg: 'Днес',   en: 'Today' },
         'search.tab.weekend': { bg: 'Уикенд',        en: 'Weekend' },
         'search.tab.week':    { bg: 'Тази седмица',  en: 'This week' },
 
@@ -719,7 +720,8 @@
         'Всички': 'All',
         'За деца': 'For children',
         'Live музика': 'Live music',
-        'Тази вечер': 'Tonight',
+        'Днес': 'Today',
+        'Тази вечер': 'Today',
         'Тази седмица': 'This week',
         'Уикенд': 'Weekend',
         'Календар': 'Calendar',

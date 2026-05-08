@@ -5740,6 +5740,7 @@ body.evt-home-bg .site-header { background: var(--evt-bg); }
     border: 1px solid rgba(255,255,255,0.6);
 }
 .evt-card__chip--hot { background: #ff5a3c; color: white; }
+.evt-card__chip--today { top: 46px; background: #2456ff; color: #fff; }
 .evt-card__chip--vip {
     background: linear-gradient(135deg, #0f172a, #2456ff);
     color: #fff;
@@ -7555,6 +7556,7 @@ html[data-theme="dark"] .evt-card__save:hover {
 }
 html[data-theme="dark"] .evt-card__save.is-saved { color: #a29bfe; }
 html[data-theme="dark"] .evt-card__chip--hot { background: #ff5a3c; color: #fff; }
+html[data-theme="dark"] .evt-card__chip--today { background: #4a6fff; color: #fff; }
 html[data-theme="dark"] .evt-card__chip--free { background: rgba(6, 78, 59, 0.85); color: #6ee7b7; }
 html[data-theme="dark"] .evt-card__chip--pending { background: rgba(120, 90, 0, 0.85); color: #fde68a; }
 

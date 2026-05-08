@@ -9,6 +9,7 @@
     var shareUrl = Url.Action("Details", "Events", new { id = Model.Id }, Context.Request.Scheme) ?? string.Empty;
     var heat = Model.GoingCount * 2 + Model.InterestedCount + Model.LikesCount + Model.CommentsCount + Model.SavesCount + (Model.ViewsCount / 3);
     var isHot = heat >= 8;
+    var isToday = Model.StartTime.Date == DateTime.UtcNow.Date;
     var organizerInitial = !string.IsNullOrWhiteSpace(Model.OrganizerName) ? Model.OrganizerName.Trim()[..1].ToUpper() : "?";
 }
 
@@ -38,6 +39,11 @@
         else
         {
             <span class="evt-card__chip" data-i18n="@($"genre.{Model.Genre}")">@Model.Genre.GetDisplayName()</span>
+        }
+
+        @if (isToday)
+        {
+            <span class="evt-card__chip evt-card__chip--today" data-i18n="event.tag.today">Днес</span>
         }
 
         @if (User.Identity?.IsAuthenticated == true)
