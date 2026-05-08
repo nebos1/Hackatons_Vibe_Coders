@@ -502,8 +502,10 @@ app.MapRazorPages()
             && route.RoutePattern.RawText is string pattern
             && (pattern.Contains("Account/ForgotPassword", StringComparison.OrdinalIgnoreCase)
                 || pattern.Contains("Account/ResetPassword", StringComparison.OrdinalIgnoreCase)
+                || pattern.Contains("Account/ConfirmEmail", StringComparison.OrdinalIgnoreCase)
                 || pattern.Contains("forgot-password", StringComparison.OrdinalIgnoreCase)
                 || pattern.Contains("reset-password", StringComparison.OrdinalIgnoreCase)
+                || pattern.Contains("confirm-email", StringComparison.OrdinalIgnoreCase)
                 || pattern.Contains("Account/ResendEmailConfirmation", StringComparison.OrdinalIgnoreCase)))
         {
             builder.Metadata.Add(new EnableRateLimitingAttribute("auth"));

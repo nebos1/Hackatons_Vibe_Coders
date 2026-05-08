@@ -1,0 +1,19 @@
+@page "/confirm-email"
+@model ConfirmEmailModel
+@{
+    ViewData["Title"] = "Потвърден имейл";
+}
+
+<section class="auth-zine-page">
+    <div class="auth-zine-shell">
+        <div class="auth-zine-copy">
+            <span class="auth-zine-stamp">Имейл</span>
+            <h1>@Model.Title</h1>
+            <p>@Model.Message</p>
+        </div>
+
+        <p class="auth-zine-alt">
+            <a asp-area="Identity" asp-page="/Account/Login">Към вход</a>
+        </p>
+    </div>
+</section>

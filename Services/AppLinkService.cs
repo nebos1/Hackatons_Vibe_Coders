@@ -26,7 +26,15 @@ namespace EventsApp.Services
 
             if (Uri.TryCreate(pathAndQuery, UriKind.Absolute, out var absolute))
             {
-                return absolute.ToString();
+                if (string.Equals(absolute.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(absolute.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                {
+                    return absolute.ToString();
+                }
+
+                pathAndQuery = string.IsNullOrWhiteSpace(absolute.PathAndQuery)
+                    ? "/"
+                    : absolute.PathAndQuery;
             }
 
             return new Uri(new Uri(baseUrl), pathAndQuery.TrimStart('/')).ToString();

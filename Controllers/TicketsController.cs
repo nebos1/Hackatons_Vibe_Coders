@@ -1034,7 +1034,7 @@ namespace EventsApp.Controllers
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 10px 0">
                     <tr>
                         <td bgcolor="{backgroundColor}" style="background:{backgroundColor};border-radius:14px;text-align:center">
-                            <a href="{safeUrl}" target="_blank" rel="noopener" style="display:block;padding:13px 18px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:20px;color:#ffffff;text-decoration:none;font-weight:800;border-radius:14px">
+                            <a href="{safeUrl}" style="display:inline-block;padding:13px 18px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:20px;color:#ffffff;text-decoration:none;font-weight:800;border-radius:14px">
                                 {safeLabel}
                             </a>
                         </td>
