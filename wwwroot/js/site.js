@@ -24,6 +24,56 @@ document.addEventListener('click', async function (event) {
 });
 
 (function () {
+    function setupMobileLazyInputs() {
+        var isTouchLike = window.matchMedia &&
+            window.matchMedia('(hover: none), (pointer: coarse)').matches;
+
+        document.querySelectorAll('[data-mobile-lazy-input]').forEach(function (input) {
+            if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return;
+            if (!isTouchLike) {
+                input.removeAttribute('readonly');
+                return;
+            }
+
+            var userIntent = false;
+            input.setAttribute('readonly', 'readonly');
+
+            function activate() {
+                userIntent = true;
+                input.removeAttribute('readonly');
+                window.setTimeout(function () {
+                    try {
+                        input.focus({ preventScroll: true });
+                    } catch (_) {
+                        input.focus();
+                    }
+                }, 0);
+            }
+
+            input.addEventListener('pointerdown', activate, { once: true });
+            input.addEventListener('touchstart', activate, { once: true, passive: true });
+            input.addEventListener('focus', function () {
+                if (!userIntent && input.hasAttribute('readonly')) {
+                    window.setTimeout(function () { input.blur(); }, 0);
+                }
+            });
+
+            window.addEventListener('pageshow', function () {
+                if (document.activeElement === input && !userIntent) {
+                    input.blur();
+                }
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupMobileLazyInputs);
+    } else {
+        setupMobileLazyInputs();
+    }
+})();
+
+(function () {
     function showToast(message) {
         if (!message) return;
         var toast = document.createElement('div');

@@ -31,6 +31,8 @@
                    value="@Model.SearchQuery"
                    placeholder="Търси хора, @@username или публична страница..."
                    data-i18n-placeholder="feed.search.placeholder"
+                   data-mobile-lazy-input
+                   readonly
                    autocomplete="off" />
             <button type="submit" class="groove-button groove-button-primary" data-i18n="feed.search.action">Търси</button>
             @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
