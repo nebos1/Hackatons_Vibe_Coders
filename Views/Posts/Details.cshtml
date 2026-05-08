@@ -166,7 +166,7 @@
             <div class="groove-form-actions">
                 <form asp-action="@(Model.CurrentUserLiked ? "Unlike" : "Like")" asp-route-id="@Model.Id" method="post">
                     @Html.AntiForgeryToken()
-                    <button class="groove-button @(Model.CurrentUserLiked ? "groove-button-dark" : "groove-button-paper")" type="submit">
+                    <button class="groove-button @(Model.CurrentUserLiked ? "groove-button-dark" : "groove-button-paper")" type="submit" data-post-action="like">
                         <i class="bi @(Model.CurrentUserLiked ? "bi-heart-fill" : "bi-heart")"></i>
                         @if (Model.CurrentUserLiked)
                         {
@@ -180,7 +180,7 @@
                 </form>
                 <form asp-action="@(Model.CurrentUserSaved ? "Unsave" : "Save")" asp-route-id="@Model.Id" method="post">
                     @Html.AntiForgeryToken()
-                    <button class="groove-button groove-button-paper" type="submit">
+                    <button class="groove-button groove-button-paper" type="submit" data-post-action="save">
                         <i class="bi @(Model.CurrentUserSaved ? "bi-bookmark-fill" : "bi-bookmark")"></i>
                         @if (Model.CurrentUserSaved)
                         {

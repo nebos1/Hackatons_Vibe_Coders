@@ -1,4 +1,4 @@
-namespace EventsApp.Common
+﻿namespace EventsApp.Common
 {
     public static class CityCoordinates
     {

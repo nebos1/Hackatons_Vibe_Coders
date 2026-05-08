@@ -108,7 +108,7 @@
                     <form asp-controller="Posts" asp-action="@likeAction" asp-route-id="@Model.Id"
                           asp-route-returnUrl="@returnUrl" method="post" class="d-inline">
                         @Html.AntiForgeryToken()
-                        <button class="btn btn-sm @btnClass" type="submit" title="Like" data-i18n-title="post.like">
+                        <button class="btn btn-sm @btnClass" type="submit" title="Like" data-post-action="like" data-i18n-title="post.like">
                             <i class="bi @iconClass"></i> @Model.LikesCount
                         </button>
                     </form>
@@ -118,7 +118,7 @@
                     <form asp-controller="Posts" asp-action="@saveAction" asp-route-id="@Model.Id"
                           asp-route-returnUrl="@returnUrl" method="post" class="d-inline">
                         @Html.AntiForgeryToken()
-                        <button class="btn btn-sm @saveClass" type="submit" title="Save" data-i18n-title="post.save">
+                        <button class="btn btn-sm @saveClass" type="submit" title="Save" data-post-action="save" data-i18n-title="post.save">
                             <i class="bi @saveIcon"></i> @Model.SavesCount
                         </button>
                     </form>

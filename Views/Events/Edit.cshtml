@@ -71,7 +71,7 @@
                 <div class="mb-3">
                     <label asp-for="City" class="form-label"></label>
                     <select asp-for="City" id="City" class="form-select" autocomplete="off">
-                        <option value="">-- Ð˜Ð·Ð±ÐµÑ€Ð¸ Ð³Ñ€Ð°Ð´ --</option>
+                        <option value="">-- Избери град --</option>
                         @foreach (var item in Model.Cities)
                         {
                             var latlng = Model.CityCoordinatesMap != null && Model.CityCoordinatesMap.ContainsKey(item.Value) ? Model.CityCoordinatesMap[item.Value] : string.Empty;

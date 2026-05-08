@@ -54,7 +54,7 @@
             <form asp-controller="Events" asp-action="@saveAction" asp-route-id="@Model.Id"
                   asp-route-returnUrl="@returnUrl" method="post" class="m-0">
                 @Html.AntiForgeryToken()
-                <button class="evt-card__save @saveOnClass" type="submit" title="Save">
+                <button class="evt-card__save @saveOnClass" type="submit" title="Save" data-event-action="save">
                     <i class="bi @saveIcon"></i>
                 </button>
             </form>
@@ -122,7 +122,7 @@
                 <form asp-controller="Events" asp-action="@likeAction" asp-route-id="@Model.Id"
                       asp-route-returnUrl="@returnUrl" method="post" class="m-0">
                     @Html.AntiForgeryToken()
-                    <button class="evt-card__action @likedCls" type="submit" title="Like">
+                    <button class="evt-card__action @likedCls" type="submit" title="Like" data-event-action="like">
                         <i class="bi @likeIcon"></i> @Model.LikesCount
                     </button>
                 </form>
@@ -132,7 +132,7 @@
                       asp-route-status="@EventAttendanceStatus.Going" asp-route-returnUrl="@returnUrl"
                       method="post" class="m-0">
                     @Html.AntiForgeryToken()
-                    <button class="evt-card__action @goingCls" type="submit" title="Going">
+                    <button class="evt-card__action @goingCls" type="submit" title="Going" data-event-action="going">
                         <i class="bi bi-check2-circle"></i> @Model.GoingCount
                     </button>
                 </form>
@@ -142,7 +142,7 @@
                       asp-route-status="@EventAttendanceStatus.Interested" asp-route-returnUrl="@returnUrl"
                       method="post" class="m-0">
                     @Html.AntiForgeryToken()
-                    <button class="evt-card__action @interestedCls" type="submit" title="Interested">
+                    <button class="evt-card__action @interestedCls" type="submit" title="Interested" data-event-action="interested">
                         <i class="bi bi-star"></i> @Model.InterestedCount
                     </button>
                 </form>

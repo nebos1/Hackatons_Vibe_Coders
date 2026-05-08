@@ -365,6 +365,11 @@ namespace EventsApp.Controllers
                 await _db.SaveChangesAsync();
                 await _socialFeed.TrackActivityAsync(userId, UserActivityType.PostLiked, postId: id);
             }
+            if (IsAjaxRequest())
+            {
+                var likesCount = await _db.PostLikes.CountAsync(l => l.PostId == id);
+                return Json(new { liked = true, likesCount });
+            }
             return SafeRedirect(returnUrl) ?? RedirectToAction(nameof(Details), new { id });
         }
 
@@ -379,6 +384,11 @@ namespace EventsApp.Controllers
             {
                 _db.PostLikes.Remove(like);
                 await _db.SaveChangesAsync();
+            }
+            if (IsAjaxRequest())
+            {
+                var likesCount = await _db.PostLikes.CountAsync(l => l.PostId == id);
+                return Json(new { liked = false, likesCount });
             }
             return SafeRedirect(returnUrl) ?? RedirectToAction(nameof(Details), new { id });
         }
@@ -397,6 +407,12 @@ namespace EventsApp.Controllers
                 await _socialFeed.TrackActivityAsync(userId, UserActivityType.PostSaved, postId: id);
             }
 
+            if (IsAjaxRequest())
+            {
+                var savesCount = await _db.PostSaves.CountAsync(s => s.PostId == id);
+                return Json(new { saved = true, savesCount });
+            }
+
             return SafeRedirect(returnUrl) ?? RedirectToAction(nameof(Details), new { id });
         }
 
@@ -411,6 +427,12 @@ namespace EventsApp.Controllers
             {
                 _db.PostSaves.Remove(save);
                 await _db.SaveChangesAsync();
+            }
+
+            if (IsAjaxRequest())
+            {
+                var savesCount = await _db.PostSaves.CountAsync(s => s.PostId == id);
+                return Json(new { saved = false, savesCount });
             }
 
             return SafeRedirect(returnUrl) ?? RedirectToAction(nameof(Details), new { id });

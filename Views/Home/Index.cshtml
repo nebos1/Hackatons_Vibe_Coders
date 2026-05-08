@@ -2,7 +2,7 @@
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @{
-    ViewData["Title"] = "ÐÐ°Ñ‡Ð°Ð»Ð¾";
+    ViewData["Title"] = "Начало";
     var hasRealEvents = Model.TotalEventsCount > 0;
     var hasRealMapPins = Model.MapMarkers.Count > 0;
     var visibleEventCount = Math.Min(Model.TotalEventsCount, Model.Page * Model.PageSize);
@@ -50,54 +50,54 @@
 
     <div class="evt-marquee" aria-hidden="true">
         <div class="evt-marquee__track">
-            <span data-i18n="marquee.live">â˜… Ð–Ð¸Ð²Ð¸ Ð½Ð¾Ñ‰Ð¸</span><span data-i18n="marquee.diary">â˜… Ð”Ð½ÐµÐ²Ð½Ð¸Ðº Ð½Ð° Ð³Ñ€Ð°Ð´Ð°</span><span data-i18n="marquee.map">â˜… ÐšÐ°Ñ€Ñ‚Ð° Ð½Ð° Ð‘ÑŠÐ»Ð³Ð°Ñ€Ð¸Ñ</span><span data-i18n="marquee.tickets">â˜… Ð¡Ð²ÐµÐ¶Ð¸ Ð±Ð¸Ð»ÐµÑ‚Ð¸</span><span>â˜… Techno</span><span>â˜… House</span><span>â˜… Jazz</span><span data-i18n="marquee.nearme">â˜… ÐžÐºÐ¾Ð»Ð¾ Ð¼ÐµÐ½</span>
-            <span data-i18n="marquee.live">â˜… Ð–Ð¸Ð²Ð¸ Ð½Ð¾Ñ‰Ð¸</span><span data-i18n="marquee.diary">â˜… Ð”Ð½ÐµÐ²Ð½Ð¸Ðº Ð½Ð° Ð³Ñ€Ð°Ð´Ð°</span><span data-i18n="marquee.map">â˜… ÐšÐ°Ñ€Ñ‚Ð° Ð½Ð° Ð‘ÑŠÐ»Ð³Ð°Ñ€Ð¸Ñ</span><span data-i18n="marquee.tickets">â˜… Ð¡Ð²ÐµÐ¶Ð¸ Ð±Ð¸Ð»ÐµÑ‚Ð¸</span><span>â˜… Techno</span><span>â˜… House</span><span>â˜… Jazz</span><span data-i18n="marquee.nearme">â˜… ÐžÐºÐ¾Ð»Ð¾ Ð¼ÐµÐ½</span>
+            <span data-i18n="marquee.live">★ Живи нощи</span><span data-i18n="marquee.diary">★ Дневник на града</span><span data-i18n="marquee.map">★ Карта на България</span><span data-i18n="marquee.tickets">★ Свежи билети</span><span>★ Techno</span><span>★ House</span><span>★ Jazz</span><span data-i18n="marquee.nearme">★ Около мен</span>
+            <span data-i18n="marquee.live">★ Живи нощи</span><span data-i18n="marquee.diary">★ Дневник на града</span><span data-i18n="marquee.map">★ Карта на България</span><span data-i18n="marquee.tickets">★ Свежи билети</span><span>★ Techno</span><span>★ House</span><span>★ Jazz</span><span data-i18n="marquee.nearme">★ Около мен</span>
         </div>
     </div>
 
     <section class="evt-hero">
         <div class="evt-hero__copy">
             <h1 class="evt-hero__title" data-i18n-html="home.hero.h1">
-                ÐžÑ‚ÐºÑ€Ð¸Ð¹ <span>ÑÑŠÐ±Ð¸Ñ‚Ð¸Ñ</span> Ð½Ð°Ð±Ð»Ð¸Ð·Ð¾.
+                Открий <span>събития</span> наблизо.
             </h1>
 
             <p class="evt-hero__lead" data-i18n="home.hero.p">
-                ÐšÐ¾Ð½Ñ†ÐµÑ€Ñ‚Ð¸, Ñ‚ÐµÐ°Ñ‚ÑŠÑ€, ÐºÐ»ÑƒÐ±Ð½Ð¸ Ð²ÐµÑ‡ÐµÑ€Ð¸ Ð¸ Ñ„ÐµÑÑ‚Ð¸Ð²Ð°Ð»Ð¸ Ð² ÐµÐ´Ð½Ð° ÐºÐ¾Ð¼Ð¿Ð°ÐºÑ‚Ð½Ð° ÐºÐ°Ñ€Ñ‚Ð°.
+                Концерти, театър, клубни вечери и фестивали в една компактна карта.
             </p>
 
             <div class="evt-hero__cta">
                 <a asp-controller="Events" asp-action="Recommended" class="evt-btn evt-btn-primary">
                     <i class="bi bi-compass"></i>
-                    <span data-i18n="home.viewmap">ÐŸÑ€ÐµÐ¿Ð¾Ñ€ÑŠÑ‡Ð°Ð½Ð¸</span>
+                    <span data-i18n="home.viewmap">Препоръчани</span>
                 </a>
                 <a asp-controller="Home" asp-action="Calendar" class="evt-btn evt-btn-ghost">
                     <i class="bi bi-calendar3"></i>
-                    <span data-i18n="home.calendar">ÐšÐ°Ð»ÐµÐ½Ð´Ð°Ñ€</span>
+                    <span data-i18n="home.calendar">Календар</span>
                 </a>
                 <a asp-controller="Posts" asp-action="Index" class="evt-btn evt-btn-ghost">
                     <i class="bi bi-grid"></i>
-                    <span data-i18n="home.openfeed">ÐŸÐ¾Ñ‚Ð¾Ðº</span>
+                    <span data-i18n="home.openfeed">Поток</span>
                 </a>
             </div>
 
             <div class="evt-hero__stats">
-                <span><strong id="home-total-events-count">@Model.TotalEventsCount</strong> <span data-i18n="home.stats.nights">Ð·Ð°Ð¿Ð¸ÑÐ°Ð½Ð¸ Ð½Ð¾Ñ‰Ð¸</span></span>
-                <span><strong id="home-city-count">@visibleCityCount</strong> <span data-i18n="home.stats.cities">Ð³Ñ€Ð°Ð´Ð°</span></span>
-                <span><strong id="home-event-count">@Model.MapMarkers.Count</strong> <span data-i18n="home.stats.pins">ÐºÐ°Ñ€Ñ„Ð¸Ñ†Ð¸</span></span>
+                <span><strong id="home-total-events-count">@Model.TotalEventsCount</strong> <span data-i18n="home.stats.nights">записани нощи</span></span>
+                <span><strong id="home-city-count">@visibleCityCount</strong> <span data-i18n="home.stats.cities">града</span></span>
+                <span><strong id="home-event-count">@Model.MapMarkers.Count</strong> <span data-i18n="home.stats.pins">карфици</span></span>
             </div>
         </div>
 
         <div class="evt-hero__map" id="event-map">
             <span class="evt-hero__map-badge">
                 <i class="bi bi-broadcast"></i>
-                <span data-i18n="@(hasRealMapPins ? "home.map.live" : "home.map.empty")">@(hasRealMapPins ? "Ð¶Ð¸Ð²Ð° ÐºÐ°Ñ€Ñ‚Ð°" : "Ð¿Ñ€Ð°Ð·Ð½Ð° ÐºÐ°Ñ€Ñ‚Ð°")</span>
+                <span data-i18n="@(hasRealMapPins ? "home.map.live" : "home.map.empty")">@(hasRealMapPins ? "жива карта" : "празна карта")</span>
             </span>
             <span class="evt-hero__map-badge evt-hero__map-badge--right notranslate" translate="no">google maps</span>
 
             <div id="events-map" class="notranslate" translate="no" data-no-i18n="true">
                 <div class="map-loading-state">
                     <i class="bi bi-map" style="font-size:1.6rem;"></i>
-                    <span data-i18n="home.map.loading">ÐšÐ°Ñ€Ñ‚Ð°Ñ‚Ð° ÑÐµ Ð·Ð°Ñ€ÐµÐ¶Ð´Ð°...</span>
+                    <span data-i18n="home.map.loading">Картата се зарежда...</span>
                 </div>
             </div>
 
@@ -105,12 +105,12 @@
 
             <button id="use-my-location" type="button" class="evt-hero__map-locate">
                 <i class="bi bi-crosshair"></i>
-                <span data-i18n="home.geo.btn">ÐžÐºÐ¾Ð»Ð¾ Ð¼ÐµÐ½</span>
+                <span data-i18n="home.geo.btn">Около мен</span>
             </button>
         </div>
     </section>
 
-    <!-- Event preview panel â€” shown when a map pin is clicked -->
+    <!-- Event preview panel — shown when a map pin is clicked -->
     <div id="map-event-preview" class="evt-map-preview" aria-live="polite" style="display:none;">
         <div class="evt-map-preview__inner">
             <img id="map-preview-img" src="" alt="" class="evt-map-preview__img" style="display:none;" />
@@ -124,10 +124,10 @@
             </div>
             <a id="map-preview-link" href="#" class="evt-btn evt-btn-primary evt-map-preview__btn">
                 <i class="bi bi-arrow-right-circle"></i>
-                <span>Ð’Ð¸Ð¶ ÑÑŠÐ±Ð¸Ñ‚Ð¸ÐµÑ‚Ð¾</span>
+                <span>Виж събитието</span>
             </a>
         </div>
-        <button id="map-preview-close" class="evt-map-preview__close" type="button" aria-label="Ð—Ð°Ñ‚Ð²Ð¾Ñ€Ð¸">
+        <button id="map-preview-close" class="evt-map-preview__close" type="button" aria-label="Затвори">
             <i class="bi bi-x-lg"></i>
         </button>
     </div>
@@ -138,7 +138,7 @@
         if (daysUntilSat == 0) daysUntilSat = 7;
         var nextSat = today.AddDays(daysUntilSat);
         var nextSun = nextSat.AddDays(1);
-        // Days until Sunday in current week (0 = today is Sunday â†’ end is today)
+        // Days until Sunday in current week (0 = today is Sunday → end is today)
         var daysUntilSun = (7 - (int)today.DayOfWeek) % 7;
         var endOfWeek = today.AddDays(daysUntilSun);
 
@@ -151,36 +151,36 @@
     <div class="evt-search-section">
         <div id="home-filter-tabs" class="evt-search-tabs-bar">
             <a class="evt-search-tab-link @(isTabAll ? "is-active" : "")" asp-action="Index">
-                <i class="bi bi-grid-3x3-gap"></i> <span data-i18n="search.tab.all">Ð’ÑÐ¸Ñ‡ÐºÐ¸</span>
+                <i class="bi bi-grid-3x3-gap"></i> <span data-i18n="search.tab.all">Всички</span>
             </a>
             <a class="evt-search-tab-link @(isTabTonight ? "is-active" : "")"
                asp-action="Index"
                asp-route-dateFrom="@today.ToString("yyyy-MM-dd")"
                asp-route-dateTo="@today.ToString("yyyy-MM-dd")">
-                <i class="bi bi-calendar-day"></i> <span data-i18n="search.tab.tonight">Ð”Ð½ÐµÑ</span>
+                <i class="bi bi-calendar-day"></i> <span data-i18n="search.tab.tonight">Днес</span>
             </a>
             <a class="evt-search-tab-link @(isTabWeekend ? "is-active" : "")"
                asp-action="Index"
                asp-route-dateFrom="@nextSat.ToString("yyyy-MM-dd")"
                asp-route-dateTo="@nextSun.ToString("yyyy-MM-dd")">
-                <i class="bi bi-stars"></i> <span data-i18n="search.tab.weekend">Ð£Ð¸ÐºÐµÐ½Ð´</span>
+                <i class="bi bi-stars"></i> <span data-i18n="search.tab.weekend">Уикенд</span>
             </a>
             <a class="evt-search-tab-link @(isTabWeek ? "is-active" : "")"
                asp-action="Index"
                asp-route-dateFrom="@today.ToString("yyyy-MM-dd")"
                asp-route-dateTo="@endOfWeek.ToString("yyyy-MM-dd")">
-                <i class="bi bi-calendar-week"></i> <span data-i18n="search.tab.week">Ð¢Ð°Ð·Ð¸ ÑÐµÐ´Ð¼Ð¸Ñ†Ð°</span>
+                <i class="bi bi-calendar-week"></i> <span data-i18n="search.tab.week">Тази седмица</span>
             </a>
             <a class="evt-search-tab-link @(isTabFree ? "is-active" : "")"
                asp-action="Index" asp-route-search="free">
-                <i class="bi bi-ticket-perforated"></i> <span data-i18n="chip.free">Ð‘ÐµÐ·Ð¿Ð»Ð°Ñ‚Ð½Ð¸</span>
+                <i class="bi bi-ticket-perforated"></i> <span data-i18n="chip.free">Безплатни</span>
             </a>
         </div>
 
         <div class="evt-ai-search-wrap">
             <div class="evt-ai-search__label">
                 <i class="bi bi-stars"></i>
-                <span data-i18n="home.ai.label">AI Ð¢ÑŠÑ€ÑÐµÐ½Ðµ</span>
+                <span data-i18n="home.ai.label">AI Търсене</span>
             </div>
             <form id="home-smart-search-form" class="evt-ai-search-form" autocomplete="off">
                 @Html.AntiForgeryToken()
@@ -188,15 +188,15 @@
                     <input id="home-smart-search-input" type="text" name="q"
                            class="evt-ai-search-input"
                            data-i18n-placeholder="home.search.placeholder"
-                           placeholder="Ñ‚ÐµÑ…Ð½Ð¾ Ñ‚Ð°Ð·Ð¸ Ð²ÐµÑ‡ÐµÑ€ Ð² Ð¡Ð¾Ñ„Ð¸Ñ Â· Ð´Ð¶Ð°Ð· Ð¿Ñ€ÐµÐ· ÑƒÐ¸ÐºÐµÐ½Ð´Ð° Â· Ð±ÐµÐ·Ð¿Ð»Ð°Ñ‚ÐµÐ½ ÐºÐ¾Ð½Ñ†ÐµÑ€Ñ‚" />
+                           placeholder="техно тази вечер в София · джаз през уикенда · безплатен концерт" />
                     <button class="evt-ai-search-btn" type="submit">
                         <i class="bi bi-stars"></i>
-                        <span data-i18n="home.search.btn">Ð¢ÑŠÑ€ÑÐ¸ Ñ AI</span>
+                        <span data-i18n="home.search.btn">Търси с AI</span>
                     </button>
                 </div>
                 <div class="evt-search-status evt-ai-search-status">
                     <span id="home-search-status"></span>
-                    <button id="home-smart-clear" class="evt-chip evt-chip--light" type="button" data-i18n="home.clear" style="display:none;">Ð˜Ð·Ñ‡Ð¸ÑÑ‚Ð¸</button>
+                    <button id="home-smart-clear" class="evt-chip evt-chip--light" type="button" data-i18n="home.clear" style="display:none;">Изчисти</button>
                 </div>
             </form>
         </div>
@@ -205,8 +205,8 @@
     <section id="home-events-surface" class="evt-section" aria-live="polite">
         <div class="evt-section__head">
             <div>
-                <h2 class="evt-section__title" data-i18n="home.events.discover">ÐžÑ‚ÐºÑ€Ð¸Ð¹ ÑÐ²Ð¾ÑÑ‚Ð° Ð²ÐµÑ‡ÐµÑ€</h2>
-                <p class="evt-section__sub" data-i18n="home.events.discover.sub">ÐŸÐ¾Ð´Ð±Ñ€Ð°Ð½Ð¸ ÑÑŠÐ±Ð¸Ñ‚Ð¸Ñ, Ñ„ÐµÑÑ‚Ð¸Ð²Ð°Ð»Ð¸ Ð¸ Ð¿Ð°Ñ€Ñ‚Ð¸Ñ‚Ð° Ð¾ÐºÐ¾Ð»Ð¾ Ñ‚ÐµÐ±.</p>
+                <h2 class="evt-section__title" data-i18n="home.events.discover">Открий своята вечер</h2>
+                <p class="evt-section__sub" data-i18n="home.events.discover.sub">Подбрани събития, фестивали и партита около теб.</p>
             </div>
 
             <form id="home-events-filter" method="get" class="evt-toolbar" style="gap:8px;">
@@ -224,7 +224,7 @@
                     </select>
                 </div>
                 <button type="submit" class="evt-btn evt-btn-ghost" style="padding:8px 16px;">
-                    <i class="bi bi-funnel"></i> <span data-i18n="home.filter.btn">Ð¤Ð¸Ð»Ñ‚Ñ€Ð¸Ñ€Ð°Ð¹</span>
+                    <i class="bi bi-funnel"></i> <span data-i18n="home.filter.btn">Филтрирай</span>
                 </button>
             </form>
         </div>
@@ -232,11 +232,11 @@
         <div class="evt-toolbar">
             <div class="evt-chips">
                 <a class="evt-chip @(string.IsNullOrEmpty(Model.Search) && Model.DateFrom == null && Model.Genre == null ? "is-active" : "")"
-                   asp-action="Index" data-i18n="search.tab.all">Ð’ÑÐ¸Ñ‡ÐºÐ¸</a>
+                   asp-action="Index" data-i18n="search.tab.all">Всички</a>
                 <a class="evt-chip @(Model.Genre == EventGenre.LiveMusic ? "is-active" : "")"
                    asp-action="Index" asp-route-genre="@EventGenre.LiveMusic" data-i18n="genre.LiveMusic">Live музика</a>
                 <a class="evt-chip @(Model.Genre == EventGenre.Festival ? "is-active" : "")"
-                   asp-action="Index" asp-route-genre="@EventGenre.Festival" data-i18n="genre.Festival">Фестивали</a>
+                   asp-action="Index" asp-route-genre="@EventGenre.Festival" data-i18n="genre.Festival">Фестивал</a>
                 <a class="evt-chip @(Model.Genre == EventGenre.Theater ? "is-active" : "")"
                    asp-action="Index" asp-route-genre="@EventGenre.Theater" data-i18n="genre.Theater">Театър</a>
                 <a class="evt-chip @(Model.Search == "free" ? "is-active" : "")"
@@ -253,7 +253,7 @@
             @if (User.IsInRole(GlobalConstants.Roles.Organizer) || User.IsInRole(GlobalConstants.Roles.Admin))
             {
                 <a asp-controller="Events" asp-action="Create" class="evt-btn evt-btn-primary" style="padding:8px 16px;">
-                    <i class="bi bi-plus-lg"></i> <span data-i18n="home.events.create">Ð¡ÑŠÐ·Ð´Ð°Ð¹ ÑÑŠÐ±Ð¸Ñ‚Ð¸Ðµ</span>
+                    <i class="bi bi-plus-lg"></i> <span data-i18n="home.events.create">Създай събитие</span>
                 </a>
             }
         </div>
@@ -279,11 +279,11 @@
                     });
                     <div class="evt-load-more" data-home-event-load-more data-page="@Model.Page" data-page-size="@Model.PageSize" data-total="@Model.TotalEventsCount">
                         <span class="evt-load-more__meta">
-                            <span data-i18n="common.showing">ÐŸÐ¾ÐºÐ°Ð·Ð°Ð½Ð¸</span> <strong data-loaded-count>@visibleEventCount</strong> / <strong>@Model.TotalEventsCount</strong>
+                            <span data-i18n="common.showing">Показани</span> <strong data-loaded-count>@visibleEventCount</strong> / <strong>@Model.TotalEventsCount</strong>
                         </span>
                         <button type="button" class="evt-btn evt-btn-ghost" data-load-more-url="@nextEventsUrl">
                             <i class="bi bi-plus-circle"></i>
-                            <span data-i18n="common.show.more">ÐŸÐ¾ÐºÐ°Ð¶Ð¸ Ð¾Ñ‰Ðµ</span>
+                            <span data-i18n="common.show.more">Покажи още</span>
                         </button>
                     </div>
                 }
@@ -291,10 +291,10 @@
             else
             {
                 <div class="evt-empty">
-                    <p data-i18n="home.events.emptytext">Ð’ÑÐµ Ð¾Ñ‰Ðµ Ð½ÑÐ¼Ð° Ð¿ÑƒÐ±Ð»Ð¸ÐºÑƒÐ²Ð°Ð½Ð¸ ÑÑŠÐ±Ð¸Ñ‚Ð¸Ñ. ÐšÐ¾Ð³Ð°Ñ‚Ð¾ Ð¾Ñ€Ð³Ð°Ð½Ð¸Ð·Ð°Ñ‚Ð¾Ñ€Ð¸Ñ‚Ðµ Ð´Ð¾Ð±Ð°Ð²ÑÑ‚ Ñ‚Ð°ÐºÐ¸Ð²Ð°, Ñ‚Ðµ Ñ‰Ðµ ÑÐµ Ð¿Ð¾ÑÐ²ÑÑ‚ Ñ‚ÑƒÐº.</p>
+                    <p data-i18n="home.events.emptytext">Все още няма публикувани събития. Когато организаторите добавят такива, те ще се появят тук.</p>
                     @if (User.Identity?.IsAuthenticated == true && !User.IsInRole(GlobalConstants.Roles.Organizer) && !User.IsInRole(GlobalConstants.Roles.Admin))
                     {
-                        <a asp-controller="Account" asp-action="Apply" class="evt-btn evt-btn-primary mt-3" data-i18n="home.events.apply">ÐšÐ°Ð½Ð´Ð¸Ð´Ð°Ñ‚ÑÑ‚Ð²Ð°Ð¹ Ð·Ð° Ð¾Ñ€Ð³Ð°Ð½Ð¸Ð·Ð°Ñ‚Ð¾Ñ€</a>
+                        <a asp-controller="Account" asp-action="Apply" class="evt-btn evt-btn-primary mt-3" data-i18n="home.events.apply">Кандидатствай за организатор</a>
                     }
                 </div>
             }
@@ -302,10 +302,10 @@
             <aside class="evt-trending">
                 <div class="evt-trending__head">
                     <span class="evt-card__chip evt-card__chip--hot" style="position:static;display:inline-block;">
-                        <i class="bi bi-fire"></i> <span data-i18n="home.trending.stamp">Ð¢Ñ€ÐµÐ½Ð´</span>
+                        <i class="bi bi-fire"></i> <span data-i18n="home.trending.stamp">Тренд</span>
                     </span>
-                    <h3 data-i18n="home.trending.title">Ð¥Ð¾Ñ€Ð° ÑÐ»ÐµÐ´ÑÑ‚ ÑÐµÐ³Ð°</h3>
-                    <p data-i18n="home.trending.sub">ÐÐ°Ð¹-Ð½Ð°ÑˆÑƒÐ¼ÐµÐ»Ð¸Ñ‚Ðµ ÑÑŠÐ±Ð¸Ñ‚Ð¸Ñ ÑÐ¿Ð¾Ñ€ÐµÐ´ Ñ€ÐµÐ°ÐºÑ†Ð¸Ð¸Ñ‚Ðµ.</p>
+                    <h3 data-i18n="home.trending.title">Хора следят сега</h3>
+                    <p data-i18n="home.trending.sub">Най-нашумелите събития според реакциите.</p>
                 </div>
                 <div class="evt-trending__list">
                     @foreach (var ev in trendingEvents)
@@ -323,14 +323,14 @@
                             }
                             <div class="evt-trending__body">
                                 <strong>@ev.Title</strong>
-                                <small>@ev.City Â· @ev.StartTime.ToString("dd.MM HH:mm")</small>
+                                <small>@ev.City · @ev.StartTime.ToString("dd.MM HH:mm")</small>
                             </div>
                             <span class="evt-trending__rank">#@rank</span>
                         </a>
                     }
                     @if (trendingEvents.Count == 0)
                     {
-                        <p class="text-muted small mb-0" data-i18n="home.trending.empty">Ð’ÑÐµ Ð¾Ñ‰Ðµ Ð½ÑÐ¼Ð° Ð´Ð¾ÑÑ‚Ð°Ñ‚ÑŠÑ‡Ð½Ð¾ Ñ€ÐµÐ°ÐºÑ†Ð¸Ð¸.</p>
+                        <p class="text-muted small mb-0" data-i18n="home.trending.empty">Все още няма достатъчно реакции.</p>
                     }
                 </div>
             </aside>
