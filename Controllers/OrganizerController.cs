@@ -459,6 +459,7 @@ namespace EventsApp.Controllers
             await _db.SaveChangesAsync();
             await tx.CommitAsync();
 
+            TempData["BoostedEventId"] = eventId;
             TempData["StatusMessage"] = "VIP boost е активиран. Събитието вече получава по-силен ranking в Home и препоръките.";
             return SafeLocalRedirect(returnUrl) ?? RedirectToAction(nameof(Events));
         }

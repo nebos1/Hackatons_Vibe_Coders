@@ -5746,6 +5746,93 @@ body.evt-home-bg .site-header { background: var(--evt-bg); }
     color: #fff;
     box-shadow: 0 10px 26px rgba(36, 86, 255, 0.3);
 }
+
+.organizer-event-row.is-vip-boosted {
+    background: linear-gradient(90deg, rgba(36, 86, 255, 0.08), rgba(124, 58, 237, 0.05), transparent);
+}
+
+.organizer-event-row.is-vip-boosted > td {
+    background: transparent;
+}
+
+.organizer-event-row.is-vip-just-boosted {
+    animation: organizerVipRowPop 1.4s ease-out both;
+}
+
+.organizer-vip-badge {
+    position: relative !important;
+    overflow: hidden;
+    animation: organizerVipPulse 2.4s ease-in-out infinite;
+}
+
+.organizer-vip-badge::after {
+    content: "";
+    position: absolute;
+    top: -40%;
+    bottom: -40%;
+    left: -65%;
+    width: 45%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+    transform: rotate(18deg);
+    animation: organizerVipShine 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.organizer-vip-button:not(:disabled) {
+    animation: organizerVipButtonGlow 2.8s ease-in-out infinite;
+}
+
+@keyframes organizerVipPulse {
+    0%, 100% {
+        box-shadow: 0 10px 26px rgba(36, 86, 255, 0.3);
+        transform: translateY(0);
+    }
+    50% {
+        box-shadow: 0 14px 34px rgba(124, 58, 237, 0.44);
+        transform: translateY(-1px);
+    }
+}
+
+@keyframes organizerVipShine {
+    0% {
+        left: -65%;
+        opacity: 0;
+    }
+    20% {
+        opacity: 0.9;
+    }
+    55%, 100% {
+        left: 120%;
+        opacity: 0;
+    }
+}
+
+@keyframes organizerVipRowPop {
+    0% {
+        box-shadow: inset 0 0 0 999px rgba(99, 102, 241, 0.18);
+    }
+    100% {
+        box-shadow: inset 0 0 0 999px rgba(99, 102, 241, 0);
+    }
+}
+
+@keyframes organizerVipButtonGlow {
+    0%, 100% {
+        box-shadow: 0 10px 24px rgba(36, 86, 255, 0.24);
+    }
+    50% {
+        box-shadow: 0 16px 36px rgba(124, 58, 237, 0.38);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .organizer-vip-badge,
+    .organizer-vip-badge::after,
+    .organizer-vip-button:not(:disabled),
+    .organizer-event-row.is-vip-just-boosted {
+        animation: none;
+    }
+}
 .evt-card__chip--free { background: var(--evt-success-soft); color: var(--evt-success); }
 .evt-card__chip--pending { background: #fff4cc; color: #8a6d00; }
 

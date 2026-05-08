@@ -1,8 +1,11 @@
 @model OrganizerEventsViewModel
 @{
     var returnUrl = Context.Request.Path + Context.Request.QueryString;
-}
-@{
+    var boostedEventIdRaw = TempData["BoostedEventId"]?.ToString();
+    var boostedEventId = int.TryParse(boostedEventIdRaw, out var parsedBoostedEventId)
+        ? parsedBoostedEventId
+        : (int?)null;
+
     ViewData["Title"] = "Моите събития";
 }
 
@@ -38,7 +41,7 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="returnUrl" value="@returnUrl" />
                 <input type="number" name="quantity" value="1" min="1" max="20" class="form-control" style="max-width:88px;" />
-                <button class="groove-button groove-button-dark" type="submit">
+                <button class="groove-button groove-button-dark organizer-vip-button" type="submit">
                     <i class="bi bi-stars"></i> Тестова покупка
                 </button>
             </form>
@@ -72,7 +75,10 @@
                     <tbody>
                         @foreach (var ev in Model.Events)
                         {
-                            <tr>
+                            var isVipBoosted = ev.VipBoostScore > 0;
+                            var isJustBoosted = boostedEventId == ev.Id;
+
+                            <tr class="organizer-event-row @(isVipBoosted ? "is-vip-boosted" : "") @(isJustBoosted ? "is-vip-just-boosted" : "")">
                                 <td>
                                     <strong>@ev.Title</strong>
                                     <span class="text-muted small d-block">@ev.City</span>
@@ -82,16 +88,6 @@
                                 <td>
                                     @ev.TicketsCount вида
                                     <span class="text-muted small d-block">@ev.SoldTicketsCount продадени</span>
-                                </td>
-                                <td>
-                                    @if (ev.VipBoostScore > 0)
-                                    {
-                                        <span class="evt-card__chip evt-card__chip--vip" style="position:static;">VIP x@ev.VipBoostScore</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted small">-</span>
-                                    }
                                 </td>
                                 <td>
                                     @if (ev.HasPendingChanges)
@@ -105,6 +101,18 @@
                                     else
                                     {
                                         <span class="groove-status-badge groove-status-badge-warning">Чака одобрение</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (isVipBoosted)
+                                    {
+                                        <span class="evt-card__chip evt-card__chip--vip organizer-vip-badge" style="position:static;">
+                                            <i class="bi bi-stars"></i> VIP x@ev.VipBoostScore
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">-</span>
                                     }
                                 </td>
                                 <td>
@@ -127,7 +135,7 @@
                                                 @Html.AntiForgeryToken()
                                                 <input type="hidden" name="eventId" value="@ev.Id" />
                                                 <input type="hidden" name="returnUrl" value="@returnUrl" />
-                                                <button class="groove-button groove-button-dark" type="submit" @(Model.VipBoostCreditsAvailable <= 0 ? "disabled" : "")>
+                                                <button class="groove-button groove-button-dark organizer-vip-button" type="submit" @(Model.VipBoostCreditsAvailable <= 0 ? "disabled" : "")>
                                                     <i class="bi bi-stars"></i> VIP
                                                 </button>
                                             </form>
