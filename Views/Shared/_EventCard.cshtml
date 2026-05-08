@@ -37,7 +37,7 @@
         }
         else
         {
-            <span class="evt-card__chip" data-i18n="genre.@Model.Genre">@Model.Genre.GetDisplayName()</span>
+            <span class="evt-card__chip" data-i18n="@($"genre.{Model.Genre}")">@Model.Genre.GetDisplayName()</span>
         }
 
         @if (User.Identity?.IsAuthenticated == true)

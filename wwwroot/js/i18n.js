@@ -834,6 +834,24 @@
     });
 
     Object.assign(KEYED, {
+        'card.manage': { bg: 'Управление', en: 'Manage' },
+        'event.similar': { bg: 'Сходни събития', en: 'Similar events' },
+        'home.events.discover': { bg: 'Открий своята вечер', en: 'Discover your night' },
+        'home.events.discover.sub': { bg: 'Подбрани събития, фестивали и партита около теб.', en: 'Curated events, festivals and parties near you.' },
+        'home.trending.sub': { bg: 'Най-нашумелите събития според реакциите.', en: 'The most talked-about events by reactions.' },
+        'home.trending.empty': { bg: 'Все още няма достатъчно реакции.', en: 'Not enough reactions yet.' },
+        'messages.message.page': { bg: 'Пиши на страницата', en: 'Message page' },
+        'nav.aiplan': { bg: 'AI план за деня', en: 'AI day plan' },
+        'nav.wrapped': { bg: 'Year Wrapped', en: 'Year Wrapped' },
+        'share.btn': { bg: 'Сподели', en: 'Share' },
+        'share.copy': { bg: 'Копирай линк', en: 'Copy link' },
+        'sort.recent': { bg: 'Най-нови', en: 'Recently added' },
+        'sort.soon': { bg: 'Започват скоро', en: 'Starting soon' },
+        'sort.popular': { bg: 'Най-популярни', en: 'Most popular' },
+        'wrapped.hello': { bg: 'Здравей,', en: 'Hello,' }
+    });
+
+    Object.assign(KEYED, {
         // PROFILE STATS
         'stat.this.month':  { bg: 'този месец',         en: 'this month' },
         'stats.attended':   { bg: 'Посетени събития',  en: 'Events Attended' },
@@ -958,51 +976,50 @@
         });
     }
 
-    function translateKeyed(lang) {
-        // data-i18n → textContent
-        document.querySelectorAll('[data-i18n]').forEach(function (el) {
-            var key = el.getAttribute('data-i18n');
-            var entry = KEYED[key];
-            if (entry && entry[lang] !== undefined) {
-                el.textContent = entry[lang];
-            }
-        });
+    function translateKeyedElement(el, lang) {
+        if (!el || shouldSkipElement(el)) return;
 
-        // data-i18n-html → innerHTML (for elements with inline tags like <span>)
-        document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
-            var key = el.getAttribute('data-i18n-html');
-            var entry = KEYED[key];
-            if (entry && entry[lang] !== undefined) {
-                el.innerHTML = entry[lang];
-            }
-        });
+        var key = el.getAttribute('data-i18n');
+        var entry = key ? KEYED[key] : null;
+        if (entry && entry[lang] !== undefined) {
+            el.textContent = entry[lang];
+        }
 
-        // data-i18n-placeholder → placeholder attribute
-        document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
-            var key = el.getAttribute('data-i18n-placeholder');
-            var entry = KEYED[key];
-            if (entry && entry[lang] !== undefined) {
-                el.setAttribute('placeholder', entry[lang]);
-            }
-        });
+        key = el.getAttribute('data-i18n-html');
+        entry = key ? KEYED[key] : null;
+        if (entry && entry[lang] !== undefined) {
+            el.innerHTML = entry[lang];
+        }
 
-        // data-i18n-title → title attribute
-        document.querySelectorAll('[data-i18n-title]').forEach(function (el) {
-            var key = el.getAttribute('data-i18n-title');
-            var entry = KEYED[key];
-            if (entry && entry[lang] !== undefined) {
-                el.setAttribute('title', entry[lang]);
-            }
-        });
+        key = el.getAttribute('data-i18n-placeholder');
+        entry = key ? KEYED[key] : null;
+        if (entry && entry[lang] !== undefined) {
+            el.setAttribute('placeholder', entry[lang]);
+        }
 
-        // data-i18n-aria-label → aria-label attribute
-        document.querySelectorAll('[data-i18n-aria-label]').forEach(function (el) {
-            var key = el.getAttribute('data-i18n-aria-label');
-            var entry = KEYED[key];
-            if (entry && entry[lang] !== undefined) {
-                el.setAttribute('aria-label', entry[lang]);
-            }
-        });
+        key = el.getAttribute('data-i18n-title');
+        entry = key ? KEYED[key] : null;
+        if (entry && entry[lang] !== undefined) {
+            el.setAttribute('title', entry[lang]);
+        }
+
+        key = el.getAttribute('data-i18n-aria-label');
+        entry = key ? KEYED[key] : null;
+        if (entry && entry[lang] !== undefined) {
+            el.setAttribute('aria-label', entry[lang]);
+        }
+    }
+
+    function translateKeyed(lang, root) {
+        root = root || document;
+        if (root.nodeType === 1) {
+            translateKeyedElement(root, lang);
+        }
+
+        root.querySelectorAll('[data-i18n], [data-i18n-html], [data-i18n-placeholder], [data-i18n-title], [data-i18n-aria-label]')
+            .forEach(function (el) {
+                translateKeyedElement(el, lang);
+            });
     }
 
     function applyTranslations(lang) {
@@ -1085,27 +1102,7 @@
                     m.addedNodes.forEach(function (node) {
                         if (node.nodeType !== 1) return;
                         if (shouldSkipElement(node)) return;
-                        // Translate keyed elements in newly added subtree
-                        node.querySelectorAll('[data-i18n]').forEach(function (el) {
-                            var entry = KEYED[el.getAttribute('data-i18n')];
-                            if (entry && entry[lang] !== undefined) el.textContent = entry[lang];
-                        });
-                        node.querySelectorAll('[data-i18n-html]').forEach(function (el) {
-                            var entry = KEYED[el.getAttribute('data-i18n-html')];
-                            if (entry && entry[lang] !== undefined) el.innerHTML = entry[lang];
-                        });
-                        node.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
-                            var entry = KEYED[el.getAttribute('data-i18n-placeholder')];
-                            if (entry && entry[lang] !== undefined) el.setAttribute('placeholder', entry[lang]);
-                        });
-                        node.querySelectorAll('[data-i18n-title]').forEach(function (el) {
-                            var entry = KEYED[el.getAttribute('data-i18n-title')];
-                            if (entry && entry[lang] !== undefined) el.setAttribute('title', entry[lang]);
-                        });
-                        node.querySelectorAll('[data-i18n-aria-label]').forEach(function (el) {
-                            var entry = KEYED[el.getAttribute('data-i18n-aria-label')];
-                            if (entry && entry[lang] !== undefined) el.setAttribute('aria-label', entry[lang]);
-                        });
+                        translateKeyed(lang, node);
                         if (lang !== 'bg') {
                             walkAndTranslate(node, EN);
                             translateAttributes(node, EN);
