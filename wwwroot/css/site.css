@@ -12034,3 +12034,229 @@ html[data-theme="dark"] .ticket-validation-card__qr {
         min-height: 240px;
     }
 }
+
+/* =====================================================
+   DARK MODE CONTRAST SWEEP
+   Keep this at the end so late hard-coded light styles do
+   not leave dark text or white panels in the dark theme.
+   ===================================================== */
+html[data-theme="dark"] {
+    --bs-body-bg: #0b1020;
+    --bs-body-color: #f8fafc;
+    --bs-heading-color: #ffffff;
+    --bs-secondary-color: #e2e8f0;
+    --bs-tertiary-color: #cbd5e1;
+    --bs-border-color: rgba(255, 255, 255, 0.14);
+    --bs-card-bg: #151b2b;
+    --bs-card-color: #f8fafc;
+    --bs-link-color: #e3e9ff;
+    --bs-link-hover-color: #ffffff;
+    --evt-ink: #ffffff;
+    --evt-ink-soft: #f1f5f9;
+    --evt-mute: #dbe3f4;
+    --evt-surface: #151b2b;
+    --evt-surface-soft: #1d2436;
+    --evt-card: #151b2b;
+    --evt-card-soft: #1d2436;
+    --evt-line: rgba(255, 255, 255, 0.14);
+    --groove-ink: #ffffff;
+    --groove-muted: #dbe3f4;
+    --social-ink: #ffffff;
+    --social-muted: #dbe3f4;
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .site-content,
+html[data-theme="dark"] main,
+html[data-theme="dark"] .footer {
+    background-color: #0b1020 !important;
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] :where(
+    h1, h2, h3, h4, h5, h6,
+    p, span, small, label, legend,
+    li, dt, dd, td, th,
+    strong, b, em, time,
+    .text-body, .text-dark, .text-black,
+    .text-secondary, .text-muted, .small,
+    .form-text, .lead, .card-text,
+    .dropdown-item, .nav-link, .navbar-text,
+    .groove-muted-copy, .groove-panel-intro,
+    .evt-card__meta, .evt-card__organizer,
+    .social-muted, .social-card p, .social-card small,
+    .social-conversation-row small, .social-conversation-row time
+) {
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] :where(
+    .card, .card-body,
+    .list-group-item,
+    .dropdown-menu,
+    .modal-content,
+    .offcanvas,
+    .table,
+    .table-light,
+    .bg-white,
+    .bg-light,
+    .text-bg-light,
+    .alert,
+    .alert-light,
+    .toast,
+    .popover,
+    .accordion-item,
+    .accordion-button,
+    .groove-paper-card,
+    .groove-table-card,
+    .groove-form-panel,
+    .groove-info-card,
+    .groove-highlight-card,
+    .groove-empty-card,
+    .groove-ticket-card,
+    .groove-stat-card,
+    .groove-mini-card,
+    .groove-page-hero,
+    .groove-feed-hero,
+    .auth-zine-card,
+    .social-card,
+    .social-feed-section,
+    .social-feed-search,
+    .social-side-panel,
+    .social-message-panel,
+    .social-chat-shell,
+    .social-conversation-row,
+    .social-empty-panel,
+    .social-message-share-card,
+    .social-message-share-preview,
+    .event-card,
+    .evt-hero,
+    .evt-search-panel,
+    .evt-trending,
+    .evt-empty,
+    .evt-genre-tile,
+    .evt-page-card,
+    .evt-page-banner,
+    .evt-page-empty,
+    .evt-aiplan__form,
+    .evt-aiplan__candidates,
+    .evt-aiplan__plancard,
+    .evt-aiplan__slot,
+    .ticket-validation-card,
+    .ticket-attendee-panel,
+    .admin-action-card,
+    .organizer-help-card,
+    .event-occurrence-card__selected,
+    .event-occurrence-pill
+) {
+    background-color: #151b2b !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] :where(
+    .card *, .list-group-item *, .dropdown-menu *, .modal-content *,
+    .table *, .alert *, .toast *, .popover *, .accordion-item *,
+    .groove-paper-card *, .groove-table-card *, .groove-form-panel *,
+    .groove-info-card *, .groove-highlight-card *, .groove-empty-card *,
+    .groove-ticket-card *, .groove-stat-card *, .groove-mini-card *,
+    .auth-zine-card *, .social-card *, .social-feed-section *,
+    .social-message-panel *, .social-chat-shell *, .social-conversation-row *,
+    .event-card *, .evt-hero *, .evt-search-panel *, .evt-trending *,
+    .evt-empty *, .evt-page-card *, .ticket-validation-card *,
+    .ticket-attendee-panel *, .admin-action-card *
+) {
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] :where(
+    .form-control,
+    .form-select,
+    textarea,
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="search"],
+    input[type="url"],
+    input[type="date"],
+    input[type="time"],
+    input[type="datetime-local"],
+    select,
+    .input-group-text
+) {
+    background-color: #1d2436 !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] :where(input, textarea, .form-control)::placeholder {
+    color: #cbd5e1 !important;
+    opacity: 1 !important;
+}
+
+html[data-theme="dark"] select option {
+    background-color: #151b2b !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] :where(a:not(.btn):not(.groove-button):not(.evt-btn), .groove-link) {
+    color: #e3e9ff !important;
+    text-decoration-color: rgba(227, 233, 255, 0.85) !important;
+}
+
+html[data-theme="dark"] :where(a:not(.btn):not(.groove-button):not(.evt-btn), .groove-link):hover {
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] :where(
+    .btn-outline-secondary,
+    .btn-outline-dark,
+    .btn-light,
+    .groove-button-paper,
+    .evt-chip,
+    .evt-card__action,
+    .evt-card__manage a,
+    .site-navbar .navbar-nav .nav-link,
+    .site-navbar form.form-inline .nav-link
+) {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] :where(.btn-primary, .groove-button-primary, .auth-zine-submit, .evt-card__cta) {
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] :where(.badge, .groove-badge, .groove-status-badge, .evt-card__chip) {
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] :where(.table > :not(caption) > * > *) {
+    background-color: transparent !important;
+    border-bottom-color: rgba(255, 255, 255, 0.14) !important;
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] :where(.disabled, :disabled, [aria-disabled="true"]) {
+    color: #cbd5e1 !important;
+    opacity: 0.78 !important;
+}
+
+html[data-theme="dark"] #app-theme-btn {
+    background: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.9) !important;
+    color: #0f172a !important;
+}
+
+html[data-theme="dark"] #app-theme-btn :where(i, span) {
+    color: #0f172a !important;
+}
+
+html[data-theme="dark"] .ticket-validation-card__qr,
+html[data-theme="dark"] .qr-code-frame,
+html[data-theme="dark"] .ticket-qr-frame {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+}
