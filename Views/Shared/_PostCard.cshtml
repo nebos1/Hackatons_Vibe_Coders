@@ -138,7 +138,7 @@
                 </button>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <a asp-controller="Messages" asp-action="SharePost" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary" title="Send in chat" data-i18n-title="share.chat">
+                    <a asp-controller="Messages" asp-action="SharePost" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary" title="Send in chat" data-i18n-title="share.chat" data-chat-share-open>
                         <i class="bi bi-send"></i>
                     </a>
                 }

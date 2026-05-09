@@ -21,8 +21,32 @@
 
     function replaceAction(form, controller, fromActions, nextAction) {
         var action = form.getAttribute('action') || form.action || '';
-        var re = new RegExp('/' + controller + '/(' + fromActions.join('|') + ')/', 'i');
-        form.setAttribute('action', action.replace(re, '/' + controller + '/' + nextAction + '/'));
+        var lowerActions = fromActions.map(function (a) { return a.toLowerCase(); });
+        var wasAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(action);
+
+        try {
+            var url = new URL(action, window.location.origin);
+            var parts = url.pathname.split('/');
+            var changed = false;
+            for (var i = 0; i < parts.length; i++) {
+                var lower = parts[i].toLowerCase();
+                if (lowerActions.indexOf(lower) !== -1) {
+                    parts[i] = parts[i] === lower ? nextAction.toLowerCase() : nextAction;
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                url.pathname = parts.join('/');
+                form.setAttribute('action', wasAbsolute ? url.href : url.pathname + url.search + url.hash);
+                return;
+            }
+        } catch (_) {
+            // Fall back to the legacy controller route replacement below.
+        }
+
+        var re = new RegExp('/' + controller + '/(' + fromActions.join('|') + ')(?=/|$)', 'i');
+        form.setAttribute('action', action.replace(re, '/' + controller + '/' + nextAction));
     }
 
     function setButtonBusy(button, busy) {

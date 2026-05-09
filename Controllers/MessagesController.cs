@@ -508,6 +508,11 @@ namespace EventsApp.Controllers
                 Conversations = await BuildShareTargetsAsync(userId),
             };
 
+            if (IsAjaxRequest())
+            {
+                return PartialView("_ShareChatSheet", vm);
+            }
+
             return View("Share", vm);
         }
 
@@ -538,6 +543,11 @@ namespace EventsApp.Controllers
                 Meta = $"Post - {post.CreatedAt:dd.MM HH:mm}",
                 Conversations = await BuildShareTargetsAsync(userId),
             };
+
+            if (IsAjaxRequest())
+            {
+                return PartialView("_ShareChatSheet", vm);
+            }
 
             return View("Share", vm);
         }
@@ -918,6 +928,19 @@ namespace EventsApp.Controllers
             TempData["StatusMessage"] = isInitialRequestMessage
                 ? "Message request sent. The conversation will unlock after approval."
                 : "Sent in chat.";
+
+            if (IsAjaxRequest())
+            {
+                return Json(new
+                {
+                    ok = true,
+                    token = conversation.Token,
+                    message = isInitialRequestMessage
+                        ? "Message request sent."
+                        : "Sent in chat.",
+                });
+            }
+
             return RedirectToAction(nameof(Details), new { token = conversation.Token });
         }
 
@@ -1243,6 +1266,14 @@ namespace EventsApp.Controllers
                 AuthorIdentityType.System => "System",
                 _ => "User",
             };
+        }
+
+        private bool IsAjaxRequest()
+        {
+            return string.Equals(
+                Request.Headers["X-Requested-With"].ToString(),
+                "XMLHttpRequest",
+                StringComparison.OrdinalIgnoreCase);
         }
     }
 }

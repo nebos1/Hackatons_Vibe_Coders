@@ -138,7 +138,7 @@
 
                 @if (Model.IsApproved)
                 {
-                    <a asp-controller="Messages" asp-action="ShareEvent" asp-route-id="@Model.Id" class="evt-card__action" title="Send in chat" data-i18n-title="share.chat">
+                    <a asp-controller="Messages" asp-action="ShareEvent" asp-route-id="@Model.Id" class="evt-card__action" title="Send in chat" data-i18n-title="share.chat" data-chat-share-open>
                         <i class="bi bi-send"></i>
                     </a>
                 }
