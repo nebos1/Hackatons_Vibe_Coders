@@ -422,7 +422,8 @@ video.card-img-top-fixed {
     margin-bottom: 0.35rem;
 }
 
-.auth-zine-field input {
+.auth-zine-field input,
+.auth-zine-select {
     width: 100%;
     min-height: 2.85rem;
     border: 2px solid var(--auth-ink);
@@ -435,7 +436,8 @@ video.card-img-top-fixed {
     outline: none;
 }
 
-.auth-zine-field input:focus {
+.auth-zine-field input:focus,
+.auth-zine-select:focus {
     box-shadow: 0 0 0 0.18rem rgba(200, 58, 47, 0.28);
 }
 
@@ -467,6 +469,96 @@ video.card-img-top-fixed {
     width: 1rem;
     height: 1rem;
     accent-color: var(--auth-red);
+}
+
+.register-account-switch {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.register-account-option {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+    border: 2px solid var(--auth-ink);
+    background: var(--auth-paper);
+    color: var(--auth-ink);
+    padding: 0.9rem;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.register-account-option:hover,
+.register-account-option:focus-within {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 var(--auth-ink);
+}
+
+.register-account-option input {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-top: 0.25rem;
+    accent-color: var(--auth-red);
+}
+
+.register-account-option span {
+    display: grid;
+    gap: 0.22rem;
+}
+
+.register-account-option strong {
+    font-size: 0.95rem;
+    line-height: 1.25;
+}
+
+.register-account-option small {
+    color: var(--auth-muted);
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.register-organizer-panel {
+    display: grid;
+    gap: 1rem;
+    border: 2px solid var(--auth-ink);
+    background: rgba(255, 255, 255, 0.48);
+    padding: 1rem;
+}
+
+.register-organizer-panel[hidden] {
+    display: none !important;
+}
+
+.register-organizer-panel__head {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding-bottom: 0.25rem;
+}
+
+.register-organizer-panel__head i {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    min-width: 2.4rem;
+    height: 2.4rem;
+    border: 2px solid var(--auth-ink);
+    background: var(--auth-red);
+    color: #fff;
+}
+
+.register-organizer-panel__head h2 {
+    margin: 0 0 0.25rem;
+    color: var(--auth-ink);
+    font-size: 1.1rem;
+    line-height: 1.25;
+}
+
+.register-organizer-panel__head p {
+    margin: 0;
+    color: var(--auth-muted);
+    font-size: 0.88rem;
+    line-height: 1.45;
 }
 
 .auth-zine-button {
@@ -4712,7 +4804,8 @@ body {
     text-transform: none;
 }
 
-.auth-zine-field input {
+.auth-zine-field input,
+.auth-zine-select {
     min-height: 2.75rem;
     border: 1px solid var(--modern-line);
     border-radius: 8px;
@@ -4723,10 +4816,36 @@ body {
     padding: 0.65rem 0.8rem;
 }
 
-.auth-zine-field input:focus {
+.auth-zine-field input:focus,
+.auth-zine-select:focus {
     border-color: rgba(91, 77, 246, 0.45);
     box-shadow: 0 0 0 0.2rem rgba(91, 77, 246, 0.12);
     outline: 0;
+}
+
+.register-account-option {
+    border: 1px solid var(--modern-line);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: none;
+}
+
+.register-account-option:hover,
+.register-account-option:focus-within {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 30px rgba(17, 24, 39, 0.08);
+}
+
+.register-organizer-panel {
+    border: 1px solid var(--modern-line);
+    border-radius: 14px;
+    background: rgba(91, 77, 246, 0.045);
+}
+
+.register-organizer-panel__head i {
+    border: 0;
+    border-radius: 12px;
+    background: #5b4df6;
 }
 
 .auth-zine-button {
@@ -12631,19 +12750,42 @@ html[data-theme="dark"] .auth-zine-check {
     color: var(--evt-ink) !important;
 }
 
-html[data-theme="dark"] .auth-zine-field input {
+html[data-theme="dark"] .auth-zine-field input,
+html[data-theme="dark"] .auth-zine-select {
     background: var(--auth-field-dark) !important;
     border-color: rgba(255, 255, 255, 0.11) !important;
     color: var(--evt-ink) !important;
 }
 
-html[data-theme="dark"] .auth-zine-field input:focus {
+html[data-theme="dark"] .auth-zine-field input:focus,
+html[data-theme="dark"] .auth-zine-select:focus {
     border-color: rgba(119, 144, 255, 0.64) !important;
     box-shadow: 0 0 0 4px rgba(119, 144, 255, 0.16) !important;
 }
 
 html[data-theme="dark"] .auth-zine-check input {
     accent-color: var(--evt-accent);
+}
+
+html[data-theme="dark"] .register-account-option,
+html[data-theme="dark"] .register-organizer-panel {
+    background: rgba(255, 255, 255, 0.045) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: var(--evt-ink) !important;
+}
+
+html[data-theme="dark"] .register-account-option small,
+html[data-theme="dark"] .register-organizer-panel__head p {
+    color: var(--evt-mute) !important;
+}
+
+html[data-theme="dark"] .register-organizer-panel__head h2 {
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .auth-zine-select option {
+    background: #111827;
+    color: #ffffff;
 }
 
 html[data-theme="dark"] .auth-zine-alt a {

@@ -10,6 +10,12 @@
             <span class="auth-zine-stamp">Имейл</span>
             <h1>@Model.Title</h1>
             <p>@Model.Message</p>
+            @if (!string.IsNullOrWhiteSpace(Model.ContinueUrl))
+            {
+                <p class="mt-4">
+                    <a href="@Model.ContinueUrl" class="auth-zine-button auth-zine-button-teal">@Model.ContinueText</a>
+                </p>
+            }
         </div>
 
         <p class="auth-zine-alt">

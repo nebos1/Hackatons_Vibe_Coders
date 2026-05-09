@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Encodings.Web;
 using EventsApp.Common;
+using EventsApp.Data;
 using EventsApp.Models;
 using EventsApp.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -9,8 +10,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace EventsApp.Areas.Identity.Pages.Account
 {
@@ -18,6 +19,7 @@ namespace EventsApp.Areas.Identity.Pages.Account
     [EnableRateLimiting("auth")]
     public class RegisterModel : PageModel
     {
+        private readonly ApplicationDbContext _db;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IUserStore<ApplicationUser> _userStore;
@@ -27,6 +29,7 @@ namespace EventsApp.Areas.Identity.Pages.Account
         private readonly ILogger<RegisterModel> _logger;
 
         public RegisterModel(
+            ApplicationDbContext db,
             UserManager<ApplicationUser> userManager,
             IUserStore<ApplicationUser> userStore,
             SignInManager<ApplicationUser> signInManager,
@@ -34,6 +37,7 @@ namespace EventsApp.Areas.Identity.Pages.Account
             IAppLinkService appLinks,
             ILogger<RegisterModel> logger)
         {
+            _db = db;
             _userManager = userManager;
             _userStore = userStore;
             _emailStore = GetEmailStore();
@@ -48,7 +52,7 @@ namespace EventsApp.Areas.Identity.Pages.Account
 
         public string? ReturnUrl { get; set; }
 
-        public class InputModel
+        public class InputModel : IValidatableObject
         {
             [Required]
             [StringLength(GlobalConstants.User.FirstNameMaxLength,
@@ -85,27 +89,83 @@ namespace EventsApp.Areas.Identity.Pages.Account
             [Display(Name = "Потвърди паролата")]
             [Compare("Password", ErrorMessage = "Паролите не съвпадат.")]
             public string ConfirmPassword { get; set; } = null!;
+
+            [Display(Name = "Аз съм организатор, продуцент или място за събития")]
+            public bool RegisterAsOrganizer { get; set; }
+
+            [StringLength(GlobalConstants.Organizer.OrganizationNameMaxLength, MinimumLength = GlobalConstants.Organizer.OrganizationNameMinLength)]
+            [Display(Name = "Име на организация / място")]
+            public string? OrganizationName { get; set; }
+
+            [StringLength(GlobalConstants.Organizer.PhoneNumberMaxLength)]
+            [Display(Name = "Телефон")]
+            public string? PhoneNumber { get; set; }
+
+            [StringLength(80)]
+            [Display(Name = "Страна")]
+            public string? Country { get; set; } = "Bulgaria";
+
+            [StringLength(GlobalConstants.Organizer.CityMaxLength)]
+            [Display(Name = "Град")]
+            public string? City { get; set; }
+
+            [StringLength(120)]
+            [Display(Name = "Как научи за Evento?")]
+            public string? ReferralSource { get; set; }
+
+            [StringLength(GlobalConstants.Organizer.WebsiteMaxLength)]
+            [Display(Name = "Уебсайт")]
+            public string? Website { get; set; }
+
+            [StringLength(GlobalConstants.Organizer.CompanyNumberMaxLength)]
+            [Display(Name = "Фирмен номер / ЕИК")]
+            public string? CompanyNumber { get; set; }
+
+            public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+            {
+                if (!RegisterAsOrganizer)
+                {
+                    yield break;
+                }
+
+                if (string.IsNullOrWhiteSpace(OrganizationName))
+                {
+                    yield return new ValidationResult("Въведи име на организация, място или бранд.", new[] { nameof(OrganizationName) });
+                }
+
+                if (string.IsNullOrWhiteSpace(PhoneNumber))
+                {
+                    yield return new ValidationResult("Въведи телефон за връзка.", new[] { nameof(PhoneNumber) });
+                }
+
+                if (string.IsNullOrWhiteSpace(Country))
+                {
+                    yield return new ValidationResult("Избери държава.", new[] { nameof(Country) });
+                }
+
+                if (string.IsNullOrWhiteSpace(City))
+                {
+                    yield return new ValidationResult("Въведи град.", new[] { nameof(City) });
+                }
+            }
         }
 
-        public void OnGet(string? returnUrl = null)
+        public void OnGet(string? returnUrl = null, bool organizer = false)
         {
             ReturnUrl = returnUrl;
+            Input.RegisterAsOrganizer = organizer;
         }
 
         public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
         {
             returnUrl ??= Url.Content("~/");
             ReturnUrl = returnUrl;
+            NormalizeInput();
 
             if (!ModelState.IsValid)
             {
                 return Page();
             }
-
-            Input.UserName = Input.UserName.Trim();
-            Input.Email = Input.Email.Trim();
-            Input.FirstName = Input.FirstName.Trim();
-            Input.LastName = Input.LastName.Trim();
 
             var existingByName = await _userManager.FindByNameAsync(Input.UserName);
             if (existingByName != null)
@@ -123,8 +183,9 @@ namespace EventsApp.Areas.Identity.Pages.Account
 
             var user = new ApplicationUser
             {
-                FirstName = Input.FirstName.Trim(),
-                LastName = Input.LastName.Trim(),
+                FirstName = Input.FirstName,
+                LastName = Input.LastName,
+                PhoneNumber = Input.RegisterAsOrganizer ? Input.PhoneNumber : null,
             };
 
             await _userStore.SetUserNameAsync(user, Input.UserName, CancellationToken.None);
@@ -137,10 +198,38 @@ namespace EventsApp.Areas.Identity.Pages.Account
                 _logger.LogInformation("User {UserName} registered.", Input.UserName);
 
                 await _userManager.AddToRoleAsync(user, GlobalConstants.Roles.User);
-                await SendConfirmationEmailAsync(user);
+
+                if (Input.RegisterAsOrganizer)
+                {
+                    _db.OrganizerData.Add(new OrganizerData
+                    {
+                        OrganizerId = user.Id,
+                        OrganizationName = Input.OrganizationName!,
+                        Description = "Заявка, създадена при регистрация.",
+                        PhoneNumber = Input.PhoneNumber,
+                        City = Input.City,
+                        Country = Input.Country,
+                        ReferralSource = Input.ReferralSource,
+                        Website = Input.Website,
+                        CompanyNumber = Input.CompanyNumber,
+                        Approved = false,
+                    });
+
+                    await _db.SaveChangesAsync();
+                }
+
+                var nextUrl = Input.RegisterAsOrganizer
+                    ? Url.Action("EditApplication", "Account", new { welcome = "organizer" }) ?? "/Account/EditApplication?welcome=organizer"
+                    : Url.Content("~/Preferences/Edit?welcome=1");
+
+                await SendConfirmationEmailAsync(user, nextUrl, Input.RegisterAsOrganizer);
 
                 await _signInManager.SignInAsync(user, isPersistent: false);
-                return Redirect("/Preferences/Edit?welcome=1");
+                TempData["StatusMessage"] = Input.RegisterAsOrganizer
+                    ? "Акаунтът е създаден. Потвърди имейла си и довърши заявката за организатор."
+                    : "Акаунтът е създаден. Изпратихме ти имейл за потвърждение.";
+
+                return LocalRedirect(nextUrl);
             }
 
             foreach (var error in result.Errors)
@@ -160,7 +249,36 @@ namespace EventsApp.Areas.Identity.Pages.Account
             return (IUserEmailStore<ApplicationUser>)_userStore;
         }
 
-        private async Task SendConfirmationEmailAsync(ApplicationUser user)
+        private void NormalizeInput()
+        {
+            Input.UserName = Input.UserName?.Trim() ?? string.Empty;
+            Input.Email = Input.Email?.Trim() ?? string.Empty;
+            Input.FirstName = Input.FirstName?.Trim() ?? string.Empty;
+            Input.LastName = Input.LastName?.Trim() ?? string.Empty;
+            Input.OrganizationName = string.IsNullOrWhiteSpace(Input.OrganizationName) ? null : Input.OrganizationName.Trim();
+            Input.PhoneNumber = string.IsNullOrWhiteSpace(Input.PhoneNumber) ? null : Input.PhoneNumber.Trim();
+            Input.Country = string.IsNullOrWhiteSpace(Input.Country) ? null : Input.Country.Trim();
+            Input.City = string.IsNullOrWhiteSpace(Input.City) ? null : Input.City.Trim();
+            Input.ReferralSource = string.IsNullOrWhiteSpace(Input.ReferralSource) ? null : Input.ReferralSource.Trim();
+            Input.CompanyNumber = string.IsNullOrWhiteSpace(Input.CompanyNumber) ? null : Input.CompanyNumber.Trim();
+            Input.Website = NormalizeUrl(Input.Website);
+        }
+
+        private static string? NormalizeUrl(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var trimmed = value.Trim();
+            return trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                || trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+                    ? trimmed
+                    : "https://" + trimmed;
+        }
+
+        private async Task SendConfirmationEmailAsync(ApplicationUser user, string? nextUrl, bool organizerSignup)
         {
             if (string.IsNullOrWhiteSpace(user.Email))
             {
@@ -178,10 +296,14 @@ namespace EventsApp.Areas.Identity.Pages.Account
                     {
                         ["userId"] = user.Id,
                         ["code"] = code,
+                        ["returnUrl"] = nextUrl,
                     });
 
                 var confirmUrl = _appLinks.ToAbsoluteUrl(Request, confirmPath);
                 var encodedUrl = HtmlEncoder.Default.Encode(confirmUrl);
+                var intro = organizerSignup
+                    ? "Добре дошъл в Evento. Потвърди имейла си, за да продължиш спокойно със заявката си за организатор."
+                    : "Добре дошъл в Evento. Натисни бутона, за да потвърдиш, че този имейл е твой.";
 
                 await _emailSender.SendEmailAsync(
                     user.Email,
@@ -200,7 +322,7 @@ namespace EventsApp.Areas.Identity.Pages.Account
                                         </tr>
                                         <tr>
                                             <td style="padding:28px 30px;font-family:Arial,sans-serif;color:#111827;font-size:15px;line-height:1.55">
-                                                <p style="margin:0 0 18px">Добре дошъл в Evento. Натисни бутона, за да потвърдиш, че този имейл е твой.</p>
+                                                <p style="margin:0 0 18px">{HtmlEncoder.Default.Encode(intro)}</p>
                                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;margin:0 0 20px">
                                                     <tr>
                                                         <td bgcolor="#5b4bff" style="border-radius:12px">

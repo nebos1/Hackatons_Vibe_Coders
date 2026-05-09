@@ -25,7 +25,11 @@ namespace EventsApp.Areas.Identity.Pages.Account
 
         public string Message { get; private set; } = "Проверяваме линка.";
 
-        public async Task OnGetAsync(string? userId = null, string? code = null)
+        public string? ContinueUrl { get; private set; }
+
+        public string ContinueText { get; private set; } = "Продължи";
+
+        public async Task OnGetAsync(string? userId = null, string? code = null, string? returnUrl = null)
         {
             if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(code))
             {
@@ -59,12 +63,27 @@ namespace EventsApp.Areas.Identity.Pages.Account
             {
                 Title = "Имейлът е потвърден";
                 Message = "Готово. Имейлът ти вече е потвърден в Evento.";
+                if (IsSafeLocalUrl(returnUrl))
+                {
+                    var safeReturnUrl = returnUrl!;
+                    ContinueUrl = safeReturnUrl;
+                    ContinueText = safeReturnUrl.Contains("EditApplication", StringComparison.OrdinalIgnoreCase)
+                        ? "Продължи към заявката за организатор"
+                        : "Продължи в Evento";
+                }
                 _logger.LogInformation("User {UserId} confirmed their email.", user.Id);
                 return;
             }
 
             Title = "Не успяхме да потвърдим имейла";
             Message = "Линкът може да е изтекъл или вече да е използван. Влез в акаунта си и поискай нов линк.";
+        }
+
+        private static bool IsSafeLocalUrl(string? url)
+        {
+            return !string.IsNullOrWhiteSpace(url)
+                && url.StartsWith("/", StringComparison.Ordinal)
+                && !url.StartsWith("//", StringComparison.Ordinal);
         }
     }
 }

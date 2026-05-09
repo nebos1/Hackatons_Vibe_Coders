@@ -30,6 +30,15 @@ namespace EventsApp.Models
         [MaxLength(GlobalConstants.Organizer.PhoneNumberMaxLength)]
         public string? PhoneNumber { get; set; }
 
+        [MaxLength(GlobalConstants.Organizer.CityMaxLength)]
+        public string? City { get; set; }
+
+        [MaxLength(80)]
+        public string? Country { get; set; }
+
+        [MaxLength(120)]
+        public string? ReferralSource { get; set; }
+
         [MaxLength(GlobalConstants.Organizer.WebsiteMaxLength)]
         public string? Website { get; set; }
 

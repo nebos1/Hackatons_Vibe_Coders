@@ -7,6 +7,9 @@ namespace EventsApp.ViewModels.Admin
         public string Email { get; set; } = null!;
         public string OrganizationName { get; set; } = null!;
         public string? PhoneNumber { get; set; }
+        public string? City { get; set; }
+        public string? Country { get; set; }
+        public string? ReferralSource { get; set; }
         public string? Website { get; set; }
         public string? CompanyNumber { get; set; }
         public bool Approved { get; set; }

@@ -372,6 +372,9 @@ namespace EventsApp.Controllers
                 OrganizationName = input.OrganizationName,
                 Description = input.Description,
                 PhoneNumber = input.PhoneNumber,
+                City = input.City,
+                Country = input.Country,
+                ReferralSource = input.ReferralSource,
                 Website = input.Website,
                 CompanyNumber = input.CompanyNumber,
                 Approved = false,
@@ -399,6 +402,9 @@ namespace EventsApp.Controllers
                 OrganizationName = orgData.OrganizationName,
                 Description = orgData.Description,
                 PhoneNumber = orgData.PhoneNumber,
+                City = orgData.City,
+                Country = orgData.Country,
+                ReferralSource = orgData.ReferralSource,
                 Website = orgData.Website,
                 CompanyNumber = orgData.CompanyNumber,
             });
@@ -417,6 +423,9 @@ namespace EventsApp.Controllers
             orgData.OrganizationName = input.OrganizationName;
             orgData.Description = input.Description;
             orgData.PhoneNumber = input.PhoneNumber;
+            orgData.City = input.City;
+            orgData.Country = input.Country;
+            orgData.ReferralSource = input.ReferralSource;
             orgData.Website = input.Website;
             orgData.CompanyNumber = input.CompanyNumber;
 

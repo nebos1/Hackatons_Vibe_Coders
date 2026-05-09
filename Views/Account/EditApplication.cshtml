@@ -46,6 +46,27 @@
                     <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
                 </div>
                 <div class="mb-3">
+                    <label asp-for="City" class="form-label"></label>
+                    <input asp-for="City" class="form-control" />
+                    <span asp-validation-for="City" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="groove-form-grid">
+                <div class="mb-3">
+                    <label asp-for="Country" class="form-label"></label>
+                    <select asp-for="Country" class="form-select">
+                        <option value="Bulgaria">Bulgaria</option>
+                        <option value="Romania">Romania</option>
+                        <option value="Greece">Greece</option>
+                        <option value="Serbia">Serbia</option>
+                        <option value="North Macedonia">North Macedonia</option>
+                        <option value="Turkey">Turkey</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <span asp-validation-for="Country" class="text-danger small"></span>
+                </div>
+                <div class="mb-3">
                     <label asp-for="CompanyNumber" class="form-label"></label>
                     <input asp-for="CompanyNumber" class="form-control" />
                     <span asp-validation-for="CompanyNumber" class="text-danger small"></span>
@@ -56,6 +77,21 @@
                 <label asp-for="Website" class="form-label"></label>
                 <input asp-for="Website" class="form-control" placeholder="https://..." />
                 <span asp-validation-for="Website" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="ReferralSource" class="form-label"></label>
+                <select asp-for="ReferralSource" class="form-select">
+                    <option value="">Избери</option>
+                    <option value="Google">Google</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="TikTok">TikTok</option>
+                    <option value="Friend">Препоръка</option>
+                    <option value="Event">От събитие</option>
+                    <option value="Other">Друго</option>
+                </select>
+                <span asp-validation-for="ReferralSource" class="text-danger small"></span>
             </div>
 
             <div class="groove-form-actions">

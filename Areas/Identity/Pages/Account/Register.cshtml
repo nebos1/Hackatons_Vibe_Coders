@@ -16,30 +16,47 @@
             <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="auth-zine-form">
                 <div asp-validation-summary="ModelOnly" class="auth-zine-validation" role="alert"></div>
 
+                <div class="register-account-switch" data-register-switch>
+                    <label class="register-account-option">
+                        <input asp-for="Input.RegisterAsOrganizer" type="radio" value="false" checked="@(!Model.Input.RegisterAsOrganizer)" />
+                        <span>
+                            <strong>Личен акаунт</strong>
+                            <small>Купуваш билети, следиш събития и организатори.</small>
+                        </span>
+                    </label>
+                    <label class="register-account-option register-account-option--organizer">
+                        <input asp-for="Input.RegisterAsOrganizer" type="radio" value="true" checked="@Model.Input.RegisterAsOrganizer" />
+                        <span>
+                            <strong>Аз съм организатор, продуцент или място за събития</strong>
+                            <small>Продавам билети и управлявам събития през Evento.</small>
+                        </span>
+                    </label>
+                </div>
+
                 <div class="auth-zine-grid">
                     <div class="auth-zine-field">
                         <label asp-for="Input.FirstName" data-i18n="register.firstname.label"></label>
                         <input asp-for="Input.FirstName" autocomplete="given-name"
-                               placeholder="Ивана" data-i18n-placeholder="register.firstname.placeholder" />
+                               placeholder="Иван" data-i18n-placeholder="register.firstname.placeholder" />
                         <span asp-validation-for="Input.FirstName"></span>
                     </div>
                     <div class="auth-zine-field">
                         <label asp-for="Input.LastName" data-i18n="register.lastname.label"></label>
                         <input asp-for="Input.LastName" autocomplete="family-name"
-                               placeholder="Петрова" data-i18n-placeholder="register.lastname.placeholder" />
+                               placeholder="Георгиев" data-i18n-placeholder="register.lastname.placeholder" />
                         <span asp-validation-for="Input.LastName"></span>
                     </div>
                 </div>
 
                 <div class="auth-zine-field">
                     <label asp-for="Input.UserName" data-i18n="register.username.label"></label>
-                    <input asp-for="Input.UserName" autocomplete="username" placeholder="ivana.petrova" />
+                    <input asp-for="Input.UserName" autocomplete="username" placeholder="ivan.georgiev" />
                     <span asp-validation-for="Input.UserName"></span>
                 </div>
 
                 <div class="auth-zine-field">
-                    <label asp-for="Input.Email" data-i18n="register.email.label"></label>
-                    <input asp-for="Input.Email" autocomplete="email" placeholder="you@evento.app" />
+                    <label asp-for="Input.Email">Имейл / служебна e-поща</label>
+                    <input asp-for="Input.Email" autocomplete="email" placeholder="georgiev@example.com" />
                     <span asp-validation-for="Input.Email"></span>
                 </div>
 
@@ -58,8 +75,80 @@
                     </div>
                 </div>
 
+                <div class="register-organizer-panel" data-organizer-fields>
+                    <div class="register-organizer-panel__head">
+                        <i class="bi bi-rocket-takeoff"></i>
+                        <div>
+                            <h2>Добре, нека започнем с основното.</h2>
+                            <p>Тези данни създават заявка за организатор. След регистрацията ще можеш да я довършиш и редактираш.</p>
+                        </div>
+                    </div>
+
+                    <div class="auth-zine-field">
+                        <label asp-for="Input.OrganizationName"></label>
+                        <input asp-for="Input.OrganizationName" autocomplete="organization" placeholder="Име на клуб, театър, промоутър..." />
+                        <span asp-validation-for="Input.OrganizationName"></span>
+                    </div>
+
+                    <div class="auth-zine-grid">
+                        <div class="auth-zine-field">
+                            <label asp-for="Input.PhoneNumber"></label>
+                            <input asp-for="Input.PhoneNumber" autocomplete="tel" placeholder="+359 88 123 4567" />
+                            <span asp-validation-for="Input.PhoneNumber"></span>
+                        </div>
+                        <div class="auth-zine-field">
+                            <label asp-for="Input.Country"></label>
+                            <select asp-for="Input.Country" class="auth-zine-select">
+                                <option value="Bulgaria">Bulgaria</option>
+                                <option value="Romania">Romania</option>
+                                <option value="Greece">Greece</option>
+                                <option value="Serbia">Serbia</option>
+                                <option value="North Macedonia">North Macedonia</option>
+                                <option value="Turkey">Turkey</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <span asp-validation-for="Input.Country"></span>
+                        </div>
+                    </div>
+
+                    <div class="auth-zine-grid">
+                        <div class="auth-zine-field">
+                            <label asp-for="Input.City"></label>
+                            <input asp-for="Input.City" autocomplete="address-level2" placeholder="София" />
+                            <span asp-validation-for="Input.City"></span>
+                        </div>
+                        <div class="auth-zine-field">
+                            <label asp-for="Input.ReferralSource"></label>
+                            <select asp-for="Input.ReferralSource" class="auth-zine-select">
+                                <option value="">Избери</option>
+                                <option value="Google">Google</option>
+                                <option value="Instagram">Instagram</option>
+                                <option value="Facebook">Facebook</option>
+                                <option value="TikTok">TikTok</option>
+                                <option value="Friend">Препоръка</option>
+                                <option value="Event">От събитие</option>
+                                <option value="Other">Друго</option>
+                            </select>
+                            <span asp-validation-for="Input.ReferralSource"></span>
+                        </div>
+                    </div>
+
+                    <div class="auth-zine-grid">
+                        <div class="auth-zine-field">
+                            <label asp-for="Input.Website"></label>
+                            <input asp-for="Input.Website" autocomplete="url" placeholder="https://..." />
+                            <span asp-validation-for="Input.Website"></span>
+                        </div>
+                        <div class="auth-zine-field">
+                            <label asp-for="Input.CompanyNumber"></label>
+                            <input asp-for="Input.CompanyNumber" placeholder="ЕИК / фирмен номер" />
+                            <span asp-validation-for="Input.CompanyNumber"></span>
+                        </div>
+                    </div>
+                </div>
+
                 <button id="registerSubmit" type="submit" class="auth-zine-button auth-zine-button-teal">
-                    <i class="bi bi-person-plus"></i> <span data-i18n="register.btn">Създай акаунт</span>
+                    <i class="bi bi-person-plus"></i> <span data-register-submit-label>Създай акаунт</span>
                 </button>
             </form>
         </div>
@@ -73,4 +162,25 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var fields = document.querySelector('[data-organizer-fields]');
+            var label = document.querySelector('[data-register-submit-label]');
+            var options = document.querySelectorAll('input[name="Input.RegisterAsOrganizer"]');
+            if (!fields || !options.length) return;
+
+            function sync() {
+                var organizer = Array.from(options).some(function (option) {
+                    return option.checked && option.value === 'true';
+                });
+                fields.hidden = !organizer;
+                if (label) label.textContent = organizer ? 'Регистрация като организатор' : 'Създай акаунт';
+            }
+
+            options.forEach(function (option) {
+                option.addEventListener('change', sync);
+            });
+            sync();
+        })();
+    </script>
 }

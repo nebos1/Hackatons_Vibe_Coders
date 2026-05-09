@@ -65,6 +65,20 @@
                                     <dd>@org.PhoneNumber</dd>
                                 }
 
+                                @if (!string.IsNullOrWhiteSpace(org.City) || !string.IsNullOrWhiteSpace(org.Country))
+                                {
+                                    var location = string.Join(", ", new[] { org.City, org.Country }
+                                        .Where(value => !string.IsNullOrWhiteSpace(value)));
+                                    <dt>Град / държава</dt>
+                                    <dd>@location</dd>
+                                }
+
+                                @if (!string.IsNullOrWhiteSpace(org.ReferralSource))
+                                {
+                                    <dt>Източник</dt>
+                                    <dd>@org.ReferralSource</dd>
+                                }
+
                                 @if (!string.IsNullOrWhiteSpace(org.CompanyNumber))
                                 {
                                     <dt>Фирмен номер</dt>
@@ -114,6 +128,7 @@
                                     <th>Потребител</th>
                                     <th>Имейл</th>
                                     <th>Телефон</th>
+                                    <th>Град</th>
                                     <th>Фирмен номер</th>
                                     <th>От</th>
                                     <th></th>
@@ -127,6 +142,7 @@
                                         <td>@org.UserName</td>
                                         <td>@org.Email</td>
                                         <td>@(org.PhoneNumber ?? "—")</td>
+                                        <td>@(string.IsNullOrWhiteSpace(org.City) ? "—" : org.City)</td>
                                         <td>@(org.CompanyNumber ?? "—")</td>
                                         <td>@org.CreatedAt.ToString("dd.MM.yyyy")</td>
                                         <td>
