@@ -147,6 +147,84 @@ document.addEventListener('click', async function (event) {
 })();
 
 (function () {
+    function normalize(value) {
+        return (value || '').toString().toLowerCase().trim();
+    }
+
+    function setupMessageSearch() {
+        var root = document.querySelector('[data-messages-index]');
+        if (!root) return;
+
+        var input = root.querySelector('[data-message-search-input]');
+        var clear = root.querySelector('[data-message-search-clear]');
+        var empty = root.querySelector('[data-message-search-empty]');
+        if (!input) return;
+
+        root.querySelectorAll('[data-message-empty]').forEach(function (panelEmpty) {
+            panelEmpty.setAttribute('data-message-search-original-hidden', panelEmpty.hidden ? 'true' : 'false');
+        });
+
+        function applyFilter() {
+            var query = normalize(input.value);
+            var rows = Array.prototype.slice.call(root.querySelectorAll('[data-conversation-row]'));
+            var visibleCount = 0;
+
+            if (clear) {
+                clear.hidden = !query;
+            }
+
+            rows.forEach(function (row) {
+                var haystack = normalize(row.getAttribute('data-message-search') || row.textContent);
+                var isMatch = !query || haystack.indexOf(query) !== -1;
+                row.hidden = !isMatch;
+                if (isMatch) visibleCount += 1;
+            });
+
+            root.querySelectorAll('[data-message-empty]').forEach(function (panelEmpty) {
+                var list = panelEmpty.closest('[data-message-list]');
+                var hasRows = !!(list && list.querySelector('[data-conversation-row]'));
+                if (query) {
+                    panelEmpty.hidden = true;
+                } else if (hasRows) {
+                    panelEmpty.hidden = true;
+                } else {
+                    panelEmpty.hidden = panelEmpty.getAttribute('data-message-search-original-hidden') === 'true';
+                }
+            });
+
+            if (empty) {
+                empty.hidden = !query || visibleCount > 0;
+            }
+        }
+
+        input.addEventListener('input', applyFilter);
+
+        if (clear) {
+            clear.addEventListener('click', function () {
+                input.value = '';
+                applyFilter();
+                input.focus();
+            });
+        }
+
+        var observer = new MutationObserver(function (mutations) {
+            if (!normalize(input.value)) return;
+            if (mutations.some(function (mutation) { return mutation.addedNodes.length || mutation.removedNodes.length; })) {
+                applyFilter();
+            }
+        });
+        observer.observe(root, { childList: true, subtree: true });
+        applyFilter();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupMessageSearch);
+    } else {
+        setupMessageSearch();
+    }
+})();
+
+(function () {
     function showToast(message) {
         if (!message) return;
         var toast = document.createElement('div');

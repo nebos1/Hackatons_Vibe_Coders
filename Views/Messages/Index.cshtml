@@ -12,6 +12,24 @@
         </div>
     </div>
 
+    <div class="messages-search-bar" data-message-search>
+        <i class="bi bi-search"></i>
+        <input type="search"
+               autocomplete="off"
+               inputmode="search"
+               placeholder="Търси човек, страница или последно съобщение..."
+               data-i18n-placeholder="messages.search.placeholder"
+               data-message-search-input />
+        <button type="button" data-message-search-clear hidden>
+            <i class="bi bi-x-lg"></i>
+            <span data-i18n="common.clear">Изчисти</span>
+        </button>
+    </div>
+    <div class="messages-search-empty" data-message-search-empty hidden>
+        <i class="bi bi-chat-square-text"></i>
+        <span data-i18n="messages.search.empty">Няма разговори по това търсене.</span>
+    </div>
+
     <div class="social-message-board">
         @if (Model.RequestConversations.Any())
         {

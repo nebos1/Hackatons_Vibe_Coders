@@ -31,8 +31,8 @@
     else
     {
         <div class="groove-table-card">
-            <div class="groove-table-wrap">
-                <table class="table">
+            <div class="groove-table-wrap organizer-events-wrap">
+                <table class="table organizer-dashboard-table organizer-dashboard-table--tickets">
                     <thead>
                         <tr>
                             <th>Име</th>
@@ -56,15 +56,15 @@
                                 : t.QuantityRemaining <= 0 ? "Разпродаден"
                                 : "Активен";
 
-                            <tr>
-                                <td><strong>@t.Name</strong></td>
-                                <td>@t.Price.ToTicketPriceDisplay()</td>
-                                <td>@t.QuantityTotal</td>
-                                <td>@t.QuantityRemaining</td>
-                                <td>@t.Sold</td>
-                                <td>@t.Used</td>
-                                <td><span class="groove-status-badge @statusClass">@statusText</span></td>
-                                <td>
+                            <tr class="organizer-ticket-row">
+                                <td data-label="Име"><strong>@t.Name</strong></td>
+                                <td data-label="Цена">@t.Price.ToTicketPriceDisplay()</td>
+                                <td data-label="Общо">@t.QuantityTotal</td>
+                                <td data-label="Остават">@t.QuantityRemaining</td>
+                                <td data-label="Продадени">@t.Sold</td>
+                                <td data-label="Използвани">@t.Used</td>
+                                <td data-label="Статус"><span class="groove-status-badge @statusClass">@statusText</span></td>
+                                <td data-label="Имена">
                                     @if (t.RequiresAttendeeNames)
                                     {
                                         <span class="groove-status-badge groove-status-badge-muted">Required</span>
@@ -74,7 +74,7 @@
                                         <span class="text-muted">Optional</span>
                                     }
                                 </td>
-                                <td>
+                                <td data-label="Действия">
                                     <div class="groove-list-actions">
                                         <a asp-action="Edit" asp-route-id="@t.Id" class="groove-button groove-button-paper">
                                             <i class="bi bi-pencil"></i> Редакция

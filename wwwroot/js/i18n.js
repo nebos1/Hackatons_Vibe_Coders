@@ -430,6 +430,8 @@
         'messages.index.desc': { bg: 'Пиши си с хора и организатори. Засега съобщенията се обновяват при нормално зареждане на страницата.', en: 'Chat with people and organizers. Messages refresh with normal page requests for now.' },
         'messages.empty': { bg: 'Все още няма разговори. Отвори профил и започни съобщение.', en: 'No conversations yet. Open a profile and start a message.' },
         'messages.none': { bg: 'Все още няма съобщения', en: 'No messages yet' },
+        'messages.search.placeholder': { bg: 'Търси човек, страница или последно съобщение...', en: 'Search person, page or last message...' },
+        'messages.search.empty': { bg: 'Няма разговори по това търсене.', en: 'No conversations match this search.' },
         'feed.kicker': { bg: 'Поток', en: 'Feed' },
         'feed.title': { bg: 'Последно от сцената.', en: 'Latest from the scene.' },
         'feed.signin.stories': { bg: 'Влез, за да следваш хора и да виждаш активни сторита.', en: 'Sign in to follow people and see active stories.' },
