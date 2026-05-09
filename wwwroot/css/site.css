@@ -15704,9 +15704,10 @@ body.chat-thread-locked {
 }
 
 body.chat-thread-locked .site-content {
-    height: calc(100dvh - 66px);
-    max-height: calc(100dvh - 66px);
+    height: var(--chat-available-height, calc(100dvh - 66px));
+    max-height: var(--chat-available-height, calc(100dvh - 66px));
     overflow: hidden !important;
+    padding-top: 0 !important;
     padding-bottom: 0 !important;
 }
 
@@ -15721,12 +15722,16 @@ body.chat-thread-locked footer.footer {
     display: none !important;
 }
 
+body.chat-thread-locked .evt-bottom-nav {
+    display: none !important;
+}
+
 body.chat-thread-locked .social-messages-page--chat {
     height: 100%;
     max-height: 100%;
     min-height: 0;
     margin: 0 auto !important;
-    padding: 0.35rem 0 0 !important;
+    padding: 0 !important;
     overflow: hidden !important;
     overscroll-behavior: none;
 }
@@ -15764,13 +15769,11 @@ body.chat-thread-locked .social-messages-page--chat .social-chat-thread {
 
 @media (max-width: 767.98px) {
     body.chat-thread-locked .site-content {
-        height: calc(100dvh - 58px - env(safe-area-inset-bottom));
-        max-height: calc(100dvh - 58px - env(safe-area-inset-bottom));
         padding-inline: 0.45rem !important;
     }
 
     body.chat-thread-locked .social-messages-page--chat {
-        padding: 0.35rem 0 0 !important;
+        padding: 0 !important;
     }
 
     .social-messages-page--chat .social-message-bubble {

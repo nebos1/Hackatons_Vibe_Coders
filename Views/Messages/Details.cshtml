@@ -530,10 +530,28 @@
     (function () {
         var page = document.querySelector('.social-messages-page--chat');
         var thread = document.querySelector('.social-chat-thread');
+        var siteContent = document.querySelector('.site-content');
         if (!page || !thread) return;
 
         document.documentElement.classList.add('chat-thread-locked');
         document.body.classList.add('chat-thread-locked');
+
+        function setChatViewportHeight() {
+            var viewport = window.visualViewport;
+            var viewportHeight = viewport ? viewport.height : window.innerHeight;
+            var top = siteContent ? siteContent.getBoundingClientRect().top : page.getBoundingClientRect().top;
+            var availableHeight = Math.max(320, Math.floor(viewportHeight - Math.max(0, top) - 6));
+            document.documentElement.style.setProperty('--chat-available-height', availableHeight + 'px');
+        }
+
+        setChatViewportHeight();
+        requestAnimationFrame(setChatViewportHeight);
+        window.addEventListener('resize', setChatViewportHeight);
+        window.addEventListener('orientationchange', setChatViewportHeight);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', setChatViewportHeight);
+            window.visualViewport.addEventListener('scroll', setChatViewportHeight);
+        }
 
         function isThreadScroll(target) {
             return !!(target && target.closest && target.closest('.social-chat-thread'));
@@ -551,6 +569,13 @@
         function cleanup() {
             document.removeEventListener('touchmove', preventOutsideChat);
             document.removeEventListener('wheel', preventOutsideChat);
+            window.removeEventListener('resize', setChatViewportHeight);
+            window.removeEventListener('orientationchange', setChatViewportHeight);
+            if (window.visualViewport) {
+                window.visualViewport.removeEventListener('resize', setChatViewportHeight);
+                window.visualViewport.removeEventListener('scroll', setChatViewportHeight);
+            }
+            document.documentElement.style.removeProperty('--chat-available-height');
             document.documentElement.classList.remove('chat-thread-locked');
             document.body.classList.remove('chat-thread-locked');
         }
