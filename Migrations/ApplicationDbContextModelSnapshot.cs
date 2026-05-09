@@ -1617,6 +1617,33 @@ namespace EventsApp.Migrations
                     b.ToTable("Tickets");
                 });
 
+            modelBuilder.Entity("EventsApp.Models.TicketSectionPrice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("SectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SectionId");
+
+                    b.HasIndex("TicketId", "SectionId")
+                        .IsUnique();
+
+                    b.ToTable("TicketSectionPrices");
+                });
+
             modelBuilder.Entity("EventsApp.Models.Transaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2762,6 +2789,25 @@ namespace EventsApp.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("EventsApp.Models.TicketSectionPrice", b =>
+                {
+                    b.HasOne("EventsApp.Models.LayoutSection", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EventsApp.Models.Ticket", "Ticket")
+                        .WithMany("SectionPrices")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Section");
+
+                    b.Navigation("Ticket");
+                });
+
             modelBuilder.Entity("EventsApp.Models.UserActivity", b =>
                 {
                     b.HasOne("EventsApp.Models.Event", "Event")
@@ -3090,6 +3136,8 @@ namespace EventsApp.Migrations
 
             modelBuilder.Entity("EventsApp.Models.Ticket", b =>
                 {
+                    b.Navigation("SectionPrices");
+
                     b.Navigation("UserTickets");
                 });
 

@@ -144,6 +144,8 @@ namespace EventsApp.ViewModels.Layouts
         public int Id { get; set; }
         public int? InventoryId { get; set; }
         public string Label { get; set; } = null!;
+        public string Row { get; set; } = null!;
+        public string Number { get; set; } = null!;
         public double X { get; set; }
         public double Y { get; set; }
         public double Radius { get; set; } = 16;

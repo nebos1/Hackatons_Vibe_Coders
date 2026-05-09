@@ -32,6 +32,7 @@
         seatPanel: root.querySelector('[data-layout-seat-panel]'),
         addFloor: root.querySelector('[data-layout-add-floor]'),
         addSection: root.querySelector('[data-layout-add-section]'),
+        addSeat: root.querySelector('[data-layout-add-seat]'),
         addStanding: root.querySelector('[data-layout-add-standing]'),
         addTable: root.querySelector('[data-layout-add-table]'),
         generateRows: root.querySelector('[data-layout-generate-rows]'),
@@ -541,6 +542,52 @@
         });
     }
 
+    function addSingleSeat() {
+        remember();
+        var section = selectedSection();
+        if (!section) {
+            var floor = activeFloor();
+            section = {
+                clientId: uid('section'),
+                floorId: floor.clientId,
+                floorName: floor.name,
+                name: 'Свободна подредба',
+                type: 'Seated',
+                shape: 'Rounded',
+                capacity: 0,
+                priceModifier: 0,
+                colorHex: defaultSectionColor('Seated'),
+                x: 120,
+                y: 120,
+                width: 520,
+                height: 320,
+                rotation: 0,
+                seats: []
+            };
+            state.sections.push(section);
+        }
+
+        var next = section.seats.length + 1;
+        var row = String.fromCharCode(65 + (Math.floor((next - 1) / 20) % 26));
+        var number = String(((next - 1) % 20) + 1);
+        var radius = 15;
+        section.seats.push({
+            clientId: uid('seat'),
+            row: row,
+            number: number,
+            label: row + number,
+            x: clamp(40 + ((next - 1) % 10) * 38, 0, section.width - radius * 2),
+            y: clamp(70 + Math.floor((next - 1) / 10) * 38, 0, section.height - radius * 2),
+            radius: radius,
+            rotation: 0,
+            capacity: 1,
+            isCapacityUnlimited: false,
+            seatType: section.type === 'VIP' ? 'VIP' : 'Standard',
+            status: 'Active'
+        });
+        select('seat', section.seats[section.seats.length - 1].clientId);
+    }
+
     function setAiStatus(message, kind) {
         if (!ai.status) return;
         ai.status.textContent = message || '';
@@ -918,6 +965,7 @@
 
     if (els.addFloor) els.addFloor.addEventListener('click', addFloor);
     if (els.addSection) els.addSection.addEventListener('click', function () { addSection('Seated', 'Rectangle'); });
+    if (els.addSeat) els.addSeat.addEventListener('click', addSingleSeat);
     if (els.addStanding) els.addStanding.addEventListener('click', function () { addSection('Standing', 'Rounded'); });
     if (els.addTable) els.addTable.addEventListener('click', function () { addSection('Table', 'Circle'); });
     if (els.generateRows) els.generateRows.addEventListener('click', generateRows);

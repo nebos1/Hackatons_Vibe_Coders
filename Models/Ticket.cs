@@ -11,6 +11,7 @@ namespace EventsApp.Models
             this.Id = Guid.NewGuid();
             this.CreatedAt = DateTime.UtcNow;
             this.IsActive = true;
+            this.SectionPrices = new HashSet<TicketSectionPrice>();
             this.UserTickets = new HashSet<UserTicket>();
         }
 
@@ -53,6 +54,8 @@ namespace EventsApp.Models
 
         [Required]
         public DateTime CreatedAt { get; set; }
+
+        public ICollection<TicketSectionPrice> SectionPrices { get; set; }
 
         public ICollection<UserTicket> UserTickets { get; set; }
     }

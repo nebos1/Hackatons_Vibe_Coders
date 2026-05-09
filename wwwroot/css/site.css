@@ -9037,6 +9037,167 @@ html[data-theme="dark"] .evt-share__item.is-x i { color: #e8eaf2; }
     font-weight: 800;
 }
 
+.seat-choice-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1080;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.42);
+    backdrop-filter: blur(3px);
+}
+
+.seat-choice-modal[hidden] {
+    display: none;
+}
+
+.seat-choice-modal__dialog {
+    position: relative;
+    width: min(440px, 100%);
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 26px 70px rgba(15, 23, 42, 0.26);
+    overflow: hidden;
+}
+
+.seat-choice-modal__dialog .groove-kicker,
+.seat-choice-modal__dialog h3,
+.seat-choice-modal__dialog p {
+    margin-left: 1.2rem;
+    margin-right: 1.2rem;
+}
+
+.seat-choice-modal__dialog .groove-kicker {
+    display: block;
+    margin-top: 1.15rem;
+}
+
+.seat-choice-modal__dialog h3 {
+    margin-top: 0.25rem;
+    margin-bottom: 0.8rem;
+}
+
+.seat-choice-modal__close {
+    position: absolute;
+    top: 0.8rem;
+    right: 0.8rem;
+    border: 0;
+    background: transparent;
+    color: #667085;
+    font-size: 1.1rem;
+}
+
+.seat-choice-modal dl {
+    margin: 0;
+    border-top: 1px solid var(--social-line, #dce3f3);
+    border-bottom: 1px solid var(--social-line, #dce3f3);
+}
+
+.seat-choice-modal dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1.2rem;
+}
+
+.seat-choice-modal dl > div + div {
+    border-top: 1px solid var(--social-line, #dce3f3);
+}
+
+.seat-choice-modal dt {
+    color: var(--social-muted, #667085);
+    font-weight: 800;
+}
+
+.seat-choice-modal dd {
+    margin: 0;
+    font-weight: 950;
+    color: #111827;
+}
+
+.seat-choice-modal__dialog p {
+    color: var(--social-muted, #667085);
+    font-weight: 800;
+}
+
+.seat-choice-modal__dialog .groove-button {
+    width: 100%;
+    border-radius: 0;
+}
+
+.ticket-sector-pricing {
+    margin: 0.5rem 0 1rem;
+    padding: 1rem;
+    border: 1px solid var(--social-line, #dce3f3);
+    border-radius: 18px;
+    background: rgba(36, 86, 255, 0.04);
+}
+
+.ticket-sector-pricing__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.ticket-sector-pricing__head h2 {
+    margin: 0.2rem 0;
+    font-size: 1.05rem;
+}
+
+.ticket-sector-pricing__head p {
+    margin: 0;
+    color: var(--social-muted, #667085);
+}
+
+.ticket-sector-pricing__head > span {
+    white-space: nowrap;
+    border-radius: 999px;
+    background: #111827;
+    color: #fff;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 900;
+}
+
+.ticket-sector-pricing__grid {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.ticket-sector-price {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) minmax(120px, 180px);
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem;
+    border: 1px solid var(--social-line, #dce3f3);
+    border-radius: 14px;
+    background: #fff;
+}
+
+.ticket-sector-price__dot {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 999px;
+    box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.06);
+}
+
+.ticket-sector-price__name {
+    display: grid;
+    gap: 0.12rem;
+}
+
+.ticket-sector-price__name small {
+    color: var(--social-muted, #667085);
+}
+
+.ticket-sector-price input[type="number"] {
+    width: 100%;
+}
+
 .event-seat-floor-tabs {
     display: flex;
     gap: 0.5rem;
@@ -9118,6 +9279,10 @@ html[data-theme="dark"] .evt-share__item.is-x i { color: #e8eaf2; }
     opacity: 0.72;
 }
 
+.event-seat-button[aria-disabled="true"] {
+    cursor: not-allowed;
+}
+
 .event-seat-button.is-reserved {
     background: #f59e0b;
     opacity: 0.82;
@@ -9188,6 +9353,28 @@ html[data-theme="dark"] .event-seat-admin-actions {
 }
 
 html[data-theme="dark"] .event-seat-admin-actions span {
+    color: #cbd5e1;
+}
+
+html[data-theme="dark"] .seat-choice-modal__dialog,
+html[data-theme="dark"] .ticket-sector-pricing,
+html[data-theme="dark"] .ticket-sector-price {
+    background: #151a26;
+    border-color: #262d3d;
+    color: #e8eaf2;
+}
+
+html[data-theme="dark"] .seat-choice-modal dd,
+html[data-theme="dark"] .seat-choice-modal__dialog h3,
+html[data-theme="dark"] .ticket-sector-pricing__head h2,
+html[data-theme="dark"] .ticket-sector-price strong {
+    color: #fff;
+}
+
+html[data-theme="dark"] .seat-choice-modal dt,
+html[data-theme="dark"] .seat-choice-modal__dialog p,
+html[data-theme="dark"] .ticket-sector-pricing__head p,
+html[data-theme="dark"] .ticket-sector-price__name small {
     color: #cbd5e1;
 }
 

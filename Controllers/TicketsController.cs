@@ -96,7 +96,14 @@ namespace EventsApp.Controllers
             var userId = _userManager.GetUserId(User)!;
             var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
 
-            var ev = await _db.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id);
+            var ev = await _db.Events
+                .AsNoTracking()
+                .Include(e => e.VenueLayout)
+                    .ThenInclude(l => l!.Sections)
+                        .ThenInclude(s => s.Seats)
+                .Include(e => e.VenueLayout)
+                    .ThenInclude(l => l!.Seats)
+                .FirstOrDefaultAsync(e => e.Id == id);
             if (ev == null) return NotFound();
             if (!isAdmin && ev.OrganizerId != userId) return Forbid();
 
@@ -104,10 +111,17 @@ namespace EventsApp.Controllers
             {
                 EventId = ev.Id,
                 EventTitle = ev.Title,
+                Name = ev.VenueLayoutId.HasValue && ev.TicketingMode != EventTicketingMode.GeneralAdmission
+                    ? "Билет по места"
+                    : null!,
+                Price = 0,
+                QuantityTotal = ev.VenueLayout?.Seats.Count(s => s.Status == LayoutSeatStatus.Active) ?? 0,
+                QuantityRemaining = ev.VenueLayout?.Seats.Count(s => s.Status == LayoutSeatStatus.Active) ?? 0,
                 IsActive = true,
                 IsFree = false,
                 RequiresAttendeeNames = false,
             };
+            PopulateTicketLayoutPricing(vm, ev);
 
             return View(vm);
         }
@@ -120,12 +134,20 @@ namespace EventsApp.Controllers
             var userId = _userManager.GetUserId(User)!;
             var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
 
-            var ev = await _db.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == input.EventId);
+            var ev = await _db.Events
+                .Include(e => e.VenueLayout)
+                    .ThenInclude(l => l!.Sections)
+                        .ThenInclude(s => s.Seats)
+                .Include(e => e.VenueLayout)
+                    .ThenInclude(l => l!.Seats)
+                .FirstOrDefaultAsync(e => e.Id == input.EventId);
             if (ev == null) return NotFound();
             if (!isAdmin && ev.OrganizerId != userId) return Forbid();
 
             input.EventTitle = ev.Title;
+            PopulateTicketLayoutPricing(input, ev, useSubmittedPrices: true);
             NormalizeFreeTicketInput(input);
+            ValidateLayoutSectionPrices(input);
 
             if (!ModelState.IsValid)
             {
@@ -145,6 +167,7 @@ namespace EventsApp.Controllers
             };
 
             await ApplyTicketImageAsync(ticket, input);
+            ApplyTicketSectionPrices(ticket, input);
 
             _db.Tickets.Add(ticket);
             await _db.SaveChangesAsync();
@@ -164,6 +187,12 @@ namespace EventsApp.Controllers
                     .ThenInclude(e => e.EventSeries)
                 .Include(t => t.Event)
                     .ThenInclude(e => e.VenueLayout)
+                        .ThenInclude(l => l!.Sections)
+                            .ThenInclude(s => s.Seats)
+                .Include(t => t.Event)
+                    .ThenInclude(e => e.VenueLayout)
+                        .ThenInclude(l => l!.Seats)
+                .Include(t => t.SectionPrices)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (ticket == null) return NotFound();
@@ -184,6 +213,7 @@ namespace EventsApp.Controllers
                 IsActive = ticket.IsActive,
                 RequiresAttendeeNames = ticket.RequiresAttendeeNames,
             };
+            PopulateTicketLayoutPricing(vm, ticket.Event, ticket.SectionPrices);
 
             return View(vm);
         }
@@ -200,8 +230,16 @@ namespace EventsApp.Controllers
                 .Include(t => t.Event)
                     .ThenInclude(e => e.OrganizerProfile)
                 .Include(t => t.Event)
+                    .ThenInclude(e => e.VenueLayout)
+                        .ThenInclude(l => l!.Sections)
+                            .ThenInclude(s => s.Seats)
+                .Include(t => t.Event)
+                    .ThenInclude(e => e.VenueLayout)
+                        .ThenInclude(l => l!.Seats)
+                .Include(t => t.Event)
                     .ThenInclude(e => e.EventSeries)
                         .ThenInclude(s => s!.Occurrences)
+                .Include(t => t.SectionPrices)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (ticket == null) return NotFound();
@@ -209,6 +247,8 @@ namespace EventsApp.Controllers
 
             var remaining = input.QuantityRemaining ?? ticket.QuantityRemaining;
             NormalizeFreeTicketInput(input);
+            PopulateTicketLayoutPricing(input, ticket.Event, useSubmittedPrices: true);
+            ValidateLayoutSectionPrices(input);
             if (remaining > input.QuantityTotal)
             {
                 ModelState.AddModelError(nameof(input.QuantityRemaining),
@@ -228,6 +268,7 @@ namespace EventsApp.Controllers
             ticket.QuantityTotal = input.QuantityTotal;
             ticket.QuantityRemaining = remaining;
             await ApplyTicketImageAsync(ticket, input);
+            ApplyTicketSectionPrices(ticket, input);
             ticket.IsActive = input.IsActive;
             ticket.RequiresAttendeeNames = input.RequiresAttendeeNames;
 
@@ -285,8 +326,12 @@ namespace EventsApp.Controllers
             var userId = _userManager.GetUserId(User)!;
 
             var ticket = await _db.Tickets
+                .Include(t => t.SectionPrices)
                 .Include(t => t.Event)
                     .ThenInclude(e => e.OrganizerProfile)
+                .Include(t => t.Event)
+                    .ThenInclude(e => e.EventSeries)
+                        .ThenInclude(s => s!.Occurrences)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (ticket == null) return NotFound();
@@ -472,7 +517,7 @@ namespace EventsApp.Controllers
                     }
                 }
 
-                var unitPrice = ticket.Price + (selectedSeat?.Section.PriceModifier ?? 0m);
+                var unitPrice = CalculateSeatAwarePrice(ticket, selectedSeat);
                 purchasedUnitPrice = unitPrice;
                 var purchaseGroupId = Guid.NewGuid();
                 var purchaseTransaction = new Transaction
@@ -583,6 +628,7 @@ namespace EventsApp.Controllers
             var ut = await _db.UserTickets
                 .AsNoTracking()
                 .Include(x => x.Ticket).ThenInclude(t => t.Event)
+                .Include(x => x.Ticket).ThenInclude(t => t.SectionPrices)
                 .Include(x => x.EventOccurrence)
                 .Include(x => x.Seat).ThenInclude(s => s!.Section)
                 .Include(x => x.Transaction).ThenInclude(t => t.User)
@@ -607,6 +653,7 @@ namespace EventsApp.Controllers
             var ut = await _db.UserTickets
                 .AsNoTracking()
                 .Include(x => x.Ticket).ThenInclude(t => t.Event)
+                .Include(x => x.Ticket).ThenInclude(t => t.SectionPrices)
                 .Include(x => x.EventOccurrence)
                 .Include(x => x.Seat).ThenInclude(s => s!.Section)
                 .Include(x => x.Transaction).ThenInclude(t => t.User)
@@ -688,6 +735,7 @@ namespace EventsApp.Controllers
 
             var ut = await _db.UserTickets
                 .Include(x => x.Ticket).ThenInclude(t => t.Event)
+                .Include(x => x.Ticket).ThenInclude(t => t.SectionPrices)
                 .Include(x => x.EventOccurrence)
                 .Include(x => x.Seat).ThenInclude(s => s!.Section)
                 .Include(x => x.Transaction).ThenInclude(t => t.User)
@@ -1003,7 +1051,7 @@ namespace EventsApp.Controllers
                 IsPrimaryInPurchase = ut.IsPrimaryInPurchase,
                 Price = ut.PricePaid > 0
                     ? ut.PricePaid
-                    : ut.Ticket.Price + (ut.Seat?.Section.PriceModifier ?? 0m),
+                    : CalculateSeatAwarePrice(ut.Ticket, ut.Seat),
                 TransactionStatus = ut.Transaction.Status,
                 QrCode = ut.QrCode,
                 IsUsed = ut.IsUsed,
@@ -1078,7 +1126,120 @@ namespace EventsApp.Controllers
             }
 
             input.Price = 0m;
+            foreach (var section in input.LayoutSections)
+            {
+                section.SectionPrice = 0m;
+            }
             ModelState.Remove(nameof(input.Price));
+        }
+
+        private static void PopulateTicketLayoutPricing(
+            TicketCreateEditViewModel input,
+            Event ev,
+            IEnumerable<TicketSectionPrice>? existingPrices = null,
+            bool useSubmittedPrices = false)
+        {
+            input.HasSeatLayout = ev.VenueLayoutId.HasValue
+                && ev.TicketingMode != EventTicketingMode.GeneralAdmission
+                && ev.VenueLayout != null;
+
+            if (!input.HasSeatLayout || ev.VenueLayout == null)
+            {
+                input.LayoutSections = new List<TicketLayoutSectionPriceViewModel>();
+                input.SuggestedSeatCapacity = 0;
+                return;
+            }
+
+            input.SuggestedSeatCapacity = ev.VenueLayout.Seats.Count(s => s.Status == LayoutSeatStatus.Active);
+            var posted = useSubmittedPrices
+                ? input.LayoutSections.ToDictionary(s => s.SectionId)
+                : new Dictionary<int, TicketLayoutSectionPriceViewModel>();
+            var existing = existingPrices?
+                .GroupBy(p => p.SectionId)
+                .ToDictionary(g => g.Key, g => g.First().Price)
+                ?? new Dictionary<int, decimal>();
+
+            input.LayoutSections = ev.VenueLayout.Sections
+                .OrderBy(s => s.Name)
+                .Select(section =>
+                {
+                    posted.TryGetValue(section.Id, out var postedSection);
+                    return new TicketLayoutSectionPriceViewModel
+                    {
+                        SectionId = section.Id,
+                        Name = section.Name,
+                        ColorHex = string.IsNullOrWhiteSpace(section.ColorHex) ? "#2456ff" : section.ColorHex,
+                        SeatsCount = section.Seats.Count(seat => seat.Status == LayoutSeatStatus.Active),
+                        SectionPrice = postedSection?.SectionPrice
+                            ?? (existing.TryGetValue(section.Id, out var price)
+                                ? price
+                                : Math.Max(0m, input.Price + section.PriceModifier)),
+                    };
+                })
+                .ToList();
+        }
+
+        private void ValidateLayoutSectionPrices(TicketCreateEditViewModel input)
+        {
+            if (!input.HasSeatLayout)
+            {
+                return;
+            }
+
+            for (var i = 0; i < input.LayoutSections.Count; i++)
+            {
+                if (input.LayoutSections[i].SectionPrice < 0)
+                {
+                    ModelState.AddModelError(
+                        $"LayoutSections[{i}].SectionPrice",
+                        "Цената на сектор не може да е отрицателна.");
+                }
+            }
+        }
+
+        private static void ApplyTicketSectionPrices(Ticket ticket, TicketCreateEditViewModel input)
+        {
+            if (!input.HasSeatLayout || input.LayoutSections.Count == 0)
+            {
+                ticket.SectionPrices.Clear();
+                return;
+            }
+
+            var posted = input.LayoutSections.ToDictionary(s => s.SectionId);
+            var existing = ticket.SectionPrices.ToDictionary(p => p.SectionId);
+            var postedSectionIds = posted.Keys.ToHashSet();
+
+            foreach (var stalePrice in ticket.SectionPrices.Where(p => !postedSectionIds.Contains(p.SectionId)).ToList())
+            {
+                ticket.SectionPrices.Remove(stalePrice);
+            }
+
+            foreach (var sectionPrice in posted.Values)
+            {
+                if (existing.TryGetValue(sectionPrice.SectionId, out var entity))
+                {
+                    entity.Price = sectionPrice.SectionPrice;
+                }
+                else
+                {
+                    ticket.SectionPrices.Add(new TicketSectionPrice
+                    {
+                        SectionId = sectionPrice.SectionId,
+                        Price = sectionPrice.SectionPrice,
+                    });
+                }
+            }
+        }
+
+        private static decimal CalculateSeatAwarePrice(Ticket ticket, Seat? seat)
+        {
+            if (seat == null)
+            {
+                return ticket.Price;
+            }
+
+            var sectionPrice = ticket.SectionPrices.FirstOrDefault(p => p.SectionId == seat.SectionId);
+            return sectionPrice?.Price ?? Math.Max(0m, ticket.Price + (seat.Section?.PriceModifier ?? 0m));
         }
 
         private async Task ApplyTicketImageAsync(Ticket ticket, TicketCreateEditViewModel input)

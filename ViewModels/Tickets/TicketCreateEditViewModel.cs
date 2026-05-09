@@ -49,5 +49,25 @@ namespace EventsApp.ViewModels.Tickets
 
         [Display(Name = "Изисквай имена на посетители")]
         public bool RequiresAttendeeNames { get; set; }
+
+        public bool HasSeatLayout { get; set; }
+
+        public int SuggestedSeatCapacity { get; set; }
+
+        public List<TicketLayoutSectionPriceViewModel> LayoutSections { get; set; } = new();
+    }
+
+    public class TicketLayoutSectionPriceViewModel
+    {
+        public int SectionId { get; set; }
+
+        public string Name { get; set; } = null!;
+
+        public string ColorHex { get; set; } = "#2456ff";
+
+        public int SeatsCount { get; set; }
+
+        [Range(0, 1_000_000)]
+        public decimal SectionPrice { get; set; }
     }
 }

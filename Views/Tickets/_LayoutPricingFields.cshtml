@@ -1,0 +1,33 @@
+@model TicketCreateEditViewModel
+
+@if (Model.HasSeatLayout && Model.LayoutSections.Count > 0)
+{
+    <section class="ticket-sector-pricing">
+        <div class="ticket-sector-pricing__head">
+            <div>
+                <span class="groove-kicker">Цени по цветове</span>
+                <h2>Този билет използва схема с места.</h2>
+                <p>Въведи крайна цена за всеки цветен сектор. При покупка системата автоматично добавя правилната цена според избраното място.</p>
+            </div>
+            <span>@Model.SuggestedSeatCapacity места</span>
+        </div>
+        <div class="ticket-sector-pricing__grid">
+            @for (var i = 0; i < Model.LayoutSections.Count; i++)
+            {
+                <label class="ticket-sector-price">
+                    <input asp-for="LayoutSections[i].SectionId" type="hidden" />
+                    <input asp-for="LayoutSections[i].Name" type="hidden" />
+                    <input asp-for="LayoutSections[i].ColorHex" type="hidden" />
+                    <input asp-for="LayoutSections[i].SeatsCount" type="hidden" />
+                    <span class="ticket-sector-price__dot" style="background:@Model.LayoutSections[i].ColorHex"></span>
+                    <span class="ticket-sector-price__name">
+                        <strong>@Model.LayoutSections[i].Name</strong>
+                        <small>@Model.LayoutSections[i].SeatsCount места</small>
+                    </span>
+                    <input asp-for="LayoutSections[i].SectionPrice" type="number" step="0.01" min="0" />
+                    <span asp-validation-for="LayoutSections[i].SectionPrice" class="text-danger small"></span>
+                </label>
+            }
+        </div>
+    </section>
+}

@@ -130,6 +130,7 @@ namespace EventsApp.Controllers
                 .Include(e => e.Saves)
                 .Include(e => e.Attendances)
                 .Include(e => e.Tickets)
+                    .ThenInclude(t => t.SectionPrices)
                 .FirstOrDefaultAsync(e => e.Id == id);
 
             if (ev == null)
@@ -287,6 +288,14 @@ namespace EventsApp.Controllers
                             Name = t.Name,
                             Description = t.Description,
                             Price = t.Price,
+                            UsesSeatPricing = ev.VenueLayoutId.HasValue && ev.TicketingMode != EventTicketingMode.GeneralAdmission,
+                            SectionPrices = t.SectionPrices
+                                .Select(p => new EventsApp.ViewModels.Tickets.EventTicketSectionPriceViewModel
+                                {
+                                    SectionId = p.SectionId,
+                                    Price = p.Price,
+                                })
+                                .ToList(),
                             QuantityRemaining = remaining,
                             MaxPurchaseQuantity = maxPurchaseQuantity,
                             IsActive = t.IsActive,
@@ -1573,6 +1582,8 @@ namespace EventsApp.Controllers
                                     Id = seat.Id,
                                     InventoryId = inv?.Id,
                                     Label = string.IsNullOrWhiteSpace(seat.Label) ? $"{seat.Row}{seat.Number}" : seat.Label,
+                                    Row = seat.Row,
+                                    Number = seat.Number,
                                     X = seat.X,
                                     Y = seat.Y,
                                     Radius = seat.Radius <= 0 ? 16 : seat.Radius,

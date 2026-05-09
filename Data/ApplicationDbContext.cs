@@ -59,6 +59,8 @@ namespace EventsApp.Data
 
         public DbSet<Ticket> Tickets { get; set; } = null!;
 
+        public DbSet<TicketSectionPrice> TicketSectionPrices { get; set; } = null!;
+
         public DbSet<Transaction> Transactions { get; set; } = null!;
 
         public DbSet<UserTicket> UserTickets { get; set; } = null!;
@@ -644,6 +646,24 @@ namespace EventsApp.Data
                       .WithMany(e => e.Tickets)
                       .HasForeignKey(t => t.EventId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TicketSectionPrice>(entity =>
+            {
+                entity.Property(p => p.Price)
+                      .HasColumnType("numeric(18,2)");
+
+                entity.HasOne(p => p.Ticket)
+                      .WithMany(t => t.SectionPrices)
+                      .HasForeignKey(p => p.TicketId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(p => p.Section)
+                      .WithMany()
+                      .HasForeignKey(p => p.SectionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(p => new { p.TicketId, p.SectionId }).IsUnique();
             });
 
             builder.Entity<Transaction>(entity =>
