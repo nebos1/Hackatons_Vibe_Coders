@@ -152,6 +152,72 @@ namespace EventsApp.Controllers
             });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Comments(int id, int commentsToShow = 24)
+        {
+            var userId = _userManager.GetUserId(User);
+            var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
+            commentsToShow = Math.Clamp(commentsToShow, 8, 80);
+
+            var post = await _db.Posts
+                .AsNoTracking()
+                .Where(p => p.Id == id)
+                .Select(p => new { p.Id, p.OrganizerProfileId })
+                .FirstOrDefaultAsync();
+
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            var commentsCount = await _db.PostComments
+                .AsNoTracking()
+                .CountAsync(c => c.PostId == id);
+            var rootCommentsCount = await _db.PostComments
+                .AsNoTracking()
+                .CountAsync(c => c.PostId == id && c.ParentCommentId == null);
+            var rootComments = await _db.PostComments
+                .AsNoTracking()
+                .Where(c => c.PostId == id && c.ParentCommentId == null)
+                .Include(c => c.User)
+                .Include(c => c.AuthorOrganizerProfile)
+                .Include(c => c.Likes)
+                .OrderByDescending(c => c.Likes.Count)
+                .ThenByDescending(c => c.CreatedAt)
+                .Take(commentsToShow)
+                .ToListAsync();
+            var rootCommentIds = rootComments.Select(c => c.Id).ToList();
+            var replies = rootCommentIds.Count == 0
+                ? new List<PostComment>()
+                : await _db.PostComments
+                    .AsNoTracking()
+                    .Where(c => c.PostId == id && c.ParentCommentId.HasValue && rootCommentIds.Contains(c.ParentCommentId.Value))
+                    .Include(c => c.User)
+                    .Include(c => c.AuthorOrganizerProfile)
+                    .Include(c => c.Likes)
+                    .OrderByDescending(c => c.Likes.Count)
+                    .ThenByDescending(c => c.CreatedAt)
+                    .ToListAsync();
+            var repliesByParentId = replies
+                .Where(c => c.ParentCommentId.HasValue)
+                .GroupBy(c => c.ParentCommentId!.Value)
+                .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.Likes.Count).ThenByDescending(r => r.CreatedAt).ToList());
+
+            return PartialView("_PostCommentsSheet", new PostDetailsViewModel
+            {
+                Id = post.Id,
+                CommentsCount = commentsCount,
+                RootCommentsCount = rootCommentsCount,
+                VisibleRootCommentsCount = rootComments.Count,
+                Comments = rootComments
+                    .Select(c => ToCommentViewModel(c, userId, isAdmin, repliesByParentId))
+                    .ToList(),
+                ActingIdentities = User.Identity?.IsAuthenticated == true
+                    ? await _actingIdentity.GetOptionsAsync(HttpContext, post.OrganizerProfileId)
+                    : Array.Empty<ViewModels.Social.ActingIdentityOptionViewModel>(),
+            });
+        }
+
         [Authorize]
         public async Task<IActionResult> Create()
         {
@@ -450,6 +516,11 @@ namespace EventsApp.Controllers
 
             if (string.IsNullOrWhiteSpace(content))
             {
+                if (IsAjaxRequest())
+                {
+                    return BadRequest(new { message = "Comment cannot be empty." });
+                }
+
                 TempData["StatusMessage"] = "Comment cannot be empty.";
                 return RedirectToAction(nameof(Details), new { id });
             }
@@ -469,6 +540,11 @@ namespace EventsApp.Controllers
                     .AnyAsync(c => c.Id == parentCommentId.Value && c.PostId == id && c.ParentCommentId == null);
                 if (!parentIsValid)
                 {
+                    if (IsAjaxRequest())
+                    {
+                        return BadRequest(new { message = "Reply target was not found." });
+                    }
+
                     TempData["StatusMessage"] = "Reply target was not found.";
                     return RedirectToAction(nameof(Details), new { id });
                 }
@@ -496,6 +572,18 @@ namespace EventsApp.Controllers
             var senderName = (await _userManager.FindByIdAsync(userId))?.UserName ?? "Evento";
             var url = Url.Action(nameof(Details), "Posts", new { id }) ?? "/";
             await _mentions.NotifyMentionsAsync(content, userId, senderName, "Коментар", url);
+
+            if (IsAjaxRequest())
+            {
+                var commentsCount = await _db.PostComments.CountAsync(c => c.PostId == id);
+                return Json(new
+                {
+                    ok = true,
+                    postId = id,
+                    commentsCount,
+                    commentsUrl = Url.Action(nameof(Comments), new { id }),
+                });
+            }
 
             return RedirectToAction(nameof(Details), new { id });
         }

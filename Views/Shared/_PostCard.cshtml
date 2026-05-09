@@ -8,10 +8,11 @@
     var saveAction = Model.CurrentUserSaved ? "Unsave" : "Save";
     var preview = Model.Content.Length > 220 ? Model.Content[..220] + "..." : Model.Content;
     var shareUrl = Url.Action("Details", "Posts", new { id = Model.Id }, Context.Request.Scheme) ?? string.Empty;
+    var commentsUrl = Url.Action("Comments", "Posts", new { id = Model.Id }) ?? $"/Posts/Comments/{Model.Id}";
     var initial = string.IsNullOrWhiteSpace(Model.OrganizerName) ? "?" : Model.OrganizerName[..1].ToUpperInvariant();
 }
 
-<div class="card h-100 shadow-sm post-card social-post-card">
+<div class="card h-100 shadow-sm post-card social-post-card" data-post-card data-post-id="@Model.Id">
     @if (!string.IsNullOrWhiteSpace(Model.FirstMediaUrl))
     {
         if (Model.FirstMediaType == EventsApp.Models.PostMediaType.Video)
@@ -129,9 +130,9 @@
                     <span class="small text-muted"><i class="bi bi-bookmark"></i> @Model.SavesCount</span>
                 }
 
-                <a asp-controller="Posts" asp-action="Details" asp-route-id="@Model.Id" asp-fragment="comments" class="btn btn-sm btn-outline-secondary" title="Comments" data-i18n-title="social.comments">
-                    <i class="bi bi-chat"></i> @Model.CommentsCount
-                </a>
+                <button class="btn btn-sm btn-outline-secondary" type="button" title="Comments" data-i18n-title="social.comments" data-post-comments-open data-comments-url="@commentsUrl" data-post-id="@Model.Id">
+                    <i class="bi bi-chat"></i> <span data-post-comment-count>@Model.CommentsCount</span>
+                </button>
                 <button class="btn btn-sm btn-outline-secondary social-share-button" type="button" data-share-url="@shareUrl" data-share-title="Post by @Model.OrganizerName" title="Share" data-i18n-title="social.share">
                     <i class="bi bi-share"></i>
                 </button>
@@ -143,18 +144,17 @@
                 }
             </div>
 
-            <div class="social-card-actions__manage">
-                <a asp-controller="Posts" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-primary" data-i18n="common.open">Open</a>
-                @if (canManage)
-                {
+            @if (canManage)
+            {
+                <div class="social-card-actions__manage">
                     <a asp-controller="Posts" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary" title="Edit" data-i18n-title="common.edit">
                         <i class="bi bi-pencil"></i>
                     </a>
                     <a asp-controller="Posts" asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-danger" title="Delete" data-i18n-title="common.delete">
                         <i class="bi bi-trash"></i>
                     </a>
-                }
-            </div>
+                </div>
+            }
         </div>
     </div>
 </div>

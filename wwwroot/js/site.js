@@ -24,6 +24,34 @@ document.addEventListener('click', async function (event) {
 });
 
 (function () {
+    function isInteractiveTarget(target) {
+        return !!target.closest('a, button, input, select, textarea, label, form, summary, details, [data-no-card-nav]');
+    }
+
+    document.addEventListener('click', function (event) {
+        var card = event.target.closest('[data-card-href]');
+        if (!card || event.defaultPrevented || isInteractiveTarget(event.target)) return;
+
+        var href = card.getAttribute('data-card-href');
+        if (href) {
+            window.location.href = href;
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        var card = event.target.closest('[data-card-href]');
+        if (!card || event.target !== card) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+
+        event.preventDefault();
+        var href = card.getAttribute('data-card-href');
+        if (href) {
+            window.location.href = href;
+        }
+    });
+})();
+
+(function () {
     function setupMobileLazyInputs() {
         var isTouchLike = window.matchMedia &&
             window.matchMedia('(hover: none), (pointer: coarse)').matches;

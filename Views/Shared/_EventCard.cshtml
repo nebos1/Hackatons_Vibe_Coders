@@ -7,12 +7,13 @@
     var likeAction = Model.CurrentUserLiked ? "Unlike" : "Like";
     var saveAction = Model.CurrentUserSaved ? "Unsave" : "Save";
     var shareUrl = Url.Action("Details", "Events", new { id = Model.Id }, Context.Request.Scheme) ?? string.Empty;
+    var detailsUrl = Url.Action("Details", "Events", new { id = Model.Id }) ?? $"/Events/Details/{Model.Id}";
     var isToday = Model.StartTime.Date == DateTime.UtcNow.Date;
     var organizerInitial = !string.IsNullOrWhiteSpace(Model.OrganizerName) ? Model.OrganizerName.Trim()[..1].ToUpper() : "?";
     var cardGenres = Model.Genres.Take(EventGenreTags.MaxGenresPerEvent).ToList();
 }
 
-<div class="card event-card evt-card" data-event-id="@Model.Id">
+<div class="card event-card evt-card" data-event-id="@Model.Id" data-card-href="@detailsUrl" aria-label="@Model.Title">
     <div class="evt-card__media">
         @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
         {

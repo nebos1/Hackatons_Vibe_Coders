@@ -1,0 +1,132 @@
+@model EventsApp.ViewModels.Posts.PostDetailsViewModel
+
+<div class="post-comments-sheet__inner" data-comments-for-post="@Model.Id">
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <form asp-controller="Posts" asp-action="AddComment" asp-route-id="@Model.Id" method="post" class="post-comments-compose" data-post-comment-form>
+            @Html.AntiForgeryToken()
+            @if (Model.ActingIdentities.Count > 1)
+            {
+                <select name="actingIdentityKey" class="form-select form-select-sm" aria-label="Коментираш като">
+                    @foreach (var identity in Model.ActingIdentities)
+                    {
+                        if (identity.IsDefault)
+                        {
+                            <option value="@identity.Key" selected>@identity.Label</option>
+                        }
+                        else
+                        {
+                            <option value="@identity.Key">@identity.Label</option>
+                        }
+                    }
+                </select>
+            }
+            else if (Model.ActingIdentities.Count == 1)
+            {
+                <input type="hidden" name="actingIdentityKey" value="@Model.ActingIdentities[0].Key" />
+            }
+            <div class="post-comments-compose__row">
+                <input type="text" name="content" class="form-control" placeholder="Напиши коментар..." maxlength="1000" data-mentions required />
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-send"></i>
+                </button>
+            </div>
+        </form>
+    }
+    else
+    {
+        <div class="post-comments-login-hint">
+            <i class="bi bi-chat-heart"></i>
+            <span>Влез в акаунта си, за да коментираш.</span>
+        </div>
+    }
+
+    @if (Model.CommentsCount == 0)
+    {
+        <div class="post-comments-empty">
+            <i class="bi bi-chat-square-text"></i>
+            <strong>Все още няма коментари.</strong>
+        </div>
+    }
+    else
+    {
+        <div class="post-comments-list">
+            @foreach (var c in Model.Comments)
+            {
+                <article class="post-comment" id="comment-@c.Id" data-comment-like-surface data-comment-item data-comment-id="@c.Id" data-comment-likes="@c.LikesCount" data-comment-created="@c.CreatedAt.Ticks">
+                    <div class="post-comment__avatar">
+                        @if (!string.IsNullOrWhiteSpace(c.AuthorImageUrl))
+                        {
+                            <img src="@c.AuthorImageUrl" alt="@c.UserName" />
+                        }
+                        else
+                        {
+                            <span>@(string.IsNullOrWhiteSpace(c.UserName) ? "?" : c.UserName[..1].ToUpperInvariant())</span>
+                        }
+                    </div>
+                    <div class="post-comment__body">
+                        <div class="post-comment__head">
+                            @if (!c.IsOrganizerPageAuthor && !string.IsNullOrWhiteSpace(c.AuthorProfileUserId))
+                            {
+                                <a asp-controller="Profiles" asp-action="Details" asp-route-id="@c.AuthorProfileUserId">@c.UserName</a>
+                            }
+                            else
+                            {
+                                <strong>@c.UserName</strong>
+                            }
+                            <small>@c.CreatedAt.ToString("dd.MM HH:mm")</small>
+                        </div>
+                        <p>@c.Content</p>
+                        <div class="post-comment__actions">
+                            @if (User.Identity?.IsAuthenticated == true)
+                            {
+                                var commentLikeAction = c.CurrentUserLiked ? "UnlikeComment" : "LikeComment";
+                                var commentLikeMode = c.CurrentUserLiked ? "unlike" : "like";
+                                <form asp-controller="Posts" asp-action="@commentLikeAction" method="post" class="m-0" data-comment-like-form="@commentLikeMode">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="commentId" value="@c.Id" />
+                                    <button class="comment-like-button @(c.CurrentUserLiked ? "is-liked" : "")" type="submit" title="Like">
+                                        <i class="bi @(c.CurrentUserLiked ? "bi-heart-fill" : "bi-heart")"></i>
+                                        <span data-comment-like-count>@c.LikesCount</span>
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="comment-like-button is-static"><i class="bi bi-heart"></i> <span>@c.LikesCount</span></span>
+                            }
+                        </div>
+
+                        @if (c.Replies.Count > 0)
+                        {
+                            <div class="post-comment__replies">
+                                @foreach (var reply in c.Replies)
+                                {
+                                    <article class="post-comment post-comment--reply" id="comment-@reply.Id" data-comment-like-surface data-comment-item data-comment-id="@reply.Id" data-comment-likes="@reply.LikesCount" data-comment-created="@reply.CreatedAt.Ticks">
+                                        <div class="post-comment__avatar">
+                                            @if (!string.IsNullOrWhiteSpace(reply.AuthorImageUrl))
+                                            {
+                                                <img src="@reply.AuthorImageUrl" alt="@reply.UserName" />
+                                            }
+                                            else
+                                            {
+                                                <span>@(string.IsNullOrWhiteSpace(reply.UserName) ? "?" : reply.UserName[..1].ToUpperInvariant())</span>
+                                            }
+                                        </div>
+                                        <div class="post-comment__body">
+                                            <div class="post-comment__head">
+                                                <strong>@reply.UserName</strong>
+                                                <small>@reply.CreatedAt.ToString("dd.MM HH:mm")</small>
+                                            </div>
+                                            <p>@reply.Content</p>
+                                        </div>
+                                    </article>
+                                }
+                            </div>
+                        }
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</div>
