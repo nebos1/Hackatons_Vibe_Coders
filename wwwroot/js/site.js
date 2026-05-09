@@ -52,6 +52,51 @@ document.addEventListener('click', async function (event) {
 })();
 
 (function () {
+    function setupQuickFilterJump() {
+        var anchor = document.querySelector('[data-filter-anchor]');
+        if (!anchor) return;
+
+        anchor.style.scrollMarginTop = anchor.style.scrollMarginTop || '92px';
+
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'quick-filter-jump';
+        button.innerHTML = '<i class="bi bi-sliders"></i><span>' + (anchor.getAttribute('data-filter-button-label') || 'Филтри') + '</span>';
+        button.setAttribute('aria-label', anchor.getAttribute('data-filter-button-label') || 'Филтри');
+        document.body.appendChild(button);
+
+        var ticking = false;
+
+        function update() {
+            ticking = false;
+            var rect = anchor.getBoundingClientRect();
+            var farBelowFilters = rect.bottom < -24 && window.scrollY > 420;
+            button.classList.toggle('is-visible', farBelowFilters);
+        }
+
+        function requestUpdate() {
+            if (ticking) return;
+            ticking = true;
+            window.requestAnimationFrame(update);
+        }
+
+        button.addEventListener('click', function () {
+            anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        window.addEventListener('scroll', requestUpdate, { passive: true });
+        window.addEventListener('resize', requestUpdate);
+        update();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupQuickFilterJump);
+    } else {
+        setupQuickFilterJump();
+    }
+})();
+
+(function () {
     function setupMobileLazyInputs() {
         var isTouchLike = window.matchMedia &&
             window.matchMedia('(hover: none), (pointer: coarse)').matches;

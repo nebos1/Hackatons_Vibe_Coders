@@ -148,7 +148,7 @@
         var isTabWeek = Model.DateFrom?.Date == today && Model.DateTo?.Date == endOfWeek;
         var isTabFree = Model.Search == "free";
     }
-    <div class="evt-search-section">
+    <div id="home-filter-anchor" class="evt-search-section" data-filter-anchor data-filter-button-label="Филтри">
         <div id="home-filter-tabs" class="evt-search-tabs-bar">
             <a class="evt-search-tab-link @(isTabAll ? "is-active" : "")" asp-action="Index">
                 <i class="bi bi-grid-3x3-gap"></i> <span data-i18n="search.tab.all">Всички</span>
