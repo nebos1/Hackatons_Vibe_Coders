@@ -37,6 +37,8 @@
     };
     var emptyPostsKey = activeFilter == "all" ? "profile.no.posts" : "feed.filter.empty";
     var emptyPostsText = activeFilter == "all" ? "Все още няма публикации." : "Няма публикации за този филтър.";
+    var showDiscoveryStrip = activeFilter == "all" && (Model.SuggestedProfiles.Any() || Model.RecommendedEvents.Any() || Model.TrendingEvents.Any());
+    var discoveryStripRendered = false;
 }
 
 <section class="groove-feed-page social-feed-page social-feed-page--stream">
@@ -205,11 +207,19 @@
                         </div>
                     </div>
                     <div class="social-post-list social-post-list--stream" data-progressive-list data-initial-count="4" data-step-count="4">
-                        @foreach (var post in Model.FriendsActivity)
+                        @for (var i = 0; i < Model.FriendsActivity.Count; i++)
                         {
+                            var post = Model.FriendsActivity[i];
                             <div data-progressive-item>
                                 <partial name="_PostCard" model="post" />
                             </div>
+                            if (showDiscoveryStrip && !discoveryStripRendered && i == 1)
+                            {
+                                discoveryStripRendered = true;
+                                <div data-progressive-item class="social-feed-discovery-item">
+                                    <partial name="_FeedDiscoveryStrip" model="Model" />
+                                </div>
+                            }
                         }
                     </div>
                     @if (Model.FriendsActivity.Count > 4)
@@ -238,11 +248,19 @@
                 @if (Model.OrganizerPosts.Any())
                 {
                     <div class="social-post-list social-post-list--stream" data-progressive-list data-initial-count="8" data-step-count="6">
-                        @foreach (var post in Model.OrganizerPosts)
+                        @for (var i = 0; i < Model.OrganizerPosts.Count; i++)
                         {
+                            var post = Model.OrganizerPosts[i];
                             <div data-progressive-item>
                                 <partial name="_PostCard" model="post" />
                             </div>
+                            if (showDiscoveryStrip && !discoveryStripRendered && i == 1)
+                            {
+                                discoveryStripRendered = true;
+                                <div data-progressive-item class="social-feed-discovery-item">
+                                    <partial name="_FeedDiscoveryStrip" model="Model" />
+                                </div>
+                            }
                         }
                     </div>
                     @if (Model.OrganizerPosts.Count > 8)
@@ -257,6 +275,11 @@
                 }
                 else
                 {
+                    if (showDiscoveryStrip && !discoveryStripRendered)
+                    {
+                        discoveryStripRendered = true;
+                        <partial name="_FeedDiscoveryStrip" model="Model" />
+                    }
                     <div class="social-empty-panel">
                         <i class="bi bi-journal-text"></i>
                         <span data-i18n="@emptyPostsKey">@emptyPostsText</span>

@@ -1,0 +1,101 @@
+@model FeedViewModel
+@{
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+    var isSignedIn = User.Identity?.IsAuthenticated == true;
+    var hasProfiles = Model.SuggestedProfiles.Any();
+    var hasEvents = Model.RecommendedEvents.Any() || Model.TrendingEvents.Any();
+}
+
+@if (hasProfiles || hasEvents)
+{
+    <section class="social-feed-discovery-strip" aria-label="Suggested for you">
+        <div class="social-feed-discovery-strip__head">
+            <div>
+                <span class="groove-kicker" data-i18n="feed.discover.kicker">Discover</span>
+                <strong data-i18n="feed.discover.title">Suggested for you</strong>
+            </div>
+            <span data-i18n="feed.discover.swipe">Swipe</span>
+        </div>
+
+        <div class="social-feed-discovery-rail">
+            @foreach (var profile in Model.SuggestedProfiles.Take(8))
+            {
+                var profileInitial = string.IsNullOrWhiteSpace(profile.DisplayName) ? "?" : profile.DisplayName[..1].ToUpperInvariant();
+                <article class="social-feed-discovery-card social-feed-discovery-card--profile">
+                    <a asp-controller="Profiles" asp-action="Details" asp-route-id="@profile.Id" class="social-feed-discovery-card__main">
+                        <span class="social-profile-avatar">
+                            @if (!string.IsNullOrWhiteSpace(profile.ProfileImageUrl))
+                            {
+                                <img src="@profile.ProfileImageUrl" alt="@profile.DisplayName" onerror="this.closest('.social-profile-avatar').classList.add('is-fallback');this.remove();" />
+                            }
+                            <span>@profileInitial</span>
+                        </span>
+                        <span>
+                            <strong>@profile.DisplayName</strong>
+                            <small>
+                                @if (profile.IsOrganizer)
+                                {
+                                    <span data-i18n="profile.type.organizer">Organizer</span>
+                                }
+                                else
+                                {
+                                    <span data-i18n="profile.type.profile">Profile</span>
+                                }
+                                · @profile.FollowersCount <span data-i18n="profile.followers">followers</span>
+                            </small>
+                        </span>
+                    </a>
+                    @if (isSignedIn && !profile.CurrentUserFollows)
+                    {
+                        <form asp-controller="Profiles" asp-action="Follow" asp-route-id="@profile.Id" asp-route-returnUrl="@returnUrl" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="groove-button groove-button-paper" data-i18n="profile.follow">Follow</button>
+                        </form>
+                    }
+                </article>
+            }
+
+            @foreach (var ev in Model.RecommendedEvents.Take(4))
+            {
+                <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="social-feed-discovery-card social-feed-discovery-card--event">
+                    <span class="social-feed-discovery-card__thumb">
+                        @if (!string.IsNullOrWhiteSpace(ev.ImageUrl))
+                        {
+                            <img src="@ev.ImageUrl" alt="@ev.Title" />
+                        }
+                        else
+                        {
+                            <i class="bi bi-calendar-event"></i>
+                        }
+                    </span>
+                    <span>
+                        <em data-i18n="profile.events">Events</em>
+                        <strong>@ev.Title</strong>
+                        <small>@ev.City · @ev.StartTime.ToString("dd.MM HH:mm")</small>
+                    </span>
+                </a>
+            }
+
+            @foreach (var ev in Model.TrendingEvents.Take(4))
+            {
+                <a asp-controller="Events" asp-action="Details" asp-route-id="@ev.Id" class="social-feed-discovery-card social-feed-discovery-card--event">
+                    <span class="social-feed-discovery-card__thumb">
+                        @if (!string.IsNullOrWhiteSpace(ev.ImageUrl))
+                        {
+                            <img src="@ev.ImageUrl" alt="@ev.Title" />
+                        }
+                        else
+                        {
+                            <i class="bi bi-fire"></i>
+                        }
+                    </span>
+                    <span>
+                        <em data-i18n="home.trending.tab.trend">Trending</em>
+                        <strong>@ev.Title</strong>
+                        <small>@ev.GoingCount <span data-i18n="event.action.going">Going</span> · @ev.InterestedCount <span data-i18n="event.action.interested">Interested</span></small>
+                    </span>
+                </a>
+            }
+        </div>
+    </section>
+}
