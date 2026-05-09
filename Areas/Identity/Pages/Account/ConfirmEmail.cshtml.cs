@@ -11,13 +11,16 @@ namespace EventsApp.Areas.Identity.Pages.Account
     public class ConfirmEmailModel : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<ConfirmEmailModel> _logger;
 
         public ConfirmEmailModel(
             UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
             ILogger<ConfirmEmailModel> logger)
         {
             _userManager = userManager;
+            _signInManager = signInManager;
             _logger = logger;
         }
 
@@ -31,6 +34,12 @@ namespace EventsApp.Areas.Identity.Pages.Account
 
         public async Task OnGetAsync(string? userId = null, string? code = null, string? returnUrl = null)
         {
+            Response.ContentType = "text/html; charset=utf-8";
+            Response.Headers["Content-Disposition"] = "inline";
+            Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+            Response.Headers.Pragma = "no-cache";
+            Response.Headers.Expires = "0";
+
             if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(code))
             {
                 Title = "Невалиден линк";
@@ -63,6 +72,7 @@ namespace EventsApp.Areas.Identity.Pages.Account
             {
                 Title = "Имейлът е потвърден";
                 Message = "Готово. Имейлът ти вече е потвърден в Evento.";
+                await _signInManager.SignInAsync(user, isPersistent: false);
                 if (IsSafeLocalUrl(returnUrl))
                 {
                     var safeReturnUrl = returnUrl!;

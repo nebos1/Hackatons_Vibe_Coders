@@ -2,6 +2,7 @@ using EventsApp.Common;
 using EventsApp.Data;
 using EventsApp.Models;
 using EventsApp.Services;
+using EventsApp.Services.Email;
 using EventsApp.ViewModels.Account;
 using EventsApp.ViewModels.Events;
 using EventsApp.ViewModels.Posts;
@@ -20,17 +21,20 @@ namespace EventsApp.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IMediaUploadService _mediaUpload;
         private readonly IPlatformPermissionService _permissions;
+        private readonly IEmailConfirmationSender _emailConfirmationSender;
 
         public AccountController(
             ApplicationDbContext db,
             UserManager<ApplicationUser> userManager,
             IMediaUploadService mediaUpload,
-            IPlatformPermissionService permissions)
+            IPlatformPermissionService permissions,
+            IEmailConfirmationSender emailConfirmationSender)
         {
             _db = db;
             _userManager = userManager;
             _mediaUpload = mediaUpload;
             _permissions = permissions;
+            _emailConfirmationSender = emailConfirmationSender;
         }
 
         public async Task<IActionResult> Index()
@@ -53,6 +57,7 @@ namespace EventsApp.Controllers
             {
                 UserName = user.UserName ?? string.Empty,
                 Email = user.Email ?? string.Empty,
+                EmailConfirmed = user.EmailConfirmed,
                 PhoneNumber = user.PhoneNumber,
                 Bio = user.Bio,
                 ProfileImageUrl = user.ProfileImageUrl,
@@ -275,6 +280,31 @@ namespace EventsApp.Controllers
             };
 
             return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResendEmailConfirmation()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Challenge();
+
+            if (await _userManager.IsEmailConfirmedAsync(user))
+            {
+                TempData["StatusMessage"] = "Имейлът вече е потвърден.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var orgData = await _db.OrganizerData
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.OrganizerId == user.Id);
+            var nextUrl = orgData != null
+                ? Url.Action(nameof(EditApplication), "Account", new { welcome = "organizer" }) ?? "/Account/EditApplication?welcome=organizer"
+                : Url.Content("~/Preferences/Edit?welcome=1");
+
+            await _emailConfirmationSender.SendAsync(user, Request, nextUrl, orgData != null);
+            TempData["StatusMessage"] = "Изпратихме нов линк за потвърждение на имейла.";
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpGet]

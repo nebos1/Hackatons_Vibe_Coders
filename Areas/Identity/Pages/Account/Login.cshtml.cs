@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using EventsApp.Common;
 using EventsApp.Data;
 using EventsApp.Models;
+using EventsApp.Services.Email;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -19,17 +20,20 @@ namespace EventsApp.Areas.Identity.Pages.Account
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _db;
+        private readonly IEmailConfirmationSender _emailConfirmationSender;
         private readonly ILogger<LoginModel> _logger;
 
         public LoginModel(
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
             ApplicationDbContext db,
+            IEmailConfirmationSender emailConfirmationSender,
             ILogger<LoginModel> logger)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _db = db;
+            _emailConfirmationSender = emailConfirmationSender;
             _logger = logger;
         }
 
@@ -119,6 +123,13 @@ namespace EventsApp.Areas.Identity.Pages.Account
             {
                 _logger.LogWarning("User account locked out.");
                 ModelState.AddModelError(string.Empty, "Този акаунт е заключен.");
+                return Page();
+            }
+
+            if (result.IsNotAllowed && !await _userManager.IsEmailConfirmedAsync(user))
+            {
+                await _emailConfirmationSender.SendAsync(user, Request, returnUrl, organizerSignup: false);
+                ModelState.AddModelError(string.Empty, "Потвърди имейла си преди да влезеш. Изпратихме ти нов линк за потвърждение. Провери inbox/spam.");
                 return Page();
             }
 

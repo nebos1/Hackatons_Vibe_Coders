@@ -28,6 +28,14 @@
                 <p>@Model.Email</p>
                 <div class="groove-inline-actions">
                     <span class="groove-badge"><i class="bi bi-calendar-check"></i> <span data-i18n="account.since">От</span> @Model.CreatedAt.ToString("MMMM yyyy")</span>
+                    @if (Model.EmailConfirmed)
+                    {
+                        <span class="groove-status-badge groove-status-badge-success"><i class="bi bi-patch-check-fill"></i> Потвърден имейл</span>
+                    }
+                    else
+                    {
+                        <span class="groove-status-badge groove-status-badge-warning"><i class="bi bi-exclamation-triangle"></i> Непотвърден имейл</span>
+                    }
                 </div>
             </div>
         </div>
@@ -52,6 +60,23 @@
             </a>
         </div>
     </article>
+
+    @if (!Model.EmailConfirmed)
+    {
+        <section class="account-email-verification-panel">
+            <div>
+                <span class="groove-kicker">Сигурност</span>
+                <h2>Потвърди имейла си.</h2>
+                <p>Докато имейлът не е потвърден, акаунтът няма пълен достъп. Провери inbox/spam или изпрати нов линк.</p>
+            </div>
+            <form asp-action="ResendEmailConfirmation" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="groove-button groove-button-dark">
+                    <i class="bi bi-envelope-check"></i> Изпрати нов линк
+                </button>
+            </form>
+        </section>
+    }
 
     <section class="account-stat-strip">
         <a asp-controller="Profiles" asp-action="Followers" asp-route-id="@currentUserId">

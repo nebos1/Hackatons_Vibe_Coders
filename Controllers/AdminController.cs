@@ -21,17 +21,20 @@ namespace EventsApp.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IRecurringEventService _recurringEvents;
         private readonly ILayoutService _layouts;
+        private readonly IEventDeletionService _eventDeletion;
 
         public AdminController(
             ApplicationDbContext db,
             UserManager<ApplicationUser> userManager,
             IRecurringEventService recurringEvents,
-            ILayoutService layouts)
+            ILayoutService layouts,
+            IEventDeletionService eventDeletion)
         {
             _db = db;
             _userManager = userManager;
             _recurringEvents = recurringEvents;
             _layouts = layouts;
+            _eventDeletion = eventDeletion;
         }
 
         public async Task<IActionResult> Index()
@@ -426,6 +429,245 @@ namespace EventsApp.Controllers
                 model.Add((user, roles));
             }
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                return BadRequest();
+            }
+
+            var currentAdminId = _userManager.GetUserId(User);
+            if (string.Equals(id, currentAdminId, StringComparison.Ordinal))
+            {
+                TempData["StatusMessage"] = "Не можеш да изтриеш собствения си админ акаунт.";
+                return RedirectToAction(nameof(Users));
+            }
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            if (await _userManager.IsInRoleAsync(user, GlobalConstants.Roles.Admin))
+            {
+                var admins = await _userManager.GetUsersInRoleAsync(GlobalConstants.Roles.Admin);
+                if (admins.Count <= 1)
+                {
+                    TempData["StatusMessage"] = "Не можеш да изтриеш последния админ акаунт.";
+                    return RedirectToAction(nameof(Users));
+                }
+            }
+
+            var eventIds = await _db.Events
+                .Where(e => e.OrganizerId == id)
+                .Select(e => e.Id)
+                .ToListAsync();
+            foreach (var eventId in eventIds)
+            {
+                await _eventDeletion.DeleteEventAsync(eventId, preservePaidTickets: false);
+            }
+
+            await using var tx = await _db.Database.BeginTransactionAsync();
+
+            var organizerProfileIds = await _db.OrganizerProfiles
+                .Where(p => p.OwnerId == id)
+                .Select(p => p.Id)
+                .ToListAsync();
+            var workspaceIds = await _db.BusinessWorkspaces
+                .Where(w => w.OwnerId == id)
+                .Select(w => w.Id)
+                .ToListAsync();
+            var venueLayoutIds = await _db.VenueLayouts
+                .Where(l => l.OrganizerId == id)
+                .Select(l => l.Id)
+                .ToListAsync();
+            var ownedPostIds = await _db.Posts
+                .Where(p => p.OrganizerId == id)
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            if (ownedPostIds.Count > 0)
+            {
+                await _db.Messages
+                    .Where(m => m.SharedPostId.HasValue && ownedPostIds.Contains(m.SharedPostId.Value))
+                    .ExecuteUpdateAsync(s => s.SetProperty(m => m.SharedPostId, (int?)null));
+                var ownedPostCommentIds = await _db.PostComments
+                    .Where(c => ownedPostIds.Contains(c.PostId))
+                    .Select(c => c.Id)
+                    .ToListAsync();
+                if (ownedPostCommentIds.Count > 0)
+                {
+                    await _db.PostComments
+                        .Where(c => c.ParentCommentId.HasValue && ownedPostCommentIds.Contains(c.ParentCommentId.Value))
+                        .ExecuteUpdateAsync(s => s.SetProperty(c => c.ParentCommentId, (int?)null));
+                }
+
+                await _db.Posts.Where(p => ownedPostIds.Contains(p.Id)).ExecuteDeleteAsync();
+            }
+
+            if (organizerProfileIds.Count > 0)
+            {
+                await _db.Messages
+                    .Where(m => m.AuthorOrganizerProfileId.HasValue && organizerProfileIds.Contains(m.AuthorOrganizerProfileId.Value))
+                    .ExecuteUpdateAsync(s => s.SetProperty(m => m.AuthorOrganizerProfileId, (int?)null));
+                await _db.PostComments
+                    .Where(c => c.AuthorOrganizerProfileId.HasValue && organizerProfileIds.Contains(c.AuthorOrganizerProfileId.Value))
+                    .ExecuteUpdateAsync(s => s.SetProperty(c => c.AuthorOrganizerProfileId, (int?)null));
+                await _db.EventComments
+                    .Where(c => c.AuthorOrganizerProfileId.HasValue && organizerProfileIds.Contains(c.AuthorOrganizerProfileId.Value))
+                    .ExecuteUpdateAsync(s => s.SetProperty(c => c.AuthorOrganizerProfileId, (int?)null));
+                await _db.Conversations
+                    .Where(c => c.OrganizerProfileId.HasValue && organizerProfileIds.Contains(c.OrganizerProfileId.Value))
+                    .ExecuteDeleteAsync();
+            }
+
+            var postCommentIds = await _db.PostComments.Where(c => c.UserId == id).Select(c => c.Id).ToListAsync();
+            if (postCommentIds.Count > 0)
+            {
+                await _db.PostComments
+                    .Where(c => c.ParentCommentId.HasValue && postCommentIds.Contains(c.ParentCommentId.Value))
+                    .ExecuteUpdateAsync(s => s.SetProperty(c => c.ParentCommentId, (int?)null));
+            }
+
+            var eventCommentIds = await _db.EventComments.Where(c => c.UserId == id).Select(c => c.Id).ToListAsync();
+            if (eventCommentIds.Count > 0)
+            {
+                await _db.EventComments
+                    .Where(c => c.ParentCommentId.HasValue && eventCommentIds.Contains(c.ParentCommentId.Value))
+                    .ExecuteUpdateAsync(s => s.SetProperty(c => c.ParentCommentId, (int?)null));
+            }
+
+            await _db.PostCommentLikes.Where(l => l.UserId == id).ExecuteDeleteAsync();
+            await _db.EventCommentLikes.Where(l => l.UserId == id).ExecuteDeleteAsync();
+            await _db.PostComments.Where(c => c.UserId == id).ExecuteDeleteAsync();
+            await _db.EventComments.Where(c => c.UserId == id).ExecuteDeleteAsync();
+            await _db.PostLikes.Where(l => l.UserId == id).ExecuteDeleteAsync();
+            await _db.PostSaves.Where(s => s.UserId == id).ExecuteDeleteAsync();
+            await _db.EventLikes.Where(l => l.UserId == id).ExecuteDeleteAsync();
+            await _db.EventSaves.Where(s => s.UserId == id).ExecuteDeleteAsync();
+            await _db.EventAttendances.Where(a => a.UserId == id).ExecuteDeleteAsync();
+            await _db.Follows.Where(f => f.FollowerId == id || f.FollowingId == id).ExecuteDeleteAsync();
+            await _db.UserProfileSharedEvents.Where(s => s.UserId == id).ExecuteDeleteAsync();
+            await _db.UserActivities.Where(a => a.UserId == id).ExecuteDeleteAsync();
+            await _db.UserActivities
+                .Where(a => a.TargetUserId == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(a => a.TargetUserId, (string?)null));
+            await _db.UserPushSubscriptions.Where(s => s.UserId == id).ExecuteDeleteAsync();
+            await _db.PasswordResetRequests.Where(r => r.UserId == id).ExecuteDeleteAsync();
+            await _db.OrganizerValidatorAssignments
+                .Where(a => a.OrganizerId == id || a.ValidatorUserId == id)
+                .ExecuteDeleteAsync();
+
+            var conversationIds = await _db.Conversations
+                .Where(c => c.ParticipantOneId == id || c.ParticipantTwoId == id)
+                .Select(c => c.Id)
+                .ToListAsync();
+            if (conversationIds.Count > 0)
+            {
+                var conversationMessageIds = await _db.Messages
+                    .Where(m => conversationIds.Contains(m.ConversationId))
+                    .Select(m => m.Id)
+                    .ToListAsync();
+                if (conversationMessageIds.Count > 0)
+                {
+                    await _db.Messages
+                        .Where(m => m.ReplyToMessageId.HasValue && conversationMessageIds.Contains(m.ReplyToMessageId.Value))
+                        .ExecuteUpdateAsync(s => s.SetProperty(m => m.ReplyToMessageId, (int?)null));
+                }
+
+                await _db.Conversations.Where(c => conversationIds.Contains(c.Id)).ExecuteDeleteAsync();
+            }
+
+            var sentMessageIds = await _db.Messages.Where(m => m.SenderId == id).Select(m => m.Id).ToListAsync();
+            if (sentMessageIds.Count > 0)
+            {
+                await _db.Messages
+                    .Where(m => m.ReplyToMessageId.HasValue && sentMessageIds.Contains(m.ReplyToMessageId.Value))
+                    .ExecuteUpdateAsync(s => s.SetProperty(m => m.ReplyToMessageId, (int?)null));
+            }
+
+            await _db.MessageLikes.Where(l => l.UserId == id).ExecuteDeleteAsync();
+            await _db.Messages.Where(m => m.SenderId == id).ExecuteDeleteAsync();
+            await _db.Conversations
+                .Where(c => c.RequestedByUserId == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(c => c.RequestedByUserId, (string?)null));
+
+            var transactionIds = await _db.Transactions
+                .Where(t => t.UserId == id)
+                .Select(t => t.Id)
+                .ToListAsync();
+            if (transactionIds.Count > 0)
+            {
+                var userTicketIds = await _db.UserTickets
+                    .Where(ut => transactionIds.Contains(ut.TransactionId))
+                    .Select(ut => ut.Id)
+                    .ToListAsync();
+                if (userTicketIds.Count > 0)
+                {
+                    await _db.EventSeatInventories
+                        .Where(i => i.TicketId.HasValue && userTicketIds.Contains(i.TicketId.Value))
+                        .ExecuteUpdateAsync(s => s
+                            .SetProperty(i => i.TicketId, (Guid?)null)
+                            .SetProperty(i => i.ReservedByUserId, (string?)null)
+                            .SetProperty(i => i.Status, EventSeatInventoryStatus.Available));
+                    await _db.UserTickets.Where(ut => userTicketIds.Contains(ut.Id)).ExecuteDeleteAsync();
+                }
+
+                await _db.Transactions.Where(t => transactionIds.Contains(t.Id)).ExecuteDeleteAsync();
+            }
+
+            await _db.EventSeatInventories
+                .Where(i => i.ReservedByUserId == id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(i => i.ReservedByUserId, (string?)null)
+                    .SetProperty(i => i.Status, EventSeatInventoryStatus.Available));
+            await _db.UserTickets
+                .Where(ut => ut.UsedByOrganizerId == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(ut => ut.UsedByOrganizerId, (string?)null));
+
+            if (workspaceIds.Count > 0)
+            {
+                await _db.Transactions
+                    .Where(t => t.BusinessWorkspaceId.HasValue && workspaceIds.Contains(t.BusinessWorkspaceId.Value))
+                    .ExecuteUpdateAsync(s => s.SetProperty(t => t.BusinessWorkspaceId, (int?)null));
+            }
+
+            if (venueLayoutIds.Count > 0)
+            {
+                await _db.EventSeatInventories
+                    .Where(i => venueLayoutIds.Contains(i.Seat.VenueLayoutId))
+                    .ExecuteDeleteAsync();
+                await _db.Seats.Where(s => venueLayoutIds.Contains(s.VenueLayoutId)).ExecuteDeleteAsync();
+                await _db.LayoutSections.Where(s => venueLayoutIds.Contains(s.VenueLayoutId)).ExecuteDeleteAsync();
+                await _db.VenueLayouts.Where(l => venueLayoutIds.Contains(l.Id)).ExecuteDeleteAsync();
+            }
+
+            await _db.OrganizerProfiles.Where(p => p.OwnerId == id).ExecuteDeleteAsync();
+            await _db.BusinessWorkspaces.Where(w => w.OwnerId == id).ExecuteDeleteAsync();
+            await _db.Users.Where(u => u.PinnedEventId.HasValue && eventIds.Contains(u.PinnedEventId.Value))
+                .ExecuteUpdateAsync(s => s.SetProperty(u => u.PinnedEventId, (int?)null));
+
+            var deleteResult = await _userManager.DeleteAsync(user);
+            if (!deleteResult.Succeeded)
+            {
+                await tx.RollbackAsync();
+                foreach (var error in deleteResult.Errors)
+                {
+                    TempData["StatusMessage"] = $"Не успяхме да изтрием потребителя: {error.Description}";
+                    break;
+                }
+
+                return RedirectToAction(nameof(Users));
+            }
+
+            await tx.CommitAsync();
+            TempData["StatusMessage"] = $"Потребителят {user.UserName ?? user.Email} беше изтрит от базата.";
+            return RedirectToAction(nameof(Users));
         }
 
         public async Task<IActionResult> Tickets()

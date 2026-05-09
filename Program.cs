@@ -54,7 +54,7 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     {
-        options.SignIn.RequireConfirmedAccount = builder.Configuration.GetValue("Identity:RequireConfirmedAccount", false);
+        options.SignIn.RequireConfirmedAccount = builder.Configuration.GetValue("Identity:RequireConfirmedAccount", !isDevelopment);
         options.User.RequireUniqueEmail = true;
         options.Password.RequiredLength = builder.Configuration.GetValue("Identity:Password:RequiredLength", isDevelopment ? 5 : 10);
         options.Password.RequireDigit = builder.Configuration.GetValue("Identity:Password:RequireDigit", !isDevelopment);
@@ -94,6 +94,7 @@ else
 builder.Services.AddSingleton<ITicketDocumentService, TicketDocumentService>();
 builder.Services.AddSingleton<IAppLinkService, AppLinkService>();
 builder.Services.AddTransient<IEmailSender, SmtpEmailSender>();
+builder.Services.AddTransient<IEmailConfirmationSender, EmailConfirmationSender>();
 builder.Services.AddScoped<IPushNotificationService, WebPushNotificationService>();
 builder.Services.AddScoped<IMentionService, MentionService>();
 builder.Services.AddScoped<ISocialFeedService, SocialFeedService>();

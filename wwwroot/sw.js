@@ -32,6 +32,11 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(req.url);
     if (url.origin !== self.location.origin) return;
 
+    if (url.pathname === '/confirm-email' || url.pathname.includes('/Account/ConfirmEmail')) {
+        event.respondWith(fetch(req, { cache: 'no-store' }));
+        return;
+    }
+
     // Cache-first for ticket detail pages so users can show their QR offline at the door
     if (url.pathname.startsWith('/Tickets/Details/') ||
         url.pathname.startsWith('/Tickets/MyTickets')) {
@@ -76,7 +81,7 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(
             fetch(req)
                 .then((res) => {
-                    if (res && res.ok && res.status === 200) {
+                    if (res && res.ok && res.status === 200 && !url.searchParams.has('code')) {
                         const clone = res.clone();
                         caches.open(CACHE_VERSION).then((c) => c.put(req, clone));
                     }

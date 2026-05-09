@@ -4180,6 +4180,32 @@ html[data-theme="dark"] .evt-notification-prompt [data-push-dismiss] {
     gap: 0.65rem;
 }
 
+.account-email-verification-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin: 18px 0;
+    padding: 18px 20px;
+    border: 1px solid rgba(245, 158, 11, .25);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255, 251, 235, .96), rgba(255, 255, 255, .96));
+    box-shadow: 0 16px 36px rgba(15, 23, 42, .08);
+}
+
+.account-email-verification-panel h2 {
+    margin: 4px 0 6px;
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #111827;
+}
+
+.account-email-verification-panel p {
+    margin: 0;
+    color: #64748b;
+    line-height: 1.45;
+}
+
 .groove-avatar {
     overflow: hidden;
 }
@@ -15643,4 +15669,27 @@ html[data-theme="dark"] .messages-search-empty {
 html[data-theme="dark"] .messages-search-bar button {
     background: rgba(129, 140, 248, 0.16);
     color: #e0e7ff;
+}
+
+html[data-theme="dark"] .account-email-verification-panel {
+    background: linear-gradient(135deg, rgba(69, 26, 3, .72), rgba(17, 24, 39, .96));
+    border-color: rgba(251, 191, 36, .34);
+}
+
+html[data-theme="dark"] .account-email-verification-panel h2,
+html[data-theme="dark"] .account-email-verification-panel p {
+    color: #f8fafc;
+}
+
+@media (max-width: 720px) {
+    .account-email-verification-panel {
+        align-items: stretch;
+        flex-direction: column;
+        border-radius: 14px;
+    }
+
+    .account-email-verification-panel .groove-button {
+        width: 100%;
+        justify-content: center;
+    }
 }
