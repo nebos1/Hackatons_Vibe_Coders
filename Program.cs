@@ -328,9 +328,14 @@ app.UseAuthorization();
 
 // Public aliases keep MVC controller names out of visible URLs while old routes still work.
 app.MapControllerRoute(
+    name: "email-confirm",
+    pattern: "email/confirm",
+    defaults: new { controller = "EmailConfirmation", action = "Index" });
+
+app.MapControllerRoute(
     name: "confirm-email-html",
     pattern: "confirm-email.html",
-    defaults: new { controller = "EmailConfirmation", action = "Index" });
+    defaults: new { controller = "EmailConfirmation", action = "RedirectToCanonical" });
 
 app.MapControllerRoute(
     name: "confirm-email",

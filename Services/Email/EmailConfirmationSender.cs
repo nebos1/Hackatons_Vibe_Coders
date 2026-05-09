@@ -47,11 +47,11 @@ namespace EventsApp.Services.Email
                 ["code"] = code,
                 ["returnUrl"] = returnUrl,
             };
-            var confirmPath = QueryHelpers.AddQueryString("/confirm-email.html", confirmQuery);
+            var confirmPath = QueryHelpers.AddQueryString("/email/confirm", confirmQuery);
             var confirmUrl = _appLinks.ToAbsoluteUrl(request, confirmPath);
             if (!IsUsableWebUrl(confirmUrl))
             {
-                confirmUrl = QueryHelpers.AddQueryString("https://evento.business/confirm-email.html", confirmQuery);
+                confirmUrl = QueryHelpers.AddQueryString("https://evento.business/email/confirm", confirmQuery);
             }
 
             LogConfirmationLinkTarget(confirmUrl, user.Email);

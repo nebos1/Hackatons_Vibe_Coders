@@ -168,7 +168,7 @@ namespace EventsApp.Controllers
                 ["returnUrl"] = returnUrl,
             };
 
-            return Redirect(QueryHelpers.AddQueryString("/confirm-email.html", query));
+            return Redirect(QueryHelpers.AddQueryString("/email/confirm", query));
         }
     }
 }

@@ -34,6 +34,7 @@ self.addEventListener('fetch', (event) => {
 
     if (url.pathname === '/confirm-email' ||
         url.pathname === '/confirm-email.html' ||
+        url.pathname === '/email/confirm' ||
         url.pathname === '/account/confirm-email' ||
         url.pathname.includes('/Account/ConfirmEmail')) {
         event.respondWith(fetch(req, { cache: 'no-store' }));
