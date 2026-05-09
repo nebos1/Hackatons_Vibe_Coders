@@ -1160,6 +1160,7 @@ namespace EventsApp.Controllers
                 ?? new Dictionary<int, decimal>();
 
             input.LayoutSections = ev.VenueLayout.Sections
+                .Where(section => section.Seats.Any(seat => seat.Status == LayoutSeatStatus.Active))
                 .OrderBy(s => s.Name)
                 .Select(section =>
                 {

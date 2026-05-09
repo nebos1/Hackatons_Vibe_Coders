@@ -8782,8 +8782,44 @@ html[data-theme="dark"] .evt-share__item.is-x i { color: #e8eaf2; }
 }
 
 .layout-pro-section.shape-stage {
-    border-color: rgba(13, 20, 36, 0.58);
-    background: rgba(13, 20, 36, 0.08);
+    border-color: rgba(17, 24, 39, 0.08);
+    background: #e5e7eb;
+    box-shadow: none;
+}
+
+.layout-pro-section.shape-stage .layout-pro-section__head {
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: transparent;
+    color: #242936;
+    font-size: 1.35rem;
+    letter-spacing: 0.06em;
+    text-align: center;
+}
+
+.layout-pro-section.shape-stage .layout-pro-section__head small {
+    display: none;
+}
+
+.layout-pro-section.shape-label {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+}
+
+.layout-pro-section.shape-label .layout-pro-section__head {
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: transparent;
+    color: var(--layout-section-color, #111827);
+    font-size: 1rem;
+    text-align: center;
+}
+
+.layout-pro-section.shape-label .layout-pro-section__head small {
+    display: none;
 }
 
 .layout-pro-section[data-section-type="Standing"] {
@@ -9327,14 +9363,11 @@ html[data-theme="dark"] .evt-share__item.is-x i { color: #e8eaf2; }
 .event-seat-stage {
     position: relative;
     min-height: 420px;
+    min-width: 760px;
     overflow: auto;
-    border: 1px solid rgba(36, 86, 255, 0.15);
+    border: 1px solid rgba(15, 23, 42, 0.08);
     border-radius: 16px;
-    background:
-        linear-gradient(rgba(36, 86, 255, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(36, 86, 255, 0.04) 1px, transparent 1px),
-        #f8faff;
-    background-size: 24px 24px;
+    background: #ffffff;
 }
 
 .event-seat-section {
@@ -9351,6 +9384,39 @@ html[data-theme="dark"] .evt-share__item.is-x i { color: #e8eaf2; }
 
 .event-seat-section.shape-rounded {
     border-radius: 30px;
+}
+
+.event-seat-section.shape-stage {
+    border-color: transparent;
+    background: #e5e7eb;
+}
+
+.event-seat-section.shape-stage .event-seat-section__title {
+    inset: 0;
+    display: grid;
+    place-items: center;
+    max-width: none;
+    padding: 0;
+    background: transparent;
+    color: #242936;
+    font-size: 1.25rem;
+    letter-spacing: 0.06em;
+}
+
+.event-seat-section.shape-label {
+    border-color: transparent;
+    background: transparent;
+}
+
+.event-seat-section.shape-label .event-seat-section__title {
+    inset: 0;
+    display: grid;
+    place-items: center;
+    max-width: none;
+    padding: 0;
+    background: transparent;
+    color: var(--seat-zone-color, #111827);
+    font-size: 0.95rem;
 }
 
 .event-seat-section[data-section-type="Standing"] {

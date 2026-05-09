@@ -32,6 +32,8 @@
         seatPanel: root.querySelector('[data-layout-seat-panel]'),
         addFloor: root.querySelector('[data-layout-add-floor]'),
         addSection: root.querySelector('[data-layout-add-section]'),
+        addStage: root.querySelector('[data-layout-add-stage]'),
+        addLabel: root.querySelector('[data-layout-add-label]'),
         addSeat: root.querySelector('[data-layout-add-seat]'),
         addStanding: root.querySelector('[data-layout-add-standing]'),
         addTable: root.querySelector('[data-layout-add-table]'),
@@ -107,6 +109,15 @@
         return '#2456ff';
     }
 
+    function normalizedShape(section) {
+        return String((section && section.shape) || 'Rectangle').toLowerCase();
+    }
+
+    function isVisualOnlySection(section) {
+        var shape = normalizedShape(section);
+        return shape === 'stage' || shape === 'label';
+    }
+
     function normalizeColor(value, fallback) {
         var color = (value || '').trim();
         if (!color) return fallback;
@@ -160,9 +171,9 @@
             section.name = section.name || ('Секция ' + (index + 1));
             section.type = section.type || 'Seated';
             section.shape = section.shape || (section.type === 'Table' ? 'Circle' : 'Rectangle');
-            section.capacity = Math.max(0, parseInt(section.capacity || '0', 10));
+            section.capacity = isVisualOnlySection(section) ? 0 : Math.max(0, parseInt(section.capacity || '0', 10));
             section.priceModifier = number(section.priceModifier, 0);
-            section.colorHex = normalizeColor(section.colorHex, defaultSectionColor(section.type));
+            section.colorHex = normalizeColor(section.colorHex, section.shape === 'Stage' ? '#e5e7eb' : defaultSectionColor(section.type));
             section.x = number(section.x, 80 + index * 30);
             section.y = number(section.y, 80 + index * 30);
             section.width = Math.max(80, number(section.width, 260));
@@ -214,7 +225,9 @@
         state.sections.forEach(function (section) {
             var floor = state.floors.find(function (f) { return f.clientId === section.floorId; }) || state.floors[0];
             section.floorName = floor.name;
-            section.capacity = section.seats.length
+            section.capacity = isVisualOnlySection(section)
+                ? 0
+                : section.seats.length
                 ? section.seats.reduce(function (total, seat) { return total + (seat.isCapacityUnlimited ? 0 : Math.max(1, parseInt(seat.capacity || '1', 10))); }, 0)
                 : Math.max(0, parseInt(section.capacity || '0', 10));
         });
@@ -250,9 +263,10 @@
             .filter(function (section) { return section.floorId === activeFloorId; })
             .forEach(function (section) {
                 var node = document.createElement('div');
-                node.className = 'layout-pro-section shape-' + section.shape.toLowerCase() + (selected.type === 'section' && selected.id === section.clientId ? ' is-selected' : '');
+                node.className = 'layout-pro-section shape-' + normalizedShape(section) + (isVisualOnlySection(section) ? ' is-visual-only' : '') + (selected.type === 'section' && selected.id === section.clientId ? ' is-selected' : '');
                 node.dataset.sectionId = section.clientId;
                 node.dataset.sectionType = section.type;
+                node.dataset.visualOnly = isVisualOnlySection(section) ? 'true' : 'false';
                 node.style.setProperty('--layout-section-color', section.colorHex);
                 applyBox(node, section);
 
@@ -261,7 +275,9 @@
                 head.className = 'layout-pro-section__head';
                 head.innerHTML = '<strong></strong><small></small>';
                 head.querySelector('strong').textContent = section.name;
-                head.querySelector('small').textContent = (sectionTypeLabels[section.type] || section.type) + ' - ' + section.capacity;
+                head.querySelector('small').textContent = isVisualOnlySection(section)
+                    ? 'Визуален обект'
+                    : (sectionTypeLabels[section.type] || section.type) + ' - ' + section.capacity;
                 head.addEventListener('pointerdown', function (event) {
                     select('section', section.clientId, true);
                     if (!readOnly) startDrag(event, section, node, null);
@@ -523,6 +539,32 @@
         select('section', section.clientId);
     }
 
+    function addVisualObject(kind) {
+        remember();
+        var floor = activeFloor();
+        var isStage = kind === 'Stage';
+        var count = state.sections.filter(function (s) { return s.floorId === floor.clientId && normalizedShape(s) === kind.toLowerCase(); }).length;
+        var section = {
+            clientId: uid(isStage ? 'stage' : 'label'),
+            floorId: floor.clientId,
+            floorName: floor.name,
+            name: isStage ? 'СЦЕНА' : (count === 0 ? 'Вход' : 'Надпис ' + (count + 1)),
+            type: 'Seated',
+            shape: kind,
+            capacity: 0,
+            priceModifier: 0,
+            colorHex: isStage ? '#e5e7eb' : '#111827',
+            x: isStage ? Math.max(40, (state.canvasWidth - 520) / 2) : 80 + count * 28,
+            y: isStage ? 56 : 76 + count * 28,
+            width: isStage ? 520 : 150,
+            height: isStage ? 120 : 48,
+            rotation: 0,
+            seats: []
+        };
+        state.sections.push(section);
+        select('section', section.clientId);
+    }
+
     function addTableUnit(section) {
         var next = section.seats.length + 1;
         var cap = parseInt(els.tableCapacity.value || '4', 10);
@@ -545,6 +587,9 @@
     function addSingleSeat() {
         remember();
         var section = selectedSection();
+        if (section && isVisualOnlySection(section)) {
+            section = null;
+        }
         if (!section) {
             var floor = activeFloor();
             section = {
@@ -707,6 +752,25 @@
             var scaledRows = Math.max(1, Math.round(rows / floorCount));
             var sectionWidth = clamp(perRow * 44 + 92, 360, 920);
             var sectionHeight = clamp(scaledRows * 42 + 90, 220, 560);
+            if (floorIndex === 0) {
+                newState.sections.push({
+                    clientId: uid('stage'),
+                    floorId: floor.clientId,
+                    floorName: floor.name,
+                    name: 'СЦЕНА',
+                    type: 'Seated',
+                    shape: 'Stage',
+                    capacity: 0,
+                    priceModifier: 0,
+                    colorHex: '#e5e7eb',
+                    x: Math.max(80, (1200 - 520) / 2),
+                    y: 54,
+                    width: 520,
+                    height: 118,
+                    rotation: 0,
+                    seats: []
+                });
+            }
             var seated = {
                 clientId: uid('section'),
                 floorId: floor.clientId,
@@ -718,7 +782,7 @@
                 priceModifier: floorIndex === 0 ? 0 : 10,
                 colorHex: floorIndex === 0 ? '#2456ff' : '#8b5cf6',
                 x: 80,
-                y: 88,
+                y: floorIndex === 0 ? 220 : 88,
                 width: sectionWidth,
                 height: sectionHeight,
                 rotation: 0,
@@ -834,7 +898,7 @@
 
     function generateRows() {
         var section = selectedSection();
-        if (!section) return;
+        if (!section || isVisualOnlySection(section)) return;
         remember();
         var rows = Math.max(1, parseInt(els.rowsCount.value || '5', 10));
         var perRow = Math.max(1, parseInt(els.rowsSize.value || '10', 10));
@@ -867,7 +931,7 @@
 
     function generateTableSeats() {
         var section = selectedSection();
-        if (!section) return;
+        if (!section || isVisualOnlySection(section)) return;
         remember();
         section.type = 'Table';
         section.shape = 'Circle';
@@ -965,6 +1029,8 @@
 
     if (els.addFloor) els.addFloor.addEventListener('click', addFloor);
     if (els.addSection) els.addSection.addEventListener('click', function () { addSection('Seated', 'Rectangle'); });
+    if (els.addStage) els.addStage.addEventListener('click', function () { addVisualObject('Stage'); });
+    if (els.addLabel) els.addLabel.addEventListener('click', function () { addVisualObject('Label'); });
     if (els.addSeat) els.addSeat.addEventListener('click', addSingleSeat);
     if (els.addStanding) els.addStanding.addEventListener('click', function () { addSection('Standing', 'Rounded'); });
     if (els.addTable) els.addTable.addEventListener('click', function () { addSection('Table', 'Circle'); });

@@ -78,7 +78,7 @@ namespace EventsApp.Controllers
             {
                 VenueName = "Основна зала",
                 Name = "Стандартна схема",
-                LayoutJson = "{\"sections\":[{\"clientId\":\"section-1\",\"name\":\"Основна секция\",\"type\":\"Seated\",\"capacity\":40,\"priceModifier\":0,\"x\":60,\"y\":60,\"width\":520,\"height\":280,\"seats\":[]}]}",
+                LayoutJson = "{\"canvasWidth\":1200,\"canvasHeight\":820,\"floors\":[{\"clientId\":\"floor-1\",\"name\":\"Партер\"}],\"sections\":[{\"clientId\":\"stage-1\",\"name\":\"СЦЕНА\",\"floorId\":\"floor-1\",\"floorName\":\"Партер\",\"type\":\"Seated\",\"shape\":\"Stage\",\"capacity\":0,\"priceModifier\":0,\"colorHex\":\"#e5e7eb\",\"x\":330,\"y\":54,\"width\":520,\"height\":118,\"rotation\":0,\"seats\":[]},{\"clientId\":\"label-entrance\",\"name\":\"Вход\",\"floorId\":\"floor-1\",\"floorName\":\"Партер\",\"type\":\"Seated\",\"shape\":\"Label\",\"capacity\":0,\"priceModifier\":0,\"colorHex\":\"#111827\",\"x\":118,\"y\":78,\"width\":120,\"height\":44,\"rotation\":0,\"seats\":[]},{\"clientId\":\"section-1\",\"name\":\"Основна секция\",\"floorId\":\"floor-1\",\"floorName\":\"Партер\",\"type\":\"Seated\",\"shape\":\"Rounded\",\"capacity\":40,\"priceModifier\":0,\"colorHex\":\"#df5f83\",\"x\":150,\"y\":250,\"width\":820,\"height\":260,\"rotation\":0,\"seats\":[]}]}",
             });
         }
 
