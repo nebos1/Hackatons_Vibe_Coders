@@ -637,8 +637,17 @@ namespace EventsApp.Controllers
 
             await _db.SaveChangesAsync();
             var likesCount = await _db.MessageLikes.CountAsync(l => l.MessageId == id);
+            var liker = await _userManager.GetUserAsync(User);
+            var likerName = liker != null ? GetDisplayName(liker) : "Evento";
 
-            return Json(new { liked, likesCount });
+            await BroadcastMessageLikeUpdateAsync(message, likesCount, liked, userId, likerName);
+
+            if (liked)
+            {
+                await NotifyMessageLikedAsync(message, userId, likerName);
+            }
+
+            return Json(new { liked, currentUserLiked = liked, likesCount });
         }
 
         [HttpPost]
@@ -1124,7 +1133,7 @@ namespace EventsApp.Controllers
                 var payload = await BuildConversationUpdatePayloadAsync(conversation, message, viewerUserId);
                 await _hubContext.Clients.User(viewerUserId).SendAsync("ConversationUpdated", payload);
 
-                if (viewerUserId != message.SenderId)
+                if (viewerUserId != message.SenderId && !ChatHub.IsUserActiveInConversation(conversation.Token, viewerUserId))
                 {
                     var senderName = message.AuthorType == AuthorIdentityType.OrganizerPage && message.AuthorOrganizerProfile != null
                         ? message.AuthorOrganizerProfile.DisplayName
@@ -1140,6 +1149,54 @@ namespace EventsApp.Controllers
                         badgeCount);
                 }
             }
+        }
+
+        private async Task BroadcastMessageLikeUpdateAsync(Message message, int likesCount, bool liked, string actorUserId, string actorName)
+        {
+            var participantIds = new[] { message.Conversation.ParticipantOneId, message.Conversation.ParticipantTwoId }
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct()
+                .ToList();
+            var likedUserIds = await _db.MessageLikes
+                .AsNoTracking()
+                .Where(l => l.MessageId == message.Id)
+                .Select(l => l.UserId)
+                .ToListAsync();
+
+            foreach (var viewerUserId in participantIds)
+            {
+                await _hubContext.Clients.User(viewerUserId).SendAsync("MessageLikeUpdated", new
+                {
+                    conversationToken = message.Conversation.Token,
+                    messageId = message.Id,
+                    likesCount,
+                    currentUserLiked = likedUserIds.Contains(viewerUserId),
+                    liked,
+                    actorUserId,
+                    actorName,
+                });
+            }
+        }
+
+        private async Task NotifyMessageLikedAsync(Message message, string actorUserId, string actorName)
+        {
+            if (message.SenderId == actorUserId || ChatHub.IsUserActiveInConversation(message.Conversation.Token, message.SenderId))
+            {
+                return;
+            }
+
+            var body = string.IsNullOrWhiteSpace(message.Content)
+                ? "Харесано е твое съобщение."
+                : message.Content.Length > 120 ? message.Content[..120] + "..." : message.Content;
+            var url = Url.Action(nameof(Details), "Messages", new { token = message.Conversation.Token }) ?? "/inbox";
+            var badgeCount = await CountUnreadMessagesForUserAsync(message.SenderId);
+
+            await _pushNotifications.SendMessageNotificationAsync(
+                message.SenderId,
+                $"{actorName} хареса твое съобщение",
+                body,
+                url,
+                badgeCount);
         }
 
         private async Task<object> BuildConversationUpdatePayloadAsync(Conversation conversation, Message message, string viewerUserId)

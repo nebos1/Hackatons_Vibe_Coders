@@ -440,11 +440,27 @@
                     if (wasAtBottom) scrollBottom();
                 });
 
-                connection.start().then(function () {
+                function joinConversation() {
                     connection.invoke('JoinConversation', conversationToken).catch(function () { });
-                }).catch(function (err) { if (console && console.error) console.error(err); });
+                }
+
+                connection.on('MessageLikeUpdated', function (update) {
+                    if (!update || String(update.conversationToken || '').toLowerCase() !== String(conversationToken).toLowerCase()) return;
+                    if (window.evtApplyMessageLikeUpdate) {
+                        window.evtApplyMessageLikeUpdate(update, {
+                            toast: !!update.liked && update.actorUserId !== currentUserId
+                        });
+                    }
+                });
+
+                connection.onreconnected(joinConversation);
+
+                connection.start().then(joinConversation).catch(function (err) { if (console && console.error) console.error(err); });
 
                 window.addEventListener('beforeunload', function () {
+                    try { connection.invoke('LeaveConversation', conversationToken); } catch (e) { }
+                });
+                window.addEventListener('pagehide', function () {
                     try { connection.invoke('LeaveConversation', conversationToken); } catch (e) { }
                 });
             }
@@ -512,6 +528,80 @@
 
 <script>
     (function () {
+        var page = document.querySelector('.social-messages-page--chat');
+        var thread = document.querySelector('.social-chat-thread');
+        if (!page || !thread) return;
+
+        document.documentElement.classList.add('chat-thread-locked');
+        document.body.classList.add('chat-thread-locked');
+
+        function isThreadScroll(target) {
+            return !!(target && target.closest && target.closest('.social-chat-thread'));
+        }
+
+        function preventOutsideChat(e) {
+            if (!isThreadScroll(e.target)) {
+                e.preventDefault();
+            }
+        }
+
+        document.addEventListener('touchmove', preventOutsideChat, { passive: false });
+        document.addEventListener('wheel', preventOutsideChat, { passive: false });
+
+        function cleanup() {
+            document.removeEventListener('touchmove', preventOutsideChat);
+            document.removeEventListener('wheel', preventOutsideChat);
+            document.documentElement.classList.remove('chat-thread-locked');
+            document.body.classList.remove('chat-thread-locked');
+        }
+
+        window.addEventListener('pagehide', cleanup, { once: true });
+        window.addEventListener('beforeunload', cleanup, { once: true });
+    })();
+</script>
+
+<script>
+    (function () {
+        function showChatToast(message) {
+            if (!message) return;
+            var toast = document.createElement('div');
+            toast.className = 'groove-toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            requestAnimationFrame(function () { toast.classList.add('is-visible'); });
+            window.setTimeout(function () {
+                toast.classList.remove('is-visible');
+                window.setTimeout(function () { toast.remove(); }, 220);
+            }, 1700);
+        }
+
+        function applyMessageLikeUpdate(data, options) {
+            if (!data || !data.messageId) return;
+            var bubble = document.querySelector('.social-message-bubble[data-message-id="' + data.messageId + '"]');
+            if (!bubble) return;
+            var button = bubble.querySelector('.social-message-like');
+            var count = bubble.querySelector('[data-message-like-count]');
+            var icon = button ? button.querySelector('i') : null;
+            var currentUserLiked = !!data.currentUserLiked;
+            if (count) count.textContent = data.likesCount || 0;
+            if (button) {
+                button.classList.toggle('is-liked', currentUserLiked);
+                button.classList.remove('ui-pop');
+                void button.offsetWidth;
+                button.classList.add('ui-pop');
+                window.setTimeout(function () { button.classList.remove('ui-pop'); }, 320);
+            }
+            if (icon) {
+                icon.className = 'bi ' + (currentUserLiked ? 'bi-heart-fill' : 'bi-heart');
+            }
+            if (options && options.toast) {
+                showChatToast((data.actorName || 'Някой') + ' хареса съобщение');
+            }
+        }
+
+        window.evtShowChatToast = showChatToast;
+        window.evtApplyMessageLikeUpdate = applyMessageLikeUpdate;
+
         function closeAllMenus() {
             document.querySelectorAll('[data-bubble-menu-pop]').forEach(function (m) { m.hidden = true; });
         }
@@ -621,15 +711,14 @@
                     return resp.json();
                 })
                 .then(function (data) {
-                    if (!button) return;
-                    button.classList.toggle('is-liked', !!data.liked);
-                    var icon = button.querySelector('i');
-                    var count = button.querySelector('[data-message-like-count]');
-                    if (icon) icon.className = 'bi ' + (data.liked ? 'bi-heart-fill' : 'bi-heart');
-                    if (count) count.textContent = data.likesCount || 0;
-                    button.classList.remove('ui-pop');
-                    void button.offsetWidth;
-                    button.classList.add('ui-pop');
+                    var bubble = form.closest('.social-message-bubble');
+                    if (bubble) {
+                        data.messageId = bubble.getAttribute('data-message-id');
+                    }
+                    applyMessageLikeUpdate(data);
+                    if (data.liked) {
+                        showChatToast('Съобщението е харесано');
+                    }
                 })
                 .catch(function () { form.submit(); })
                 .finally(function () { if (button) button.disabled = false; });

@@ -15693,3 +15693,69 @@ html[data-theme="dark"] .account-email-verification-panel p {
         justify-content: center;
     }
 }
+
+html.chat-thread-locked,
+body.chat-thread-locked {
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+}
+
+body.chat-thread-locked .social-messages-page--chat {
+    height: calc(100dvh - 92px);
+    max-height: calc(100dvh - 92px);
+    min-height: 0;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+}
+
+body.chat-thread-locked .social-messages-page--chat .social-chat-shell {
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+}
+
+body.chat-thread-locked .social-messages-page--chat .social-chat-thread {
+    align-content: start;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+}
+
+.social-messages-page--chat .social-message-bubble {
+    width: fit-content;
+    max-width: min(76%, 34rem);
+    min-width: 0;
+}
+
+.social-messages-page--chat .social-message-bubble p {
+    width: fit-content;
+    max-width: 100%;
+}
+
+.social-messages-page--chat .social-message-bubble.has-shared-card {
+    width: min(100%, 36rem);
+    max-width: min(88%, 36rem);
+}
+
+@media (max-width: 767.98px) {
+    body.chat-thread-locked .social-messages-page--chat {
+        height: calc(100dvh - 70px - env(safe-area-inset-bottom));
+        max-height: calc(100dvh - 70px - env(safe-area-inset-bottom));
+        padding-inline: 0.45rem;
+    }
+
+    .social-messages-page--chat .social-message-bubble {
+        max-width: 86%;
+        padding: 0.62rem 0.72rem;
+    }
+
+    .social-messages-page--chat .social-message-bubble.has-shared-card {
+        width: min(100%, 22rem);
+        max-width: 100%;
+    }
+}
