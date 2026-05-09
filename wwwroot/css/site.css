@@ -7857,6 +7857,150 @@ h1, .h1 { font-weight: 800; }
     font-weight: 700;
 }
 
+.event-genre-compact {
+    display: grid;
+    grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+    align-items: start;
+    gap: 1rem;
+    padding: 0.85rem;
+    border: 1px solid var(--social-line, #dce3f3);
+    border-radius: 16px;
+    background: rgba(36, 86, 255, 0.035);
+}
+
+.event-genre-compact__hint {
+    margin: 0;
+    color: var(--social-muted, #667085);
+    font-size: 0.88rem;
+}
+
+.event-genre-picker--compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.event-genre-picker--compact .event-genre-option {
+    min-height: 34px;
+    padding: 0.45rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.86rem;
+}
+
+.event-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+}
+
+.event-choice-grid--compact {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.event-choice-card {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.85rem;
+    border: 1px solid var(--social-line, #dce3f3);
+    border-radius: 14px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.event-choice-card input {
+    margin-top: 0.25rem;
+    accent-color: #2456ff;
+}
+
+.event-choice-card span {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.event-choice-card strong {
+    color: #111827;
+}
+
+.event-choice-card span span {
+    color: var(--social-muted, #667085);
+    font-size: 0.9rem;
+}
+
+.event-recurring-fields,
+.event-layout-fields {
+    display: none;
+}
+
+.event-recurring-fields.is-visible,
+.event-layout-fields.is-visible {
+    display: block;
+}
+
+.event-repeat-summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin: 1rem 0 0.75rem;
+}
+
+.event-repeat-summary input {
+    width: 5.5rem;
+}
+
+.event-create-guide {
+    border: 1px solid var(--social-line, #dce3f3);
+    border-radius: 16px;
+    background: rgba(17, 24, 39, 0.03);
+    overflow: hidden;
+}
+
+.event-create-guide summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.9rem 1rem;
+    cursor: pointer;
+    font-weight: 900;
+    color: #111827;
+}
+
+.event-create-guide__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+    padding: 0 1rem 1rem;
+}
+
+.event-create-guide__grid section {
+    padding: 0.8rem;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid var(--social-line, #dce3f3);
+}
+
+.event-create-guide__grid strong {
+    color: #111827;
+}
+
+.event-create-guide__grid p {
+    margin: 0.25rem 0 0;
+    color: var(--social-muted, #667085);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .event-genre-compact {
+        grid-template-columns: 1fr;
+    }
+
+    .event-choice-grid,
+    .event-choice-grid--compact {
+        grid-template-columns: 1fr;
+    }
+}
+
 .evt-card__genres {
     display: flex;
     flex-wrap: wrap;
@@ -9713,6 +9857,27 @@ html[data-theme="dark"] .event-layout-ticket-row input[type="number"] {
     background: #0f1420;
     border-color: #2b3344;
     color: #fff;
+}
+
+html[data-theme="dark"] .event-genre-compact,
+html[data-theme="dark"] .event-choice-card,
+html[data-theme="dark"] .event-create-guide,
+html[data-theme="dark"] .event-create-guide__grid section {
+    background: #151a26;
+    border-color: #262d3d;
+    color: #e8eaf2;
+}
+
+html[data-theme="dark"] .event-choice-card strong,
+html[data-theme="dark"] .event-create-guide summary,
+html[data-theme="dark"] .event-create-guide__grid strong {
+    color: #fff;
+}
+
+html[data-theme="dark"] .event-genre-compact__hint,
+html[data-theme="dark"] .event-choice-card span span,
+html[data-theme="dark"] .event-create-guide__grid p {
+    color: #cbd5e1;
 }
 
 html[data-theme="dark"] .layout-ai-status {

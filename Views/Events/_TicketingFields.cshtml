@@ -1,36 +1,22 @@
 @model EventCreateEditViewModel
 
 <section class="event-ticketing-panel mb-3" data-event-ticketing-panel>
-    <span class="groove-kicker" data-i18n="event.ticketing.kicker">Билети и места</span>
-    <h3 class="h5 mt-2" data-i18n="event.ticketing.title">Как влиза публиката</h3>
+    <span class="groove-kicker" data-i18n="event.ticketing.kicker">Билети</span>
+    <h3 class="h5 mt-2" data-i18n="event.ticketing.title">Как се продават местата</h3>
 
-    <div class="event-choice-grid mt-3">
+    <div class="event-choice-grid event-choice-grid--compact mt-3">
         <label class="event-choice-card">
-            <input asp-for="TicketingMode" type="radio" value="@EventTicketingMode.GeneralAdmission" />
+            <input name="TicketingMode" type="radio" value="@EventTicketingMode.GeneralAdmission" checked="@(Model.TicketingMode == EventTicketingMode.GeneralAdmission)" />
             <span>
-                <strong data-i18n="event.ticketing.ga">Без места</strong>
-                <span data-i18n="event.ticketing.ga.desc">Без избор на място. Билетите се добавят отделно.</span>
+                <strong>По билет</strong>
+                <span>Без схема. След създаване добавяш типове билети и бройки ръчно.</span>
             </span>
         </label>
         <label class="event-choice-card">
-            <input asp-for="TicketingMode" type="radio" value="@EventTicketingMode.SeatedLayout" />
+            <input name="TicketingMode" type="radio" value="@EventTicketingMode.SeatedLayout" checked="@(Model.TicketingMode != EventTicketingMode.GeneralAdmission)" />
             <span>
-                <strong data-i18n="event.ticketing.seated">Схема с места</strong>
-                <span data-i18n="event.ticketing.seated.desc">Избери layout и задай цена директно по цвят/сектор.</span>
-            </span>
-        </label>
-        <label class="event-choice-card">
-            <input asp-for="TicketingMode" type="radio" value="@EventTicketingMode.Standing" />
-            <span>
-                <strong data-i18n="event.ticketing.standing">Правостоящи зони</strong>
-                <span data-i18n="event.ticketing.standing.desc">Използвай преизползваеми секции за правостоящи или VIP зони.</span>
-            </span>
-        </label>
-        <label class="event-choice-card">
-            <input asp-for="TicketingMode" type="radio" value="@EventTicketingMode.TableZones" />
-            <span>
-                <strong data-i18n="event.ticketing.tables">Маси / VIP</strong>
-                <span data-i18n="event.ticketing.tables.desc">Използвай маси или премиум секции с отделна цена.</span>
+                <strong>По layout</strong>
+                <span>Избираш схема и задаваш цена директно по цвят/сектор.</span>
             </span>
         </label>
     </div>
@@ -40,13 +26,13 @@
             <div class="mb-3">
                 <label asp-for="VenueLayoutId" class="form-label"></label>
                 <select asp-for="VenueLayoutId" asp-items="Model.VenueLayouts" class="form-select">
-                    <option value="" data-i18n="event.ticketing.choose.layout">-- Избери преизползваем layout --</option>
+                    <option value="">-- Избери layout --</option>
                 </select>
                 <span asp-validation-for="VenueLayoutId" class="text-danger small"></span>
             </div>
             <div class="mb-3 d-flex align-items-end">
                 <a asp-controller="Layouts" asp-action="Create" class="groove-button groove-button-paper w-100">
-                    <i class="bi bi-grid-3x3-gap"></i> <span data-i18n="layout.create">Създай layout</span>
+                    <i class="bi bi-grid-3x3-gap"></i> Създай layout
                 </a>
             </div>
         </div>
@@ -58,7 +44,7 @@
                     <div>
                         <span class="groove-kicker">Цени по цвят</span>
                         <h4>Въведи цена за всеки цвят места</h4>
-                        <p>Името и бройката се вземат от сектора. При създаване на събитието системата автоматично прави нормални билети за тези места.</p>
+                        <p>Името и бройката се вземат от сектора. Създават се нормални билети автоматично.</p>
                     </div>
                     <span data-layout-ticket-total>0 места</span>
                 </div>
@@ -87,7 +73,7 @@
                         </label>
                     }
                 </div>
-                <p class="event-layout-ticket-builder__empty" data-layout-ticket-empty hidden>Този layout няма активни места за ценообразуване.</p>
+                <p class="event-layout-ticket-builder__empty" data-layout-ticket-empty hidden>Този layout няма активни места.</p>
                 <template data-layout-ticket-row-template>
                     <label class="event-layout-ticket-row">
                         <input name="LayoutTicketSections[__index__].SectionId" type="hidden" value="__sectionId__" />

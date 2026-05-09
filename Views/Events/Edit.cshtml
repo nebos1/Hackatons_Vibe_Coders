@@ -67,7 +67,7 @@
                 <div id="ai-description-status" class="form-text"></div>
             </div>
 
-            <div class="groove-form-grid">
+            <div class="groove-form-grid" data-event-single-date-fields>
                 <div class="mb-3">
                     <label asp-for="City" class="form-label"></label>
                     <select asp-for="City" id="City" class="form-select" autocomplete="off">
@@ -123,26 +123,7 @@
 
             <partial name="_RecurrenceFields" model="Model" />
 
-            <div class="mb-3">
-                <label asp-for="Genre" class="form-label"></label>
-                <input asp-for="Genre" type="hidden" />
-                @{
-                    var selectedGenres = new HashSet<EventGenre>(Model.SelectedGenres ?? new List<EventGenre>());
-                }
-                <div class="event-genre-picker" data-event-genre-picker data-max-genres="@EventGenreTags.MaxGenresPerEvent">
-                    @foreach (var genre in Enum.GetValues<EventGenre>())
-                    {
-                        var selected = selectedGenres.Contains(genre);
-                        <label class="event-genre-option @(selected ? "is-selected" : "")">
-                            <input type="checkbox" name="SelectedGenres" value="@genre" @(selected ? "checked" : "") />
-                            <span data-i18n="@($"genre.{genre}")">@genre.GetDisplayName()</span>
-                        </label>
-                    }
-                </div>
-                <div class="form-text" data-i18n="event.genres.help">Choose up to 3 genres. The first one is used as the primary category.</div>
-                <div class="form-text event-genre-picker__status" data-genre-picker-status></div>
-                <span asp-validation-for="SelectedGenres" class="text-danger small"></span>
-            </div>
+            <partial name="_GenreFields" model="Model" />
 
             @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
             {

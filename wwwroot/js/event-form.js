@@ -4,6 +4,7 @@
     function updateRecurrence() {
         var selected = document.querySelector('input[name="RecurrenceType"]:checked');
         var fields = document.querySelector('[data-event-recurring-fields]');
+        var singleFields = document.querySelector('[data-event-single-date-fields]');
         var weekdays = document.querySelector('[data-event-weekdays]');
         var weekdaysHelp = document.querySelector('[data-event-weekdays-help]');
         var occurrenceVisibility = document.querySelector('[data-event-occurrence-visibility]');
@@ -11,6 +12,9 @@
 
         var isRecurring = selected.value !== 'None' && selected.value !== '0';
         fields.classList.toggle('is-visible', isRecurring);
+        if (singleFields) {
+            singleFields.style.display = isRecurring ? 'none' : '';
+        }
         var isWeekly = selected.value === 'Weekly' || selected.value === '2';
         if (weekdays) {
             weekdays.style.display = isWeekly ? 'flex' : 'none';

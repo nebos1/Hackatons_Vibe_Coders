@@ -1,0 +1,26 @@
+@model EventCreateEditViewModel
+
+<div class="mb-3">
+    <div class="event-genre-compact">
+        <div>
+            <label asp-for="Genre" class="form-label mb-1">Жанрове</label>
+            <p class="event-genre-compact__hint">Избери до @EventGenreTags.MaxGenresPerEvent. Първият избран е основната категория.</p>
+        </div>
+        <input asp-for="Genre" type="hidden" />
+        @{
+            var selectedGenres = new HashSet<EventGenre>(Model.SelectedGenres ?? new List<EventGenre>());
+        }
+        <div class="event-genre-picker event-genre-picker--compact" data-event-genre-picker data-max-genres="@EventGenreTags.MaxGenresPerEvent">
+            @foreach (var genre in Enum.GetValues<EventGenre>())
+            {
+                var selected = selectedGenres.Contains(genre);
+                <label class="event-genre-option @(selected ? "is-selected" : "")">
+                    <input type="checkbox" name="SelectedGenres" value="@genre" @(selected ? "checked" : "") />
+                    <span data-i18n="@($"genre.{genre}")">@genre.GetDisplayName()</span>
+                </label>
+            }
+        </div>
+    </div>
+    <div class="form-text event-genre-picker__status" data-genre-picker-status></div>
+    <span asp-validation-for="SelectedGenres" class="text-danger small"></span>
+</div>
