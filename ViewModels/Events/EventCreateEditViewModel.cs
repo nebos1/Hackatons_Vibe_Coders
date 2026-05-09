@@ -132,10 +132,9 @@ namespace EventsApp.ViewModels.Events
 
         public int SeatsCount { get; set; }
 
-        [StringLength(GlobalConstants.Ticket.NameMaxLength, MinimumLength = GlobalConstants.Ticket.NameMinLength)]
-        public string? TicketName { get; set; }
-
         [Range(0, 1_000_000)]
         public decimal Price { get; set; }
+
+        public bool RequiresAttendeeNames { get; set; }
     }
 }

@@ -411,7 +411,6 @@ namespace EventsApp.Controllers
                 sectionName = s.SectionName,
                 colorHex = s.ColorHex,
                 seatsCount = s.SeatsCount,
-                ticketName = s.TicketName,
             }));
         }
 
@@ -1760,18 +1759,14 @@ namespace EventsApp.Controllers
                 {
                     EventLayoutTicketSectionViewModel? posted = null;
                     submitted?.TryGetValue(section.Id, out posted);
-                    var name = string.IsNullOrWhiteSpace(posted?.TicketName)
-                        ? section.Name
-                        : posted!.TicketName!.Trim();
-
                     return new EventLayoutTicketSectionViewModel
                     {
                         SectionId = section.Id,
                         SectionName = section.Name,
                         ColorHex = string.IsNullOrWhiteSpace(section.ColorHex) ? "#2456ff" : section.ColorHex,
                         SeatsCount = section.SeatsCount,
-                        TicketName = name,
                         Price = posted?.Price ?? 0m,
+                        RequiresAttendeeNames = posted?.RequiresAttendeeNames ?? false,
                     };
                 })
                 .ToList();
@@ -1803,12 +1798,6 @@ namespace EventsApp.Controllers
                 if (section.Price < 0)
                 {
                     ModelState.AddModelError($"LayoutTicketSections[{i}].Price", "Цената не може да е отрицателна.");
-                }
-
-                if (!string.IsNullOrWhiteSpace(section.TicketName)
-                    && section.TicketName.Length > GlobalConstants.Ticket.NameMaxLength)
-                {
-                    ModelState.AddModelError($"LayoutTicketSections[{i}].TicketName", $"Името е до {GlobalConstants.Ticket.NameMaxLength} символа.");
                 }
             }
         }
@@ -1852,6 +1841,7 @@ namespace EventsApp.Controllers
                     QuantityTotal = actual.SeatsCount,
                     QuantityRemaining = actual.SeatsCount,
                     IsActive = true,
+                    RequiresAttendeeNames = section.RequiresAttendeeNames,
                 };
                 ticket.SectionPrices.Add(new TicketSectionPrice
                 {
@@ -1866,9 +1856,7 @@ namespace EventsApp.Controllers
 
         private static string BuildLayoutTicketName(EventLayoutTicketSectionViewModel section)
         {
-            var name = string.IsNullOrWhiteSpace(section.TicketName)
-                ? section.SectionName
-                : section.TicketName.Trim();
+            var name = section.SectionName.Trim();
 
             if (string.IsNullOrWhiteSpace(name))
             {

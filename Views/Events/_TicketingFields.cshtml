@@ -9,14 +9,14 @@
             <input asp-for="TicketingMode" type="radio" value="@EventTicketingMode.GeneralAdmission" />
             <span>
                 <strong data-i18n="event.ticketing.ga">Без места</strong>
-                <span data-i18n="event.ticketing.ga.desc">Без избор на място. Старият билетен поток остава активен.</span>
+                <span data-i18n="event.ticketing.ga.desc">Без избор на място. Билетите се добавят отделно.</span>
             </span>
         </label>
         <label class="event-choice-card">
             <input asp-for="TicketingMode" type="radio" value="@EventTicketingMode.SeatedLayout" />
             <span>
-                <strong data-i18n="event.ticketing.seated">Използвай схема с места</strong>
-                <span data-i18n="event.ticketing.seated.desc">Всяко събитие или дата получава отделна наличност на места.</span>
+                <strong data-i18n="event.ticketing.seated">Схема с места</strong>
+                <span data-i18n="event.ticketing.seated.desc">Избери layout и задай цена директно по цвят/сектор.</span>
             </span>
         </label>
         <label class="event-choice-card">
@@ -30,7 +30,7 @@
             <input asp-for="TicketingMode" type="radio" value="@EventTicketingMode.TableZones" />
             <span>
                 <strong data-i18n="event.ticketing.tables">Маси / VIP</strong>
-                <span data-i18n="event.ticketing.tables.desc">Използвай маси или премиум секции с добавка към цената.</span>
+                <span data-i18n="event.ticketing.tables.desc">Използвай маси или премиум секции с отделна цена.</span>
             </span>
         </label>
     </div>
@@ -56,9 +56,9 @@
             <section class="event-layout-ticket-builder" data-layout-ticket-builder hidden>
                 <div class="event-layout-ticket-builder__head">
                     <div>
-                        <span class="groove-kicker">Билети по сектор</span>
-                        <h4>Задай цена за всеки цвят от схемата</h4>
-                        <p>Бройката се взема автоматично от активните места. При създаване на събитието ще се направят нормални билети за всеки сектор.</p>
+                        <span class="groove-kicker">Цени по цвят</span>
+                        <h4>Въведи цена за всеки цвят места</h4>
+                        <p>Името и бройката се вземат от сектора. При създаване на събитието системата автоматично прави нормални билети за тези места.</p>
                     </div>
                     <span data-layout-ticket-total>0 места</span>
                 </div>
@@ -76,14 +76,13 @@
                                 <small>@Model.LayoutTicketSections[i].SeatsCount места</small>
                             </span>
                             <span class="event-layout-ticket-row__field">
-                                <small>Име</small>
-                                <input asp-for="LayoutTicketSections[i].TicketName" type="text" placeholder="@Model.LayoutTicketSections[i].SectionName" />
-                                <span asp-validation-for="LayoutTicketSections[i].TicketName" class="text-danger small"></span>
-                            </span>
-                            <span class="event-layout-ticket-row__field">
                                 <small>Цена</small>
                                 <input asp-for="LayoutTicketSections[i].Price" type="number" step="0.01" min="0" />
                                 <span asp-validation-for="LayoutTicketSections[i].Price" class="text-danger small"></span>
+                            </span>
+                            <span class="event-layout-ticket-row__names">
+                                <input asp-for="LayoutTicketSections[i].RequiresAttendeeNames" />
+                                <small>Изисквай имена</small>
                             </span>
                         </label>
                     }
@@ -101,12 +100,13 @@
                             <small>__seatsCount__ места</small>
                         </span>
                         <span class="event-layout-ticket-row__field">
-                            <small>Име</small>
-                            <input name="LayoutTicketSections[__index__].TicketName" type="text" value="__ticketName__" placeholder="__sectionName__" />
-                        </span>
-                        <span class="event-layout-ticket-row__field">
                             <small>Цена</small>
                             <input name="LayoutTicketSections[__index__].Price" type="number" step="0.01" min="0" value="0" />
+                        </span>
+                        <span class="event-layout-ticket-row__names">
+                            <input name="LayoutTicketSections[__index__].RequiresAttendeeNames" type="hidden" value="false" />
+                            <input name="LayoutTicketSections[__index__].RequiresAttendeeNames" type="checkbox" value="true" />
+                            <small>Изисквай имена</small>
                         </span>
                     </label>
                 </template>

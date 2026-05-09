@@ -121,8 +121,6 @@ namespace EventsApp.Controllers
                 IsFree = false,
                 RequiresAttendeeNames = false,
             };
-            PopulateTicketLayoutPricing(vm, ev);
-
             return View(vm);
         }
 
@@ -145,9 +143,7 @@ namespace EventsApp.Controllers
             if (!isAdmin && ev.OrganizerId != userId) return Forbid();
 
             input.EventTitle = ev.Title;
-            PopulateTicketLayoutPricing(input, ev, useSubmittedPrices: true);
             NormalizeFreeTicketInput(input);
-            ValidateLayoutSectionPrices(input);
 
             if (!ModelState.IsValid)
             {
@@ -167,7 +163,6 @@ namespace EventsApp.Controllers
             };
 
             await ApplyTicketImageAsync(ticket, input);
-            ApplyTicketSectionPrices(ticket, input);
 
             _db.Tickets.Add(ticket);
             await _db.SaveChangesAsync();
@@ -213,8 +208,6 @@ namespace EventsApp.Controllers
                 IsActive = ticket.IsActive,
                 RequiresAttendeeNames = ticket.RequiresAttendeeNames,
             };
-            PopulateTicketLayoutPricing(vm, ticket.Event, ticket.SectionPrices);
-
             return View(vm);
         }
 
@@ -247,8 +240,6 @@ namespace EventsApp.Controllers
 
             var remaining = input.QuantityRemaining ?? ticket.QuantityRemaining;
             NormalizeFreeTicketInput(input);
-            PopulateTicketLayoutPricing(input, ticket.Event, useSubmittedPrices: true);
-            ValidateLayoutSectionPrices(input);
             if (remaining > input.QuantityTotal)
             {
                 ModelState.AddModelError(nameof(input.QuantityRemaining),
@@ -268,7 +259,10 @@ namespace EventsApp.Controllers
             ticket.QuantityTotal = input.QuantityTotal;
             ticket.QuantityRemaining = remaining;
             await ApplyTicketImageAsync(ticket, input);
-            ApplyTicketSectionPrices(ticket, input);
+            foreach (var sectionPrice in ticket.SectionPrices)
+            {
+                sectionPrice.Price = ticket.Price;
+            }
             ticket.IsActive = input.IsActive;
             ticket.RequiresAttendeeNames = input.RequiresAttendeeNames;
 

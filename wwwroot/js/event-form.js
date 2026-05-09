@@ -91,7 +91,6 @@
                 html = replaceToken(html, '__sectionName__', escapeHtml(sectionName));
                 html = replaceToken(html, '__colorHex__', escapeHtml(colorHex));
                 html = replaceToken(html, '__seatsCount__', escapeHtml(seatsCount));
-                html = replaceToken(html, '__ticketName__', escapeHtml(section.ticketName || sectionName));
                 rows.insertAdjacentHTML('beforeend', html);
             });
             setTotal(sections);
