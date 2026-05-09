@@ -78,6 +78,9 @@
         row.setAttribute('data-token', update.token);
         row.setAttribute('data-list-key', update.listKey || 'personal');
         row.setAttribute('data-unseen', update.unseenCount || 0);
+        if (update.pageName) {
+            row.setAttribute('data-page-name', update.pageName);
+        }
 
         if (update.imageUrl) {
             var img = document.createElement('img');
@@ -141,6 +144,9 @@
         if (!row) return;
 
         row.setAttribute('data-unseen', update.unseenCount || 0);
+        if (update.pageName) {
+            row.setAttribute('data-page-name', update.pageName);
+        }
         row.href = update.url || row.href;
         var name = row.querySelector('[data-conversation-name]');
         var last = row.querySelector('[data-conversation-last]');

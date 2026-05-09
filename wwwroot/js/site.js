@@ -158,15 +158,30 @@ document.addEventListener('click', async function (event) {
         var input = root.querySelector('[data-message-search-input]');
         var clear = root.querySelector('[data-message-search-clear]');
         var empty = root.querySelector('[data-message-search-empty]');
+        var tabs = Array.prototype.slice.call(root.querySelectorAll('[data-message-tab]'));
+        var panels = Array.prototype.slice.call(root.querySelectorAll('[data-message-tab-panel]'));
+        var pageFilterButtons = Array.prototype.slice.call(root.querySelectorAll('[data-message-page-filter]'));
         if (!input) return;
 
         root.querySelectorAll('[data-message-empty]').forEach(function (panelEmpty) {
             panelEmpty.setAttribute('data-message-search-original-hidden', panelEmpty.hidden ? 'true' : 'false');
         });
 
+        function getActiveTab() {
+            var active = root.querySelector('[data-message-tab].is-active');
+            return active ? active.getAttribute('data-message-tab') : 'personal';
+        }
+
+        function getActivePageFilter() {
+            var active = root.querySelector('[data-message-page-filter].is-active');
+            return active ? normalize(active.getAttribute('data-message-page-filter')) : '';
+        }
+
         function applyFilter() {
             var query = normalize(input.value);
             var rows = Array.prototype.slice.call(root.querySelectorAll('[data-conversation-row]'));
+            var activeTab = getActiveTab();
+            var activePage = getActivePageFilter();
             var visibleCount = 0;
 
             if (clear) {
@@ -175,7 +190,11 @@ document.addEventListener('click', async function (event) {
 
             rows.forEach(function (row) {
                 var haystack = normalize(row.getAttribute('data-message-search') || row.textContent);
-                var isMatch = !query || haystack.indexOf(query) !== -1;
+                var rowTab = row.getAttribute('data-list-key') || 'personal';
+                var rowPage = normalize(row.getAttribute('data-page-name'));
+                var isInTab = rowTab === activeTab;
+                var isInPage = activeTab !== 'page' || !activePage || rowPage === activePage;
+                var isMatch = isInTab && isInPage && (!query || haystack.indexOf(query) !== -1);
                 row.hidden = !isMatch;
                 if (isMatch) visibleCount += 1;
             });
@@ -196,6 +215,30 @@ document.addEventListener('click', async function (event) {
                 empty.hidden = !query || visibleCount > 0;
             }
         }
+
+        function setTab(tab) {
+            tabs.forEach(function (button) {
+                button.classList.toggle('is-active', button.getAttribute('data-message-tab') === tab);
+            });
+            panels.forEach(function (panel) {
+                panel.hidden = panel.getAttribute('data-message-tab-panel') !== tab;
+            });
+            applyFilter();
+        }
+
+        tabs.forEach(function (button) {
+            button.addEventListener('click', function () {
+                setTab(button.getAttribute('data-message-tab') || 'personal');
+            });
+        });
+
+        pageFilterButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                pageFilterButtons.forEach(function (b) { b.classList.remove('is-active'); });
+                button.classList.add('is-active');
+                applyFilter();
+            });
+        });
 
         input.addEventListener('input', applyFilter);
 

@@ -102,7 +102,15 @@
             {
                 var canEditOrDelete = message.IsMine && !message.IsDeleted
                     && !message.SharedEventId.HasValue && !message.SharedPostId.HasValue;
-                <article class="social-message-bubble @(message.IsMine ? "is-mine" : "") @(message.IsDeleted ? "is-deleted" : "")" data-message-id="@message.Id">
+                var replyPreview = string.IsNullOrWhiteSpace(message.Content)
+                    ? message.ReplyToSharedLabel ?? "Съобщение"
+                    : (message.Content.Length > 96 ? message.Content[..96] + "..." : message.Content);
+                <article class="social-message-bubble @(message.IsMine ? "is-mine" : "") @(message.IsDeleted ? "is-deleted" : "") @(message.HasSharedCard ? "has-shared-card" : "")"
+                         id="message-@message.Id"
+                         data-message-id="@message.Id"
+                         data-message-sender="@message.SenderName"
+                         data-message-preview="@replyPreview"
+                         data-message-shared-label="@(message.SharedEventId.HasValue ? "Споделено събитие" : message.SharedPostId.HasValue ? "Споделен пост" : "")">
                     <div class="social-message-bubble__head">
                         @if (!string.IsNullOrWhiteSpace(message.SenderImageUrl))
                         {
@@ -141,9 +149,24 @@
                     }
                     else
                     {
+                        @if (message.ReplyToMessageId.HasValue)
+                        {
+                            <a href="#message-@message.ReplyToMessageId.Value" class="social-message-reply-context">
+                                <i class="bi bi-reply"></i>
+                                <span>
+                                    <strong>@message.ReplyToSenderName</strong>
+                                    @if (!string.IsNullOrWhiteSpace(message.ReplyToSharedLabel))
+                                    {
+                                        <em>@message.ReplyToSharedLabel</em>
+                                    }
+                                    <small>@message.ReplyToPreview</small>
+                                </span>
+                            </a>
+                        }
+
                         @if (message.SharedEventId.HasValue)
                         {
-                            <a asp-controller="Events" asp-action="Details" asp-route-id="@message.SharedEventId.Value" class="social-message-share-card">
+                            <a asp-controller="Events" asp-action="Details" asp-route-id="@message.SharedEventId.Value" class="social-message-share-card social-message-share-card--event">
                                 @if (!string.IsNullOrWhiteSpace(message.SharedEventImageUrl))
                                 {
                                     <img src="@message.SharedEventImageUrl" alt="@message.SharedEventTitle" />
@@ -163,7 +186,7 @@
 
                         @if (message.SharedPostId.HasValue)
                         {
-                            <a asp-controller="Posts" asp-action="Details" asp-route-id="@message.SharedPostId.Value" class="social-message-share-card">
+                            <a asp-controller="Posts" asp-action="Details" asp-route-id="@message.SharedPostId.Value" class="social-message-share-card social-message-share-card--post">
                                 @if (!string.IsNullOrWhiteSpace(message.SharedPostImageUrl))
                                 {
                                     <img src="@message.SharedPostImageUrl" alt="@message.SharedPostTitle" />
@@ -213,6 +236,20 @@
                                 <span><i class="bi bi-check2"></i> <span data-i18n="messages.delivered">Delivered</span></span>
                             }
                         }
+                        @if (!message.IsDeleted)
+                        {
+                            <button type="button" class="social-message-reply-button" data-message-reply>
+                                <i class="bi bi-reply"></i>
+                                <span data-i18n="messages.reply">Reply</span>
+                            </button>
+                            <form asp-action="ToggleLike" asp-route-id="@message.Id" method="post" class="social-message-like-form" data-message-like-form>
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="social-message-like @(message.CurrentUserLiked ? "is-liked" : "")" title="Like">
+                                    <i class="bi @(message.CurrentUserLiked ? "bi-heart-fill" : "bi-heart")"></i>
+                                    <span data-message-like-count>@message.LikesCount</span>
+                                </button>
+                            </form>
+                        }
                     </small>
                 </article>
             }
@@ -223,6 +260,15 @@
             <form asp-action="Send" asp-route-token="@Model.Token" method="post" class="social-chat-compose">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="actingIdentityKey" value="@Model.ActingIdentities[0].Key" />
+                <input type="hidden" name="replyToMessageId" value="" data-reply-to-message-id />
+                <div class="social-chat-reply-preview" data-reply-preview hidden>
+                    <i class="bi bi-reply"></i>
+                    <span>
+                        <strong data-reply-sender></strong>
+                        <small data-reply-text></small>
+                    </span>
+                    <button type="button" data-reply-clear title="Clear reply"><i class="bi bi-x-lg"></i></button>
+                </div>
                 <span class="small text-muted"><span data-i18n="identity.replying.as">Replying as</span>: @Model.ActingIdentities[0].DisplayName</span>
                 <input type="text" name="content" maxlength="2000" placeholder="Write a message..." data-i18n-placeholder="messages.placeholder" data-mentions required />
                 <button type="submit" class="groove-button groove-button-dark">
@@ -275,10 +321,59 @@
                     escapeHtml(name) + '</a>';
             });
         }
+        function getToken() {
+            var token = document.querySelector('input[name="__RequestVerificationToken"]');
+            return token ? token.value : '';
+        }
+        function firstText() {
+            for (var i = 0; i < arguments.length; i += 1) {
+                if (arguments[i]) return arguments[i];
+            }
+            return '';
+        }
+        function buildReplyContext(m) {
+            if (!m.replyToMessageId) return null;
+            var link = document.createElement('a');
+            link.href = '#message-' + m.replyToMessageId;
+            link.className = 'social-message-reply-context';
+            link.innerHTML = '<i class="bi bi-reply"></i><span><strong>' +
+                escapeHtml(m.replyToSenderName || '') + '</strong>' +
+                (m.replyToSharedLabel ? '<em>' + escapeHtml(m.replyToSharedLabel) + '</em>' : '') +
+                '<small>' + escapeHtml(m.replyToPreview || '') + '</small></span>';
+            return link;
+        }
+        function buildSharedCard(m) {
+            var isEvent = !!m.sharedEventId;
+            var isPost = !!m.sharedPostId;
+            if (!isEvent && !isPost) return null;
+
+            var href = isEvent ? '/e/' + m.sharedEventId : '/flow/p/' + m.sharedPostId;
+            var image = firstText(isEvent ? m.sharedEventImageUrl : m.sharedPostImageUrl);
+            var title = firstText(isEvent ? m.sharedEventTitle : m.sharedPostTitle, isEvent ? 'Event' : 'Post');
+            var meta = firstText(isEvent ? m.sharedEventMeta : m.sharedPostMeta);
+            var label = isEvent ? 'Event' : 'Post';
+            var icon = isEvent ? 'bi-calendar-event' : 'bi-file-richtext';
+
+            var card = document.createElement('a');
+            card.href = href;
+            card.className = 'social-message-share-card ' + (isEvent ? 'social-message-share-card--event' : 'social-message-share-card--post');
+            card.innerHTML = (image
+                ? '<img src="' + escapeHtml(image) + '" alt="' + escapeHtml(title) + '" />'
+                : '<span class="social-message-share-card__fallback"><i class="bi ' + icon + '"></i></span>') +
+                '<span><em>' + label + '</em><strong>' + escapeHtml(title) + '</strong><small>' +
+                escapeHtml(meta) + '</small></span><i class="bi bi-arrow-up-right"></i>';
+            return card;
+        }
 
         function buildBubble(m) {
             var article = document.createElement('article');
-            article.className = 'social-message-bubble' + (m.isMine ? ' is-mine' : '');
+            article.id = 'message-' + m.id;
+            article.className = 'social-message-bubble' + (m.isMine ? ' is-mine' : '') +
+                ((m.sharedEventId || m.sharedPostId) ? ' has-shared-card' : '');
+            article.setAttribute('data-message-id', m.id);
+            article.setAttribute('data-message-sender', m.senderName || '');
+            article.setAttribute('data-message-preview', m.content || (m.sharedEventId ? 'Споделено събитие' : m.sharedPostId ? 'Споделен пост' : 'Съобщение'));
+            article.setAttribute('data-message-shared-label', m.sharedEventId ? 'Споделено събитие' : m.sharedPostId ? 'Споделен пост' : '');
 
             var head = document.createElement('div');
             head.className = 'social-message-bubble__head';
@@ -301,7 +396,14 @@
             }
             article.appendChild(head);
 
+            var replyContext = buildReplyContext(m);
+            if (replyContext) article.appendChild(replyContext);
+
+            var sharedCard = buildSharedCard(m);
+            if (sharedCard) article.appendChild(sharedCard);
+
             var p = document.createElement('p');
+            p.setAttribute('data-bubble-content', '');
             p.innerHTML = renderMentions(m.content || '');
             article.appendChild(p);
 
@@ -311,6 +413,13 @@
             if (m.isMine) {
                 meta.innerHTML += '<span><i class="bi bi-check2"></i> Delivered</span>';
             }
+            meta.innerHTML += '<button type="button" class="social-message-reply-button" data-message-reply>' +
+                '<i class="bi bi-reply"></i><span>Reply</span></button>' +
+                '<form action="/Messages/ToggleLike/' + m.id + '" method="post" class="social-message-like-form" data-message-like-form>' +
+                (getToken() ? '<input name="__RequestVerificationToken" type="hidden" value="' + escapeHtml(getToken()) + '" />' : '') +
+                '<button type="submit" class="social-message-like' + (m.currentUserLiked ? ' is-liked' : '') + '" title="Like">' +
+                '<i class="bi ' + (m.currentUserLiked ? 'bi-heart-fill' : 'bi-heart') + '"></i>' +
+                '<span data-message-like-count>' + (m.likesCount || 0) + '</span></button></form>';
             article.appendChild(meta);
             return article;
         }
@@ -449,6 +558,92 @@
             var form = bubble.querySelector('[data-bubble-edit-form]');
             if (content) content.hidden = false;
             if (form) form.hidden = true;
+        });
+
+        function getMessageInfo(bubble) {
+            return {
+                id: bubble.getAttribute('data-message-id'),
+                sender: bubble.getAttribute('data-message-sender') || '',
+                preview: bubble.getAttribute('data-message-preview') || '',
+                shared: bubble.getAttribute('data-message-shared-label') || ''
+            };
+        }
+
+        function setReplyTarget(bubble) {
+            var compose = document.querySelector('.social-chat-compose');
+            if (!compose || !bubble) return;
+            var info = getMessageInfo(bubble);
+            var idInput = compose.querySelector('[data-reply-to-message-id]');
+            var preview = compose.querySelector('[data-reply-preview]');
+            var sender = compose.querySelector('[data-reply-sender]');
+            var text = compose.querySelector('[data-reply-text]');
+            var messageInput = compose.querySelector('input[name="content"]');
+            if (idInput) idInput.value = info.id || '';
+            if (sender) sender.textContent = info.sender;
+            if (text) text.textContent = info.shared ? info.shared + ' · ' + info.preview : info.preview;
+            if (preview) preview.hidden = false;
+            if (messageInput) messageInput.focus();
+        }
+
+        document.addEventListener('click', function (e) {
+            var reply = e.target.closest('[data-message-reply]');
+            if (!reply) return;
+            e.preventDefault();
+            setReplyTarget(reply.closest('.social-message-bubble'));
+        });
+
+        document.addEventListener('click', function (e) {
+            var clear = e.target.closest('[data-reply-clear]');
+            if (!clear) return;
+            e.preventDefault();
+            var compose = clear.closest('.social-chat-compose');
+            if (!compose) return;
+            var idInput = compose.querySelector('[data-reply-to-message-id]');
+            var preview = compose.querySelector('[data-reply-preview]');
+            if (idInput) idInput.value = '';
+            if (preview) preview.hidden = true;
+        });
+
+        document.addEventListener('submit', function (e) {
+            var form = e.target.closest('[data-message-like-form]');
+            if (!form) return;
+            e.preventDefault();
+            var button = form.querySelector('.social-message-like');
+            if (button) button.disabled = true;
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                credentials: 'same-origin'
+            })
+                .then(function (resp) {
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    return resp.json();
+                })
+                .then(function (data) {
+                    if (!button) return;
+                    button.classList.toggle('is-liked', !!data.liked);
+                    var icon = button.querySelector('i');
+                    var count = button.querySelector('[data-message-like-count]');
+                    if (icon) icon.className = 'bi ' + (data.liked ? 'bi-heart-fill' : 'bi-heart');
+                    if (count) count.textContent = data.likesCount || 0;
+                    button.classList.remove('ui-pop');
+                    void button.offsetWidth;
+                    button.classList.add('ui-pop');
+                })
+                .catch(function () { form.submit(); })
+                .finally(function () { if (button) button.disabled = false; });
+        });
+
+        document.addEventListener('dblclick', function (e) {
+            if (e.target.closest('a, button, input, textarea, select, form')) return;
+            var bubble = e.target.closest('.social-message-bubble:not(.is-deleted)');
+            if (!bubble) return;
+            var form = bubble.querySelector('[data-message-like-form]');
+            if (form) {
+                e.preventDefault();
+                form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+            }
         });
     })();
 </script>

@@ -1,6 +1,19 @@
 @model MessagesIndexViewModel
 @{
     ViewData["Title"] = "Messages";
+    var defaultTab = Model.PersonalConversations.Any()
+        ? "personal"
+        : Model.PageConversations.Any()
+            ? "page"
+            : Model.RequestConversations.Any()
+                ? "requests"
+                : "personal";
+    var pageFilters = Model.PageConversations
+        .Where(c => !string.IsNullOrWhiteSpace(c.PageName))
+        .GroupBy(c => c.PageName!)
+        .Select(g => new { Name = g.Key, Count = g.Count() })
+        .OrderBy(g => g.Name)
+        .ToList();
 }
 
 <section class="groove-app-page social-messages-page" data-messages-index>
@@ -30,10 +43,34 @@
         <span data-i18n="messages.search.empty">Няма разговори по това търсене.</span>
     </div>
 
+    <nav class="messages-inbox-tabs" aria-label="Messages inbox">
+        <button type="button" class="@(defaultTab == "personal" ? "is-active" : "")" data-message-tab="personal">
+            <i class="bi bi-person"></i>
+            <span data-i18n="messages.personal.panel">Лични</span>
+            <b>@Model.PersonalConversations.Count</b>
+        </button>
+        @if (Model.HasOrganizerPages || Model.PageConversations.Any())
+        {
+            <button type="button" class="@(defaultTab == "page" ? "is-active" : "")" data-message-tab="page">
+                <i class="bi bi-building"></i>
+                <span data-i18n="messages.pages.panel">Страници</span>
+                <b>@Model.PageConversations.Count</b>
+            </button>
+        }
+        @if (Model.RequestConversations.Any())
+        {
+            <button type="button" class="@(defaultTab == "requests" ? "is-active" : "")" data-message-tab="requests">
+                <i class="bi bi-inbox"></i>
+                <span data-i18n="messages.requests.panel">Заявки</span>
+                <b>@Model.RequestConversations.Count</b>
+            </button>
+        }
+    </nav>
+
     <div class="social-message-board">
         @if (Model.RequestConversations.Any())
         {
-            <section class="social-message-panel social-message-panel--requests">
+            <section class="social-message-panel social-message-panel--requests" data-message-tab-panel="requests" hidden="@(defaultTab != "requests")">
                 <div class="social-message-panel__head">
                     <span class="groove-kicker" data-i18n="messages.requests.panel">Requests</span>
                     <h2 data-i18n="messages.requests.title">Needs approval</h2>
@@ -73,7 +110,7 @@
             </section>
         }
 
-        <section class="social-message-panel">
+        <section class="social-message-panel" data-message-tab-panel="personal" hidden="@(defaultTab != "personal")">
             <div class="social-message-panel__head">
                 <span class="groove-kicker" data-i18n="messages.personal.panel">Personal</span>
                 <h2 data-i18n="messages.personal.title">Personal messages</h2>
@@ -142,11 +179,28 @@
 
         @if (Model.HasOrganizerPages || Model.PageConversations.Any())
         {
-            <section class="social-message-panel social-message-panel--page">
+            <section class="social-message-panel social-message-panel--page" data-message-tab-panel="page" hidden="@(defaultTab != "page")">
                 <div class="social-message-panel__head">
                     <span class="groove-kicker" data-i18n="messages.pages.panel">Page inbox</span>
                     <h2 data-i18n="messages.pages.title">Messages to your public pages</h2>
                 </div>
+
+                @if (pageFilters.Count > 1)
+                {
+                    <div class="messages-page-filter" data-message-page-filters>
+                        <button type="button" class="is-active" data-message-page-filter="">
+                            <span data-i18n="feed.filter.all">Всички</span>
+                            <b>@Model.PageConversations.Count</b>
+                        </button>
+                        @foreach (var pageFilter in pageFilters)
+                        {
+                            <button type="button" data-message-page-filter="@pageFilter.Name">
+                                <span>@pageFilter.Name</span>
+                                <b>@pageFilter.Count</b>
+                            </button>
+                        }
+                    </div>
+                }
 
                 <div class="social-message-list" data-message-list="page">
                     @if (!Model.PageConversations.Any())
@@ -161,7 +215,7 @@
                         @foreach (var conversation in Model.PageConversations)
                         {
                             var initial = string.IsNullOrWhiteSpace(conversation.OtherUserName) ? "?" : conversation.OtherUserName[..1].ToUpperInvariant();
-                            <a asp-action="Details" asp-route-token="@conversation.Token" class="social-conversation-row" data-conversation-row data-token="@conversation.Token" data-list-key="page" data-unseen="@conversation.UnseenCount">
+                            <a asp-action="Details" asp-route-token="@conversation.Token" class="social-conversation-row" data-conversation-row data-token="@conversation.Token" data-list-key="page" data-page-name="@conversation.PageName" data-unseen="@conversation.UnseenCount">
                                 @if (!string.IsNullOrWhiteSpace(conversation.OtherUserImageUrl))
                                 {
                                     <img src="@conversation.OtherUserImageUrl" alt="@conversation.OtherUserName" />

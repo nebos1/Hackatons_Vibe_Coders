@@ -432,6 +432,7 @@
         'messages.none': { bg: 'Все още няма съобщения', en: 'No messages yet' },
         'messages.search.placeholder': { bg: 'Търси човек, страница или последно съобщение...', en: 'Search person, page or last message...' },
         'messages.search.empty': { bg: 'Няма разговори по това търсене.', en: 'No conversations match this search.' },
+        'messages.reply': { bg: 'Отговор', en: 'Reply' },
         'feed.kicker': { bg: 'Поток', en: 'Feed' },
         'feed.title': { bg: 'Последно от сцената.', en: 'Latest from the scene.' },
         'feed.signin.stories': { bg: 'Влез, за да следваш хора и да виждаш активни сторита.', en: 'Sign in to follow people and see active stories.' },

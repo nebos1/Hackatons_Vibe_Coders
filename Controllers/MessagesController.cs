@@ -151,6 +151,14 @@ namespace EventsApp.Controllers
                 .Include(c => c.Messages)
                     .ThenInclude(m => m.SharedPost)
                         .ThenInclude(p => p!.Images)
+                .Include(c => c.Messages)
+                    .ThenInclude(m => m.ReplyToMessage)
+                        .ThenInclude(m => m!.Sender)
+                .Include(c => c.Messages)
+                    .ThenInclude(m => m.ReplyToMessage)
+                        .ThenInclude(m => m!.AuthorOrganizerProfile)
+                .Include(c => c.Messages)
+                    .ThenInclude(m => m.Likes)
                 .FirstOrDefaultAsync(c => c.Token == token && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
 
             if (conversation == null)
@@ -248,6 +256,12 @@ namespace EventsApp.Controllers
                                 : m.SharedPost.Content,
                         SharedPostImageUrl = m.SharedPost?.Images.Select(i => i.ImageUrl).FirstOrDefault(),
                         SharedPostMeta = m.SharedPost == null ? null : $"Post · {m.SharedPost.CreatedAt:dd.MM HH:mm}",
+                        ReplyToMessageId = m.ReplyToMessageId,
+                        ReplyToSenderName = GetReplySenderName(m.ReplyToMessage, userId),
+                        ReplyToPreview = GetReplyPreview(m.ReplyToMessage),
+                        ReplyToSharedLabel = GetReplySharedLabel(m.ReplyToMessage),
+                        LikesCount = m.Likes.Count,
+                        CurrentUserLiked = m.Likes.Any(l => l.UserId == userId),
                     })
                     .ToList(),
                 ActingIdentities = actingIdentities,
@@ -584,6 +598,51 @@ namespace EventsApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleLike(int id)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var message = await _db.Messages
+                .Include(m => m.Conversation)
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (message == null)
+            {
+                return NotFound();
+            }
+
+            if (message.Conversation.ParticipantOneId != userId && message.Conversation.ParticipantTwoId != userId)
+            {
+                return Forbid();
+            }
+
+            if (message.IsDeleted)
+            {
+                return BadRequest();
+            }
+
+            var like = await _db.MessageLikes.FindAsync(id, userId);
+            var liked = like == null;
+            if (liked)
+            {
+                _db.MessageLikes.Add(new MessageLike
+                {
+                    MessageId = id,
+                    UserId = userId,
+                    CreatedAt = DateTime.UtcNow,
+                });
+            }
+            else
+            {
+                _db.MessageLikes.Remove(like!);
+            }
+
+            await _db.SaveChangesAsync();
+            var likesCount = await _db.MessageLikes.CountAsync(l => l.MessageId == id);
+
+            return Json(new { liked, likesCount });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Approve(Guid token)
         {
             var userId = _userManager.GetUserId(User)!;
@@ -660,7 +719,7 @@ namespace EventsApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Send(Guid token, string content, string? actingIdentityKey)
+        public async Task<IActionResult> Send(Guid token, string content, string? actingIdentityKey, int? replyToMessageId)
         {
             var userId = _userManager.GetUserId(User)!;
             var conversation = await _db.Conversations
@@ -736,6 +795,19 @@ namespace EventsApp.Controllers
                 return Forbid();
             }
 
+            if (replyToMessageId.HasValue)
+            {
+                var canReplyToMessage = await _db.Messages
+                    .AsNoTracking()
+                    .AnyAsync(m => m.Id == replyToMessageId.Value
+                        && m.ConversationId == conversation.Id
+                        && !m.IsDeleted);
+                if (!canReplyToMessage)
+                {
+                    replyToMessageId = null;
+                }
+            }
+
             var message = new Message
             {
                 ConversationId = conversation.Id,
@@ -744,6 +816,7 @@ namespace EventsApp.Controllers
                 AuthorOrganizerProfileId = identity.OrganizerProfileId,
                 BusinessWorkspaceId = identity.BusinessWorkspaceId,
                 Content = content,
+                ReplyToMessageId = replyToMessageId,
                 CreatedAt = now,
             };
 
@@ -756,6 +829,11 @@ namespace EventsApp.Controllers
             var saved = await _db.Messages
                 .Include(m => m.Sender)
                 .Include(m => m.AuthorOrganizerProfile)
+                .Include(m => m.ReplyToMessage)
+                    .ThenInclude(m => m!.Sender)
+                .Include(m => m.ReplyToMessage)
+                    .ThenInclude(m => m!.AuthorOrganizerProfile)
+                .Include(m => m.Likes)
                 .FirstOrDefaultAsync(m => m.Id == message.Id);
 
             if (saved != null)
@@ -790,6 +868,14 @@ namespace EventsApp.Controllers
                 .Where(m => m.ConversationId == conversation.Id && m.Id > afterId)
                 .Include(m => m.Sender)
                 .Include(m => m.AuthorOrganizerProfile)
+                .Include(m => m.SharedEvent)
+                .Include(m => m.SharedPost)
+                    .ThenInclude(p => p!.Images)
+                .Include(m => m.ReplyToMessage)
+                    .ThenInclude(m => m!.Sender)
+                .Include(m => m.ReplyToMessage)
+                    .ThenInclude(m => m!.AuthorOrganizerProfile)
+                .Include(m => m.Likes)
                 .OrderBy(m => m.CreatedAt)
                 .ToListAsync();
 
@@ -817,6 +903,24 @@ namespace EventsApp.Controllers
                 content = m.Content,
                 createdAt = m.CreatedAt.ToString("dd.MM.yyyy HH:mm"),
                 seenAt = (string?)null,
+                sharedEventId = m.SharedEventId,
+                sharedEventTitle = m.SharedEvent?.Title,
+                sharedEventImageUrl = m.SharedEvent?.ImageUrl,
+                sharedEventMeta = m.SharedEvent == null ? null : $"{m.SharedEvent.City} · {m.SharedEvent.StartTime:dd.MM HH:mm}",
+                sharedPostId = m.SharedPostId,
+                sharedPostTitle = m.SharedPost == null
+                    ? null
+                    : m.SharedPost.Content.Length > 90
+                        ? m.SharedPost.Content[..90] + "..."
+                        : m.SharedPost.Content,
+                sharedPostImageUrl = m.SharedPost?.Images.Select(i => i.ImageUrl).FirstOrDefault(),
+                sharedPostMeta = m.SharedPost == null ? null : $"Post · {m.SharedPost.CreatedAt:dd.MM HH:mm}",
+                replyToMessageId = m.ReplyToMessageId,
+                replyToSenderName = GetReplySenderName(m.ReplyToMessage, userId),
+                replyToPreview = GetReplyPreview(m.ReplyToMessage),
+                replyToSharedLabel = GetReplySharedLabel(m.ReplyToMessage),
+                likesCount = m.Likes.Count,
+                currentUserLiked = m.Likes.Any(l => l.UserId == userId),
             });
 
             return Ok(new { messages = result });
@@ -916,6 +1020,10 @@ namespace EventsApp.Controllers
             var saved = await _db.Messages
                 .Include(m => m.Sender)
                 .Include(m => m.AuthorOrganizerProfile)
+                .Include(m => m.SharedEvent)
+                .Include(m => m.SharedPost)
+                    .ThenInclude(p => p!.Images)
+                .Include(m => m.Likes)
                 .FirstOrDefaultAsync(m => m.Id == message.Id);
 
             if (saved != null)
@@ -960,6 +1068,24 @@ namespace EventsApp.Controllers
                 senderBadgeText = GetAuthorBadgeText(message.AuthorType, message.SenderId == viewerUserId),
                 content = message.Content,
                 createdAt = message.CreatedAt.ToString("dd.MM.yyyy HH:mm"),
+                sharedEventId = message.SharedEventId,
+                sharedEventTitle = message.SharedEvent?.Title,
+                sharedEventImageUrl = message.SharedEvent?.ImageUrl,
+                sharedEventMeta = message.SharedEvent == null ? null : $"{message.SharedEvent.City} · {message.SharedEvent.StartTime:dd.MM HH:mm}",
+                sharedPostId = message.SharedPostId,
+                sharedPostTitle = message.SharedPost == null
+                    ? null
+                    : message.SharedPost.Content.Length > 90
+                        ? message.SharedPost.Content[..90] + "..."
+                        : message.SharedPost.Content,
+                sharedPostImageUrl = message.SharedPost?.Images.Select(i => i.ImageUrl).FirstOrDefault(),
+                sharedPostMeta = message.SharedPost == null ? null : $"Post · {message.SharedPost.CreatedAt:dd.MM HH:mm}",
+                replyToMessageId = message.ReplyToMessageId,
+                replyToSenderName = GetReplySenderName(message.ReplyToMessage, viewerUserId),
+                replyToPreview = GetReplyPreview(message.ReplyToMessage),
+                replyToSharedLabel = GetReplySharedLabel(message.ReplyToMessage),
+                likesCount = message.Likes.Count,
+                currentUserLiked = message.Likes.Any(l => l.UserId == viewerUserId),
             };
         }
 
@@ -1036,6 +1162,7 @@ namespace EventsApp.Controllers
                 name = displayName,
                 imageUrl,
                 initial,
+                pageName = conversation.OrganizerProfile?.DisplayName,
                 lastMessage = message.Content,
                 updatedAt = message.CreatedAt.ToString("dd.MM HH:mm"),
                 unseenCount,
@@ -1239,6 +1366,55 @@ namespace EventsApp.Controllers
             }
 
             return message.SenderId == currentUserId ? "You" : GetDisplayName(message.Sender);
+        }
+
+        private static string? GetReplySenderName(Message? message, string currentUserId)
+        {
+            if (message == null)
+            {
+                return null;
+            }
+
+            return GetMessageDisplayName(message, currentUserId);
+        }
+
+        private static string? GetReplyPreview(Message? message)
+        {
+            if (message == null)
+            {
+                return null;
+            }
+
+            if (message.IsDeleted)
+            {
+                return "Изтрито съобщение";
+            }
+
+            var content = string.IsNullOrWhiteSpace(message.Content)
+                ? GetReplySharedLabel(message) ?? "Съобщение"
+                : message.Content.Trim();
+
+            return content.Length > 96 ? content[..96] + "..." : content;
+        }
+
+        private static string? GetReplySharedLabel(Message? message)
+        {
+            if (message == null)
+            {
+                return null;
+            }
+
+            if (message.SharedEventId.HasValue)
+            {
+                return "Споделено събитие";
+            }
+
+            if (message.SharedPostId.HasValue)
+            {
+                return "Споделен пост";
+            }
+
+            return null;
         }
 
         private static string GetAuthorBadgeKey(AuthorIdentityType type)

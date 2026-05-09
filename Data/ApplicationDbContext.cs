@@ -55,6 +55,8 @@ namespace EventsApp.Data
 
         public DbSet<Message> Messages { get; set; } = null!;
 
+        public DbSet<MessageLike> MessageLikes { get; set; } = null!;
+
         public DbSet<UserActivity> UserActivities { get; set; } = null!;
 
         public DbSet<Ticket> Tickets { get; set; } = null!;
@@ -553,9 +555,32 @@ namespace EventsApp.Data
                       .HasForeignKey(m => m.SharedPostId)
                       .OnDelete(DeleteBehavior.NoAction);
 
+                entity.HasOne(m => m.ReplyToMessage)
+                      .WithMany(m => m.Replies)
+                      .HasForeignKey(m => m.ReplyToMessageId)
+                      .OnDelete(DeleteBehavior.NoAction);
+
                 entity.HasIndex(m => new { m.ConversationId, m.CreatedAt });
                 entity.HasIndex(m => m.SharedEventId);
                 entity.HasIndex(m => m.SharedPostId);
+                entity.HasIndex(m => m.ReplyToMessageId);
+            });
+
+            builder.Entity<MessageLike>(entity =>
+            {
+                entity.HasKey(l => new { l.MessageId, l.UserId });
+
+                entity.HasOne(l => l.Message)
+                      .WithMany(m => m.Likes)
+                      .HasForeignKey(l => l.MessageId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(l => l.User)
+                      .WithMany()
+                      .HasForeignKey(l => l.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(l => l.UserId);
             });
 
             builder.Entity<UserActivity>(entity =>

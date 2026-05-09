@@ -2467,6 +2467,83 @@ a.groove-stat-card:hover {
     align-items: start;
 }
 
+.social-message-board [data-message-tab-panel] {
+    grid-column: 1 / -1;
+}
+
+.messages-inbox-tabs,
+.messages-page-filter {
+    display: flex;
+    gap: 0.55rem;
+    margin: 0.85rem 0 1rem;
+    overflow-x: auto;
+    padding: 0.15rem 0 0.35rem;
+    scrollbar-width: thin;
+}
+
+.messages-page-filter {
+    margin: -0.25rem 0 0.9rem;
+}
+
+.messages-inbox-tabs button,
+.messages-page-filter button {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    flex: 0 0 auto;
+    max-width: 100%;
+    border: 1px solid var(--social-line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.82);
+    color: var(--social-muted);
+    cursor: pointer;
+    font-weight: 800;
+    line-height: 1;
+    padding: 0.65rem 0.85rem;
+    transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+}
+
+.messages-page-filter button {
+    min-height: 36px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.86rem;
+}
+
+.messages-inbox-tabs button:hover,
+.messages-page-filter button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(36, 86, 255, 0.28);
+    color: var(--social-ink);
+}
+
+.messages-inbox-tabs button.is-active,
+.messages-page-filter button.is-active {
+    border-color: #111827;
+    background: #111827;
+    color: #fff;
+    box-shadow: 0 14px 30px -22px rgba(17, 24, 39, 0.7);
+}
+
+.messages-inbox-tabs button b,
+.messages-page-filter button b {
+    min-width: 1.45rem;
+    height: 1.45rem;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.08);
+    color: inherit;
+    font-size: 0.76rem;
+}
+
+.messages-inbox-tabs button.is-active b,
+.messages-page-filter button.is-active b {
+    background: rgba(255, 255, 255, 0.18);
+}
+
 .social-message-panel {
     border: 1px solid var(--social-line);
     border-radius: 8px;
@@ -2827,11 +2904,18 @@ a.groove-stat-card:hover {
     padding: 0.75rem 0.85rem;
     border-radius: 8px;
     background: var(--social-soft);
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    box-shadow: 0 12px 30px -24px rgba(15, 23, 42, 0.6);
+    overflow-wrap: anywhere;
 }
 
 .social-message-bubble.is-mine {
     justify-self: end;
     background: #dcf3ef;
+}
+
+.social-message-bubble.has-shared-card {
+    max-width: min(88%, 620px);
 }
 
 .social-message-bubble__head {
@@ -2844,6 +2928,7 @@ a.groove-stat-card:hover {
 .social-message-bubble p {
     margin: 0;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
 .social-message-bubble small {
@@ -2989,31 +3074,43 @@ html[data-theme="dark"] .social-message-bubble__edit textarea {
 
 .social-message-share-card {
     display: grid;
-    grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+    grid-template-columns: 5rem minmax(0, 1fr) auto;
     gap: 0.75rem;
     align-items: center;
     margin: 0.35rem 0 0.65rem;
-    padding: 0.55rem;
+    max-width: 100%;
+    padding: 0.62rem;
     border: 1px solid rgba(36, 86, 255, 0.14);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.78);
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(244, 247, 255, 0.88));
     color: inherit;
     text-decoration: none;
+    box-shadow: 0 16px 36px -30px rgba(15, 23, 42, 0.65);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .social-message-share-card:hover {
     border-color: rgba(36, 86, 255, 0.32);
     color: inherit;
     transform: translateY(-1px);
+    box-shadow: 0 18px 42px -28px rgba(15, 23, 42, 0.72);
+}
+
+.social-message-share-card--event {
+    border-color: rgba(74, 111, 255, 0.22);
+}
+
+.social-message-share-card--post {
+    border-color: rgba(15, 118, 110, 0.20);
 }
 
 .social-message-share-card img,
 .social-message-share-card__fallback {
-    width: 4.5rem;
-    height: 3.35rem;
+    width: 5rem;
+    height: 3.75rem;
     display: grid;
     place-items: center;
-    border-radius: 8px;
+    border-radius: 12px;
     object-fit: cover;
     background: #eef3ff;
     color: var(--accent);
@@ -3043,6 +3140,89 @@ html[data-theme="dark"] .social-message-bubble__edit textarea {
 .social-message-share-card strong {
     color: var(--social-ink);
     font-size: 0.95rem;
+}
+
+.social-message-reply-context {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.55rem;
+    align-items: center;
+    margin: 0.2rem 0 0.55rem;
+    padding: 0.55rem 0.65rem;
+    border-left: 3px solid rgba(36, 86, 255, 0.45);
+    border-radius: 12px;
+    background: rgba(36, 86, 255, 0.08);
+    color: inherit;
+    text-decoration: none;
+}
+
+.social-message-reply-context:hover {
+    color: inherit;
+    background: rgba(36, 86, 255, 0.13);
+}
+
+.social-message-reply-context > span {
+    min-width: 0;
+}
+
+.social-message-reply-context strong,
+.social-message-reply-context em,
+.social-message-reply-context small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.social-message-reply-context em {
+    color: var(--accent);
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.social-message-reply-button,
+.social-message-like {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-height: 28px;
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.62);
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 0.25rem 0.5rem;
+}
+
+.social-message-reply-button:hover,
+.social-message-like:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.social-message-like-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.social-message-like.is-liked {
+    border-color: rgba(239, 68, 68, 0.24);
+    background: rgba(239, 68, 68, 0.10);
+    color: #dc2626;
+}
+
+.social-message-like.is-liked i {
+    animation: messageLikePop 0.22s ease both;
+}
+
+@keyframes messageLikePop {
+    0% { transform: scale(0.7); }
+    70% { transform: scale(1.22); }
+    100% { transform: scale(1); }
 }
 
 .social-message-request {
@@ -3184,6 +3364,48 @@ html[data-theme="dark"] .social-message-bubble__edit textarea {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
+}
+
+.social-chat-reply-preview {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+    padding: 0.62rem 0.7rem;
+    border: 1px solid rgba(36, 86, 255, 0.16);
+    border-left: 3px solid rgba(36, 86, 255, 0.56);
+    border-radius: 14px;
+    background: rgba(238, 243, 255, 0.82);
+}
+
+.social-chat-reply-preview[hidden] {
+    display: none !important;
+}
+
+.social-chat-reply-preview > span {
+    min-width: 0;
+    flex: 1;
+}
+
+.social-chat-reply-preview strong,
+.social-chat-reply-preview small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.social-chat-reply-preview button {
+    width: 32px;
+    height: 32px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--social-muted);
+    cursor: pointer;
 }
 
 .social-chat-compose input {
@@ -3478,6 +3700,40 @@ html[data-theme="dark"] .evt-notification-prompt [data-push-dismiss] {
 
     .social-message-bubble {
         max-width: 92%;
+    }
+
+    .social-message-bubble.has-shared-card {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .social-message-share-card {
+        grid-template-columns: 4.25rem minmax(0, 1fr);
+    }
+
+    .social-message-share-card > .bi-arrow-up-right {
+        display: none;
+    }
+
+    .social-message-share-card img,
+    .social-message-share-card__fallback {
+        width: 4.25rem;
+        height: 3.25rem;
+    }
+
+    .messages-inbox-tabs,
+    .messages-page-filter {
+        margin-inline: -0.15rem;
+        padding-inline: 0.15rem;
+    }
+
+    .messages-inbox-tabs button {
+        min-height: 40px;
+        padding-inline: 0.72rem;
+    }
+
+    .social-message-reply-button span {
+        display: none;
     }
 }
 
@@ -12966,6 +13222,27 @@ html[data-theme="dark"] .social-conversation-row strong {
     color: var(--evt-ink) !important;
 }
 
+html[data-theme="dark"] .messages-inbox-tabs button,
+html[data-theme="dark"] .messages-page-filter button {
+    background: rgba(255, 255, 255, 0.055) !important;
+    border-color: rgba(255, 255, 255, 0.10) !important;
+    color: var(--evt-ink-soft) !important;
+}
+
+html[data-theme="dark"] .messages-inbox-tabs button:hover,
+html[data-theme="dark"] .messages-page-filter button:hover {
+    background: rgba(119, 144, 255, 0.12) !important;
+    border-color: rgba(119, 144, 255, 0.30) !important;
+    color: var(--evt-ink) !important;
+}
+
+html[data-theme="dark"] .messages-inbox-tabs button.is-active,
+html[data-theme="dark"] .messages-page-filter button.is-active {
+    background: linear-gradient(135deg, rgba(91, 120, 255, 0.94), rgba(119, 144, 255, 0.72)) !important;
+    border-color: rgba(191, 203, 255, 0.34) !important;
+    color: #ffffff !important;
+}
+
 html[data-theme="dark"] .social-conversation-row {
     background: rgba(255, 255, 255, 0.045) !important;
     border-color: rgba(255, 255, 255, 0.08) !important;
@@ -13061,6 +13338,36 @@ html[data-theme="dark"] .social-message-share-preview strong {
     color: var(--evt-ink) !important;
 }
 
+html[data-theme="dark"] .social-message-reply-context,
+html[data-theme="dark"] .social-chat-reply-preview {
+    background: rgba(119, 144, 255, 0.12) !important;
+    border-color: rgba(119, 144, 255, 0.38) !important;
+    color: var(--evt-ink-soft) !important;
+}
+
+html[data-theme="dark"] .social-message-reply-context strong,
+html[data-theme="dark"] .social-chat-reply-preview strong {
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .social-message-reply-context small,
+html[data-theme="dark"] .social-chat-reply-preview small {
+    color: rgba(222, 227, 244, 0.78) !important;
+}
+
+html[data-theme="dark"] .social-message-reply-button,
+html[data-theme="dark"] .social-message-like {
+    background: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: rgba(255, 255, 255, 0.88) !important;
+}
+
+html[data-theme="dark"] .social-message-like.is-liked {
+    background: rgba(255, 116, 116, 0.16) !important;
+    border-color: rgba(255, 116, 116, 0.28) !important;
+    color: #ffb4b4 !important;
+}
+
 html[data-theme="dark"] .social-message-request {
     background: rgba(119, 144, 255, 0.13) !important;
     border-color: rgba(119, 144, 255, 0.30) !important;
@@ -13091,6 +13398,12 @@ html[data-theme="dark"] .social-chat-compose input {
 html[data-theme="dark"] .social-chat-compose input:focus {
     border-color: rgba(119, 144, 255, 0.62) !important;
     box-shadow: 0 0 0 4px rgba(119, 144, 255, 0.16) !important;
+}
+
+html[data-theme="dark"] .social-chat-reply-preview button {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    color: var(--evt-ink) !important;
 }
 
 /* Dark mode follow-up: auth, account menu, quick cards */

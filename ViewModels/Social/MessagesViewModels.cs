@@ -61,6 +61,12 @@ namespace EventsApp.ViewModels.Social
         public string? SharedPostImageUrl { get; set; }
         public string? SharedPostMeta { get; set; }
         public bool HasSharedCard => SharedEventId.HasValue || SharedPostId.HasValue;
+        public int? ReplyToMessageId { get; set; }
+        public string? ReplyToSenderName { get; set; }
+        public string? ReplyToPreview { get; set; }
+        public string? ReplyToSharedLabel { get; set; }
+        public int LikesCount { get; set; }
+        public bool CurrentUserLiked { get; set; }
     }
 
     public class ConversationDetailsViewModel

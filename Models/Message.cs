@@ -48,6 +48,15 @@ namespace EventsApp.Models
 
         public Post? SharedPost { get; set; }
 
+        [ForeignKey(nameof(ReplyToMessage))]
+        public int? ReplyToMessageId { get; set; }
+
+        public Message? ReplyToMessage { get; set; }
+
+        public ICollection<Message> Replies { get; set; } = new HashSet<Message>();
+
+        public ICollection<MessageLike> Likes { get; set; } = new HashSet<MessageLike>();
+
         [Required]
         [MinLength(GlobalConstants.Social.MessageContentMinLength)]
         [MaxLength(GlobalConstants.Social.MessageContentMaxLength)]
