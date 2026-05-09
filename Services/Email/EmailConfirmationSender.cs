@@ -44,7 +44,7 @@ namespace EventsApp.Services.Email
 
             var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-            var confirmationRequest = new PasswordResetRequest
+            var confirmationRequest = new EmailConfirmationRequest
             {
                 Id = Guid.NewGuid().ToString("N"),
                 UserId = user.Id,
@@ -54,8 +54,12 @@ namespace EventsApp.Services.Email
                 ExpiresAt = DateTime.UtcNow.AddHours(24),
             };
 
-            _db.PasswordResetRequests.Add(confirmationRequest);
+            _db.EmailConfirmationRequests.Add(confirmationRequest);
             await _db.SaveChangesAsync();
+            _logger.LogInformation(
+                "Created email confirmation request {RequestId} for user {UserId}.",
+                confirmationRequest.Id,
+                user.Id);
 
             var confirmQuery = new Dictionary<string, string?>
             {

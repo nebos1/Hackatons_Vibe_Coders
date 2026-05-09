@@ -559,6 +559,7 @@ namespace EventsApp.Controllers
                 .ExecuteUpdateAsync(s => s.SetProperty(a => a.TargetUserId, (string?)null));
             await _db.UserPushSubscriptions.Where(s => s.UserId == id).ExecuteDeleteAsync();
             await _db.PasswordResetRequests.Where(r => r.UserId == id).ExecuteDeleteAsync();
+            await _db.EmailConfirmationRequests.Where(r => r.UserId == id).ExecuteDeleteAsync();
             await _db.OrganizerValidatorAssignments
                 .Where(a => a.OrganizerId == id || a.ValidatorUserId == id)
                 .ExecuteDeleteAsync();

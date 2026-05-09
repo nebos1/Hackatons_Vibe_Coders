@@ -95,6 +95,8 @@ namespace EventsApp.Data
 
         public DbSet<PasswordResetRequest> PasswordResetRequests { get; set; } = null!;
 
+        public DbSet<EmailConfirmationRequest> EmailConfirmationRequests { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -646,6 +648,23 @@ namespace EventsApp.Data
             });
 
             builder.Entity<PasswordResetRequest>(entity =>
+            {
+                entity.HasKey(r => r.Id);
+                entity.Property(r => r.Id).HasMaxLength(32);
+                entity.Property(r => r.Email).HasMaxLength(256);
+                entity.Property(r => r.Code).IsRequired();
+
+                entity.HasOne(r => r.User)
+                      .WithMany()
+                      .HasForeignKey(r => r.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(r => r.UserId);
+                entity.HasIndex(r => r.ExpiresAt);
+                entity.HasIndex(r => r.UsedAt);
+            });
+
+            builder.Entity<EmailConfirmationRequest>(entity =>
             {
                 entity.HasKey(r => r.Id);
                 entity.Property(r => r.Id).HasMaxLength(32);

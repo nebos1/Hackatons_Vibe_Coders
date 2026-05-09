@@ -41,13 +41,34 @@ namespace EventsApp.Controllers
             Response.Headers.Expires = "0";
 
             var now = DateTime.UtcNow;
-            var request = await _db.PasswordResetRequests
+            var request = await _db.EmailConfirmationRequests
                 .AsTracking()
                 .FirstOrDefaultAsync(r => r.Id == requestId.Trim()
                     && r.UsedAt == null
                     && r.ExpiresAt > now);
 
-            if (request == null)
+            if (request != null)
+            {
+                var user = await _userManager.FindByIdAsync(request.UserId);
+                if (user == null)
+                {
+                    return ConfirmationPage(
+                        "Невалиден линк",
+                        "Не намерихме акаунт за този линк.",
+                        "/Identity/Account/Login",
+                        "Към вход");
+                }
+
+                return await ConfirmWithEncodedCodeAsync(user, request.Code, returnUrl, request);
+            }
+
+            var legacyRequest = await _db.PasswordResetRequests
+                .AsTracking()
+                .FirstOrDefaultAsync(r => r.Id == requestId.Trim()
+                    && r.UsedAt == null
+                    && r.ExpiresAt > now);
+
+            if (legacyRequest == null)
             {
                 return ConfirmationPage(
                     "Невалиден линк",
@@ -56,8 +77,8 @@ namespace EventsApp.Controllers
                     "Към вход");
             }
 
-            var user = await _userManager.FindByIdAsync(request.UserId);
-            if (user == null)
+            var legacyUser = await _userManager.FindByIdAsync(legacyRequest.UserId);
+            if (legacyUser == null)
             {
                 return ConfirmationPage(
                     "Невалиден линк",
@@ -66,7 +87,7 @@ namespace EventsApp.Controllers
                     "Към вход");
             }
 
-            return await ConfirmWithEncodedCodeAsync(user, request.Code, returnUrl, request);
+            return await ConfirmWithEncodedCodeAsync(legacyUser, legacyRequest.Code, returnUrl, legacyRequest);
         }
 
         [HttpGet]
@@ -132,7 +153,7 @@ namespace EventsApp.Controllers
             ApplicationUser user,
             string encodedCode,
             string? returnUrl,
-            PasswordResetRequest? confirmationRequest)
+            object? confirmationRequest)
         {
             string decodedCode;
             try
@@ -167,11 +188,16 @@ namespace EventsApp.Controllers
         private async Task<IActionResult> CompleteConfirmationAsync(
             ApplicationUser user,
             string? returnUrl,
-            PasswordResetRequest? confirmationRequest)
+            object? confirmationRequest)
         {
-            if (confirmationRequest != null)
+            if (confirmationRequest is EmailConfirmationRequest emailConfirmationRequest)
             {
-                confirmationRequest.UsedAt = DateTime.UtcNow;
+                emailConfirmationRequest.UsedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+            }
+            else if (confirmationRequest is PasswordResetRequest passwordResetRequest)
+            {
+                passwordResetRequest.UsedAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
             }
 
