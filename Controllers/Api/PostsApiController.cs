@@ -297,6 +297,64 @@ namespace EventsApp.Controllers.Api
             return Ok(new { savesCount = count });
         }
 
+        [HttpGet("{id:int}/comments")]
+        public async Task<IActionResult> GetComments(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            var isAdmin = User.IsInRole("Admin");
+
+            var post = await _db.Posts
+                .AsNoTracking()
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.User)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.Likes)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (post == null) return NotFound();
+
+            var rootComments = post.Comments
+                .Where(c => c.ParentCommentId == null)
+                .OrderByDescending(c => c.Likes.Count)
+                .ThenByDescending(c => c.CreatedAt)
+                .Take(50)
+                .ToList();
+
+            var rootIds = rootComments.Select(c => c.Id).ToHashSet();
+            var repliesByParent = post.Comments
+                .Where(c => c.ParentCommentId.HasValue && rootIds.Contains(c.ParentCommentId.Value))
+                .GroupBy(c => c.ParentCommentId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            return Ok(rootComments.Select(c => new
+            {
+                id = c.Id,
+                userId = c.UserId,
+                userName = c.User?.UserName ?? string.Empty,
+                authorImageUrl = c.User?.ProfileImageUrl,
+                content = c.Content,
+                createdAt = c.CreatedAt,
+                likesCount = c.Likes.Count,
+                currentUserLiked = userId != null && c.Likes.Any(l => l.UserId == userId),
+                canDelete = isAdmin || c.UserId == userId,
+                replies = (IEnumerable<object>)(repliesByParent.TryGetValue(c.Id, out var reps)
+                    ? reps.Select(r => (object)new
+                    {
+                        id = r.Id,
+                        userId = r.UserId,
+                        userName = r.User?.UserName ?? string.Empty,
+                        authorImageUrl = r.User?.ProfileImageUrl,
+                        content = r.Content,
+                        createdAt = r.CreatedAt,
+                        likesCount = r.Likes.Count,
+                        currentUserLiked = userId != null && r.Likes.Any(l => l.UserId == userId),
+                        canDelete = isAdmin || r.UserId == userId,
+                        replies = Array.Empty<object>(),
+                    })
+                    : Array.Empty<object>()),
+            }));
+        }
+
         [HttpPost("{id:int}/comments")]
         [Authorize(Policy = "ApiAuth")]
         public async Task<IActionResult> AddComment(int id, [FromBody] PostCommentDto dto)
