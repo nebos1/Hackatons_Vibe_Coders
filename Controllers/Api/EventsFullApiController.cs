@@ -24,6 +24,7 @@ namespace EventsApp.Controllers.Api
         private readonly IEventDeletionService _eventDeletion;
         private readonly IRecurringEventService _recurringEvents;
         private readonly IAiSearchService _ai;
+        private readonly ILayoutService _layouts;
 
         public EventsFullApiController(
             ApplicationDbContext db,
@@ -31,7 +32,8 @@ namespace EventsApp.Controllers.Api
             IMediaUploadService media,
             IEventDeletionService eventDeletion,
             IRecurringEventService recurringEvents,
-            IAiSearchService ai)
+            IAiSearchService ai,
+            ILayoutService layouts)
         {
             _db = db;
             _userManager = userManager;
@@ -39,6 +41,7 @@ namespace EventsApp.Controllers.Api
             _eventDeletion = eventDeletion;
             _recurringEvents = recurringEvents;
             _ai = ai;
+            _layouts = layouts;
         }
 
         private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -192,6 +195,7 @@ namespace EventsApp.Controllers.Api
                 canManageTickets = canEdit,
                 isRecurring = ev.EventSeries != null,
                 ticketingMode = ev.TicketingMode.ToString(),
+                venueLayoutId = ev.VenueLayoutId,
                 tickets = ev.Tickets.Select(t => new
                 {
                     id = t.Id,
@@ -359,6 +363,15 @@ namespace EventsApp.Controllers.Api
             if (request.StartTime >= request.EndTime)
                 return BadRequest(new { error = "Началото трябва да е преди края." });
 
+            var ticketingMode = ParseTicketingMode(request.TicketingMode);
+            if (ticketingMode != EventTicketingMode.GeneralAdmission)
+            {
+                var layoutOk = request.VenueLayoutId.HasValue && await _db.VenueLayouts.AnyAsync(l => l.Id == request.VenueLayoutId.Value && l.Status != VenueLayoutStatus.Archived && (IsAdmin || l.OrganizerId == userId));
+                if (!layoutOk) return BadRequest(new { error = "Избери валиден layout." });
+                if (request.LayoutTicketSections == null || request.LayoutTicketSections.Count == 0)
+                    return BadRequest(new { error = "Задай цени по секторите на layout-а." });
+            }
+
             var ev = new Event
             {
                 OrganizerId = userId,
@@ -374,14 +387,16 @@ namespace EventsApp.Controllers.Api
                 ImageUrl = request.ImageUrl?.Trim(),
                 Latitude = request.Latitude,
                 Longitude = request.Longitude,
-                TicketingMode = ParseTicketingMode(request.TicketingMode),
-                VenueLayoutId = ParseTicketingMode(request.TicketingMode) == EventTicketingMode.GeneralAdmission ? null : request.VenueLayoutId,
+                TicketingMode = ticketingMode,
+                VenueLayoutId = ticketingMode == EventTicketingMode.GeneralAdmission ? null : request.VenueLayoutId,
                 IsApproved = false,
             };
 
             _db.Events.Add(ev);
             await _db.SaveChangesAsync();
             await UpsertSeriesAsync(ev, request, userId);
+            await EnsureSeatInventoriesForEventAsync(ev);
+            await CreateInitialLayoutTicketsAsync(ev, request);
 
             return Ok(new { id = ev.Id, title = ev.Title, isApproved = ev.IsApproved });
         }
@@ -432,6 +447,35 @@ namespace EventsApp.Controllers.Api
             await _db.SaveChangesAsync();
             await UpsertSeriesAsync(ev, request, userId);
             return Ok(new { id = ev.Id, title = ev.Title, isApproved = ev.IsApproved });
+        }
+
+        [HttpGet("layout-ticket-sections/{layoutId:int}")]
+        [Authorize(Policy = "ApiAuth")]
+        public async Task<IActionResult> LayoutTicketSections(int layoutId)
+        {
+            var userId = CurrentUserId!;
+            var layoutAvailable = await _db.VenueLayouts
+                .AsNoTracking()
+                .AnyAsync(l => l.Id == layoutId && l.Status != VenueLayoutStatus.Archived && (IsAdmin || l.OrganizerId == userId));
+            if (!layoutAvailable) return NotFound();
+
+            var sections = await _db.LayoutSections
+                .AsNoTracking()
+                .Where(s => s.VenueLayoutId == layoutId)
+                .Select(s => new LayoutTicketSectionRequest
+                {
+                    SectionId = s.Id,
+                    SectionName = s.Name,
+                    ColorHex = string.IsNullOrWhiteSpace(s.ColorHex) ? "#2456ff" : s.ColorHex,
+                    SeatsCount = s.Seats.Count(seat => seat.Status == LayoutSeatStatus.Active),
+                    Price = 0m,
+                    RequiresAttendeeNames = false,
+                })
+                .Where(s => s.SeatsCount > 0)
+                .OrderBy(s => s.SectionName)
+                .ToListAsync();
+
+            return Ok(sections);
         }
 
         [HttpPost("generate-description")]
@@ -692,6 +736,59 @@ namespace EventsApp.Controllers.Api
             await _recurringEvents.RegenerateOccurrencesAsync(series, RecurringEditScope.EntireSeries);
         }
 
+        private async Task EnsureSeatInventoriesForEventAsync(Event ev)
+        {
+            if (ev.VenueLayoutId == null || ev.TicketingMode == EventTicketingMode.GeneralAdmission) return;
+            var seriesId = await _db.EventSeries.Where(s => s.EventId == ev.Id).Select(s => (int?)s.Id).FirstOrDefaultAsync();
+            if (seriesId.HasValue)
+            {
+                var occurrenceIds = await _db.EventOccurrences.Where(o => o.EventSeriesId == seriesId.Value).Select(o => o.Id).ToListAsync();
+                foreach (var occurrenceId in occurrenceIds)
+                {
+                    await _layouts.EnsureInventoryAsync(ev.Id, occurrenceId, ev.VenueLayoutId.Value);
+                }
+                return;
+            }
+            await _layouts.EnsureInventoryAsync(ev.Id, null, ev.VenueLayoutId.Value);
+        }
+
+        private async Task CreateInitialLayoutTicketsAsync(Event ev, CreateEventRequest request)
+        {
+            if (ev.VenueLayoutId == null || ev.TicketingMode == EventTicketingMode.GeneralAdmission || request.LayoutTicketSections == null || request.LayoutTicketSections.Count == 0)
+                return;
+
+            var sectionIds = request.LayoutTicketSections.Select(s => s.SectionId).ToHashSet();
+            var actualSections = await _db.LayoutSections
+                .AsNoTracking()
+                .Where(s => s.VenueLayoutId == ev.VenueLayoutId.Value && sectionIds.Contains(s.Id))
+                .Select(s => new
+                {
+                    s.Id,
+                    s.Name,
+                    SeatsCount = s.Seats.Count(seat => seat.Status == LayoutSeatStatus.Active),
+                })
+                .ToDictionaryAsync(s => s.Id);
+
+            foreach (var section in request.LayoutTicketSections)
+            {
+                if (!actualSections.TryGetValue(section.SectionId, out var actual) || actual.SeatsCount <= 0 || section.Price < 0) continue;
+                var ticket = new Ticket
+                {
+                    EventId = ev.Id,
+                    Name = string.IsNullOrWhiteSpace(section.SectionName) ? $"Сектор {actual.Name}" : section.SectionName.Trim(),
+                    Description = $"Сектор {actual.Name}",
+                    Price = section.Price,
+                    QuantityTotal = actual.SeatsCount,
+                    QuantityRemaining = actual.SeatsCount,
+                    IsActive = true,
+                    RequiresAttendeeNames = section.RequiresAttendeeNames,
+                };
+                ticket.SectionPrices.Add(new TicketSectionPrice { SectionId = section.SectionId, Price = section.Price });
+                _db.Tickets.Add(ticket);
+            }
+            await _db.SaveChangesAsync();
+        }
+
         // ── Request DTOs ─────────────────────────────────────────────────────────
 
         public class AttendRequest { public string Status { get; set; } = "Going"; }
@@ -714,6 +811,7 @@ namespace EventsApp.Controllers.Api
             public int? BusinessWorkspaceId { get; set; }
             public string? TicketingMode { get; set; }
             public int? VenueLayoutId { get; set; }
+            public List<LayoutTicketSectionRequest>? LayoutTicketSections { get; set; }
             public double? Latitude { get; set; }
             public double? Longitude { get; set; }
             public string? RecurrenceType { get; set; }
@@ -733,6 +831,16 @@ namespace EventsApp.Controllers.Api
             public string? Genre { get; set; }
             public string? Hints { get; set; }
             public string? Lang { get; set; }
+        }
+
+        public class LayoutTicketSectionRequest
+        {
+            public int SectionId { get; set; }
+            public string SectionName { get; set; } = "";
+            public string ColorHex { get; set; } = "#2456ff";
+            public int SeatsCount { get; set; }
+            public decimal Price { get; set; }
+            public bool RequiresAttendeeNames { get; set; }
         }
     }
 }

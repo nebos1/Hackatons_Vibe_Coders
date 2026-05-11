@@ -47,7 +47,9 @@ namespace EventsApp.Controllers.Api
             if (!ModelState.IsValid)
                 return BadRequest(new { error = "Невалидни данни." });
 
-            var user = await _userManager.FindByEmailAsync(request.Email);
+            var loginId = request.Email.Trim();
+            var user = await _userManager.FindByEmailAsync(loginId)
+                ?? await _userManager.FindByNameAsync(loginId);
             if (user == null)
                 return Unauthorized(new { error = "Грешен имейл или парола." });
 
