@@ -58,7 +58,7 @@ namespace EventsApp.Controllers.Api
 
             var q = _db.Events
                 .AsNoTracking()
-                .Where(e => e.IsApproved)
+                .Where(e => e.IsApproved && e.OrganizerProfileId != null)
                 .Include(e => e.Organizer)
                 .Include(e => e.OrganizerProfile)
                 .Include(e => e.Likes)
@@ -67,7 +67,13 @@ namespace EventsApp.Controllers.Api
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(keyword))
-                q = q.Where(e => e.Title.Contains(keyword) || (e.Description != null && e.Description.Contains(keyword)));
+                q = q.Where(e =>
+                    e.Title.Contains(keyword) ||
+                    (e.Description != null && e.Description.Contains(keyword)) ||
+                    e.City.Contains(keyword) ||
+                    e.Address.Contains(keyword) ||
+                    (e.OrganizerProfile != null && e.OrganizerProfile.DisplayName.Contains(keyword)) ||
+                    e.Tickets.Any(t => t.Name.Contains(keyword) || (t.Description != null && t.Description.Contains(keyword))));
 
             if (!string.IsNullOrWhiteSpace(city))
                 q = q.Where(e => e.City.ToLower().Contains(city.ToLower()));
@@ -338,6 +344,10 @@ namespace EventsApp.Controllers.Api
 
             if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Address) || string.IsNullOrWhiteSpace(request.City))
                 return BadRequest(new { error = "Попълни всички задължителни полета." });
+            if (!request.OrganizerProfileId.HasValue)
+                return BadRequest(new { error = "Избери public page. Събитията се публикуват само през публична страница." });
+            var profile = await _db.OrganizerProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.Id == request.OrganizerProfileId.Value && p.OwnerId == userId && p.IsActive);
+            if (profile == null) return BadRequest(new { error = "Невалидна public page." });
 
             if (!Enum.TryParse<EventGenre>(request.Genre, true, out var genre))
                 return BadRequest(new { error = "Невалиден жанр." });
@@ -349,7 +359,7 @@ namespace EventsApp.Controllers.Api
             {
                 OrganizerId = userId,
                 OrganizerProfileId = request.OrganizerProfileId,
-                BusinessWorkspaceId = request.BusinessWorkspaceId,
+                BusinessWorkspaceId = request.BusinessWorkspaceId ?? profile.BusinessWorkspaceId,
                 Title = request.Title.Trim(),
                 Description = request.Description?.Trim(),
                 StartTime = request.StartTime,
@@ -382,6 +392,10 @@ namespace EventsApp.Controllers.Api
 
             if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Address) || string.IsNullOrWhiteSpace(request.City))
                 return BadRequest(new { error = "Попълни всички задължителни полета." });
+            if (!request.OrganizerProfileId.HasValue)
+                return BadRequest(new { error = "Избери public page. Събитията се публикуват само през публична страница." });
+            var profile = await _db.OrganizerProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.Id == request.OrganizerProfileId.Value && (p.OwnerId == userId || IsAdmin) && p.IsActive);
+            if (profile == null) return BadRequest(new { error = "Невалидна public page." });
 
             if (!Enum.TryParse<EventGenre>(request.Genre, true, out var genre))
                 return BadRequest(new { error = "Невалиден жанр." });
@@ -398,7 +412,7 @@ namespace EventsApp.Controllers.Api
             ev.City = request.City.Trim();
             ev.ImageUrl = request.ImageUrl?.Trim();
             ev.OrganizerProfileId = request.OrganizerProfileId;
-            ev.BusinessWorkspaceId = request.BusinessWorkspaceId;
+            ev.BusinessWorkspaceId = request.BusinessWorkspaceId ?? profile.BusinessWorkspaceId;
             ev.Latitude = request.Latitude;
             ev.Longitude = request.Longitude;
 
@@ -594,10 +608,7 @@ namespace EventsApp.Controllers.Api
 
         private static string OrganizerDisplayName(Event e)
         {
-            if (e.OrganizerProfile != null) return e.OrganizerProfile.DisplayName ?? e.Organizer?.UserName ?? "";
-            if (e.Organizer == null) return "";
-            var name = $"{e.Organizer.FirstName} {e.Organizer.LastName}".Trim();
-            return string.IsNullOrEmpty(name) ? e.Organizer.UserName ?? "" : name;
+            return e.OrganizerProfile?.DisplayName ?? "";
         }
 
         private async Task UpsertSeriesAsync(Event ev, CreateEventRequest request, string userId)

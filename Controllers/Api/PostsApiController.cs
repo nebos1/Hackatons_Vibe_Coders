@@ -36,6 +36,7 @@ namespace EventsApp.Controllers.Api
 
             var query = _db.Posts
                 .AsNoTracking()
+                .Where(p => p.OrganizerProfileId != null)
                 .Include(p => p.Organizer)
                 .Include(p => p.OrganizerProfile)
                 .Include(p => p.Images)
@@ -45,7 +46,10 @@ namespace EventsApp.Controllers.Api
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(q))
-                query = query.Where(p => p.Content.Contains(q) || p.Organizer.UserName!.Contains(q));
+                query = query.Where(p =>
+                    p.Content.Contains(q) ||
+                    (p.OrganizerProfile != null && p.OrganizerProfile.DisplayName.Contains(q)) ||
+                    (p.Event != null && p.Event.Title.Contains(q)));
 
             if (filter == "media")
                 query = query.Where(p => p.Images.Any());
@@ -118,6 +122,7 @@ namespace EventsApp.Controllers.Api
             {
                 id = post.Id,
                 authorId = post.OrganizerId,
+                organizerProfileId = post.OrganizerProfileId,
                 authorName = post.OrganizerProfile?.DisplayName ?? post.Organizer?.UserName ?? string.Empty,
                 authorImageUrl = post.OrganizerProfile?.AvatarImageUrl ?? post.Organizer?.ProfileImageUrl,
                 content = post.Content,
@@ -165,9 +170,31 @@ namespace EventsApp.Controllers.Api
         public async Task<IActionResult> Create([FromBody] CreatePostDto dto)
         {
             var userId = _userManager.GetUserId(User)!;
-            var post = new Post { OrganizerId = userId, Content = dto.Content };
+            if (!dto.OrganizerProfileId.HasValue)
+                return BadRequest(new { error = "Избери public page. Публикации се качват само през публична страница." });
+            var profile = await _db.OrganizerProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.Id == dto.OrganizerProfileId.Value && p.OwnerId == userId && p.IsActive);
+            if (profile == null) return BadRequest(new { error = "Невалидна public page." });
+
+            var post = new Post
+            {
+                OrganizerId = userId,
+                OrganizerProfileId = profile.Id,
+                BusinessWorkspaceId = dto.BusinessWorkspaceId ?? profile.BusinessWorkspaceId,
+                EventId = dto.EventId,
+                Content = dto.Content.Trim(),
+            };
             _db.Posts.Add(post);
             await _db.SaveChangesAsync();
+            if (!string.IsNullOrWhiteSpace(dto.MediaUrl))
+            {
+                _db.PostImages.Add(new PostImage
+                {
+                    PostId = post.Id,
+                    ImageUrl = dto.MediaUrl.Trim(),
+                    MediaType = Enum.TryParse<PostMediaType>(dto.MediaType, true, out var mediaType) ? mediaType : PostMediaType.Image,
+                });
+                await _db.SaveChangesAsync();
+            }
             return Ok(MapToCard(post, userId));
         }
 
@@ -322,6 +349,7 @@ namespace EventsApp.Controllers.Api
         {
             id = p.Id,
             authorId = p.OrganizerId,
+            organizerProfileId = p.OrganizerProfileId,
             authorName = p.OrganizerProfile?.DisplayName ?? p.Organizer?.UserName ?? string.Empty,
             authorImageUrl = p.OrganizerProfile?.AvatarImageUrl ?? p.Organizer?.ProfileImageUrl,
             content = p.Content,
@@ -339,5 +367,5 @@ namespace EventsApp.Controllers.Api
     }
 }
 
-public record CreatePostDto(string Content);
+public record CreatePostDto(string Content, int? OrganizerProfileId, int? BusinessWorkspaceId, int? EventId, string? MediaUrl, string? MediaType);
 public record PostCommentDto(string Content, int? ParentCommentId);

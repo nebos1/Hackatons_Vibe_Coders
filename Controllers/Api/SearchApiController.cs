@@ -146,6 +146,16 @@ namespace EventsApp.Controllers.Api
 
         private static void ApplyKeywordFallback(AiSearchResult result, string query)
         {
+            var stop = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "искам", "търся", "събития", "събитие", "events", "event", "near", "around", "около", "на"
+            };
+            var compact = string.Join(' ', query
+                .Trim()
+                .ToLowerInvariant()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Where(part => !stop.Contains(part)));
+
             if (!string.IsNullOrWhiteSpace(result.Keyword))
             {
                 result.Keyword = result.Keyword.Trim();
@@ -169,7 +179,7 @@ namespace EventsApp.Controllers.Api
                 return;
             }
 
-            result.Keyword = string.IsNullOrWhiteSpace(query) ? null : query;
+            result.Keyword = string.IsNullOrWhiteSpace(compact) ? (string.IsNullOrWhiteSpace(query) ? null : query) : compact;
         }
     }
 }
