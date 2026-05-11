@@ -21,17 +21,20 @@ namespace EventsApp.Controllers.Api
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IMediaUploadService _media;
         private readonly IEventDeletionService _eventDeletion;
+        private readonly IRecurringEventService _recurringEvents;
 
         public EventsFullApiController(
             ApplicationDbContext db,
             UserManager<ApplicationUser> userManager,
             IMediaUploadService media,
-            IEventDeletionService eventDeletion)
+            IEventDeletionService eventDeletion,
+            IRecurringEventService recurringEvents)
         {
             _db = db;
             _userManager = userManager;
             _media = media;
             _eventDeletion = eventDeletion;
+            _recurringEvents = recurringEvents;
         }
 
         private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -362,6 +365,7 @@ namespace EventsApp.Controllers.Api
 
             _db.Events.Add(ev);
             await _db.SaveChangesAsync();
+            await UpsertSeriesAsync(ev, request, userId);
 
             return Ok(new { id = ev.Id, title = ev.Title, isApproved = ev.IsApproved });
         }
@@ -404,6 +408,7 @@ namespace EventsApp.Controllers.Api
             }
 
             await _db.SaveChangesAsync();
+            await UpsertSeriesAsync(ev, request, userId);
             return Ok(new { id = ev.Id, title = ev.Title, isApproved = ev.IsApproved });
         }
 
@@ -595,6 +600,50 @@ namespace EventsApp.Controllers.Api
             return string.IsNullOrEmpty(name) ? e.Organizer.UserName ?? "" : name;
         }
 
+        private async Task UpsertSeriesAsync(Event ev, CreateEventRequest request, string userId)
+        {
+            if (!Enum.TryParse<EventRecurrenceType>(request.RecurrenceType, true, out var recurrenceType) ||
+                recurrenceType == EventRecurrenceType.None)
+            {
+                return;
+            }
+
+            var series = await _db.EventSeries
+                .Include(s => s.Occurrences)
+                .FirstOrDefaultAsync(s => s.EventId == ev.Id);
+
+            if (series == null)
+            {
+                series = new EventSeries
+                {
+                    EventId = ev.Id,
+                    OrganizerId = userId,
+                };
+                _db.EventSeries.Add(series);
+            }
+
+            series.Title = ev.Title;
+            series.Description = ev.Description;
+            series.Category = ev.Genre;
+            series.Location = ev.Address;
+            series.City = ev.City;
+            series.ImageUrl = ev.ImageUrl;
+            series.RecurrenceType = recurrenceType;
+            series.Interval = Math.Clamp(request.RecurrenceInterval ?? 1, 1, 365);
+            series.DaysOfWeek = request.DaysOfWeek == null ? null : string.Join(",", request.DaysOfWeek.Distinct());
+            series.OccurrenceDisplayMode = EventOccurrenceDisplayMode.ShowAllDates;
+            series.StartDate = (request.RecurrenceStartDate ?? ev.StartTime).Date;
+            series.EndDate = (request.RecurrenceEndDate ?? ev.EndTime).Date;
+            series.StartTime = request.RecurrenceStartTime ?? ev.StartTime.TimeOfDay;
+            series.EndTime = request.RecurrenceEndTime ?? ev.EndTime.TimeOfDay;
+            series.TimeZone = string.IsNullOrWhiteSpace(request.TimeZone) ? "Europe/Sofia" : request.TimeZone;
+            series.Status = EventSeriesStatus.Published;
+            series.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            await _recurringEvents.RegenerateOccurrencesAsync(series, RecurringEditScope.EntireSeries);
+        }
+
         // ── Request DTOs ─────────────────────────────────────────────────────────
 
         public class AttendRequest { public string Status { get; set; } = "Going"; }
@@ -617,6 +666,14 @@ namespace EventsApp.Controllers.Api
             public int? BusinessWorkspaceId { get; set; }
             public double? Latitude { get; set; }
             public double? Longitude { get; set; }
+            public string? RecurrenceType { get; set; }
+            public int? RecurrenceInterval { get; set; }
+            public string[]? DaysOfWeek { get; set; }
+            public DateTime? RecurrenceStartDate { get; set; }
+            public DateTime? RecurrenceEndDate { get; set; }
+            public TimeSpan? RecurrenceStartTime { get; set; }
+            public TimeSpan? RecurrenceEndTime { get; set; }
+            public string? TimeZone { get; set; }
         }
     }
 }
