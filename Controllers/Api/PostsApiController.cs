@@ -171,6 +171,41 @@ namespace EventsApp.Controllers.Api
             return Ok(MapToCard(post, userId));
         }
 
+        [HttpPut("{id:int}")]
+        [Authorize(Policy = "ApiAuth")]
+        public async Task<IActionResult> Update(int id, [FromBody] CreatePostDto dto)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == id);
+            if (post == null) return NotFound();
+            if (post.OrganizerId != userId && !User.IsInRole("Admin")) return Forbid();
+            if (string.IsNullOrWhiteSpace(dto.Content)) return BadRequest(new { error = "Публикацията не може да е празна." });
+
+            post.Content = dto.Content.Trim();
+            await _db.SaveChangesAsync();
+            return Ok(new { id = post.Id, content = post.Content });
+        }
+
+        [HttpDelete("{id:int}")]
+        [Authorize(Policy = "ApiAuth")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var post = await _db.Posts
+                .Include(p => p.Images)
+                .Include(p => p.Comments)
+                .Include(p => p.Likes)
+                .Include(p => p.Saves)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (post == null) return NotFound();
+            if (post.OrganizerId != userId && !User.IsInRole("Admin")) return Forbid();
+
+            _db.Posts.Remove(post);
+            await _db.SaveChangesAsync();
+            return Ok(new { deleted = true });
+        }
+
         // POST /api/posts/{id}/like
         [HttpPost("{id:int}/like")]
         [Authorize(Policy = "ApiAuth")]
@@ -257,4 +292,3 @@ namespace EventsApp.Controllers.Api
 }
 
 public record CreatePostDto(string Content);
-
