@@ -138,9 +138,16 @@ builder.Services.AddAntiforgery(opts =>
 });
 // CORS for Next.js frontend
 var allowedOrigins = new List<string> { "http://localhost:3000", "https://localhost:3000" };
-var frontendBaseUrl = builder.Configuration["Frontend:BaseUrl"];
-if (!string.IsNullOrWhiteSpace(frontendBaseUrl) && frontendBaseUrl != "http://localhost:3000")
-    allowedOrigins.Add(frontendBaseUrl);
+foreach (var frontendBaseUrl in new[]
+{
+    builder.Configuration["Frontend:BaseUrl"],
+    builder.Configuration["FRONTEND_BASE_URL"],
+    builder.Configuration["NEXTAUTH_URL"],
+})
+{
+    if (!string.IsNullOrWhiteSpace(frontendBaseUrl) && frontendBaseUrl != "http://localhost:3000")
+        allowedOrigins.Add(frontendBaseUrl.TrimEnd('/'));
+}
 
 builder.Services.AddCors(options =>
 {
