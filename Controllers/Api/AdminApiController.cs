@@ -73,6 +73,95 @@ namespace EventsApp.Controllers.Api
             return Ok(rows);
         }
 
+        // GET /api/admin/posts
+        [HttpGet("posts")]
+        public async Task<IActionResult> Posts()
+        {
+            if (!IsAdmin) return Forbid();
+
+            var rows = await _db.Posts
+                .AsNoTracking()
+                .Include(p => p.Organizer)
+                .Include(p => p.OrganizerProfile)
+                .Include(p => p.Images)
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(200)
+                .Select(p => new
+                {
+                    id = p.Id,
+                    content = p.Content,
+                    authorName = p.OrganizerProfile != null ? p.OrganizerProfile.DisplayName : p.Organizer.UserName ?? string.Empty,
+                    mediaUrl = p.Images.Select(i => i.ImageUrl).FirstOrDefault(),
+                    mediaType = p.Images.Select(i => i.MediaType.ToString()).FirstOrDefault(),
+                    likesCount = p.Likes.Count,
+                    commentsCount = p.Comments.Count,
+                    createdAt = p.CreatedAt,
+                })
+                .ToListAsync();
+
+            return Ok(rows);
+        }
+
+        // GET /api/admin/transactions
+        [HttpGet("transactions")]
+        public async Task<IActionResult> Transactions()
+        {
+            if (!IsAdmin) return Forbid();
+
+            var rows = await _db.Transactions
+                .AsNoTracking()
+                .Include(t => t.User)
+                .Include(t => t.UserTickets)
+                    .ThenInclude(ut => ut.Ticket)
+                    .ThenInclude(t => t.Event)
+                .OrderByDescending(t => t.CreatedAt)
+                .Take(200)
+                .Select(t => new
+                {
+                    id = t.Id,
+                    userName = t.User.UserName ?? string.Empty,
+                    userEmail = t.User.Email ?? string.Empty,
+                    totalAmount = t.TotalAmount,
+                    status = t.Status,
+                    createdAt = t.CreatedAt,
+                    ticketsCount = t.UserTickets.Count,
+                    eventTitle = t.UserTickets.Select(ut => ut.Ticket.Event.Title).FirstOrDefault(),
+                })
+                .ToListAsync();
+
+            return Ok(rows);
+        }
+
+        // GET /api/admin/tickets
+        [HttpGet("tickets")]
+        public async Task<IActionResult> Tickets()
+        {
+            if (!IsAdmin) return Forbid();
+
+            var rows = await _db.UserTickets
+                .AsNoTracking()
+                .Include(ut => ut.Ticket).ThenInclude(t => t.Event)
+                .Include(ut => ut.Transaction).ThenInclude(t => t.User)
+                .OrderByDescending(ut => ut.CreatedAt)
+                .Take(300)
+                .Select(ut => new
+                {
+                    id = ut.Id,
+                    eventId = ut.Ticket.EventId,
+                    eventTitle = ut.Ticket.Event.Title,
+                    ticketName = ut.Ticket.Name,
+                    ownerName = ut.Transaction.User.UserName ?? string.Empty,
+                    ownerEmail = ut.Transaction.User.Email ?? string.Empty,
+                    pricePaid = ut.PricePaid,
+                    isUsed = ut.IsUsed,
+                    createdAt = ut.CreatedAt,
+                    usedAt = ut.UsedAt,
+                })
+                .ToListAsync();
+
+            return Ok(rows);
+        }
+
         // POST /api/admin/organizers/{id}/approve
         [HttpPost("organizers/{id}/approve")]
         public async Task<IActionResult> ApproveOrganizer(string id)

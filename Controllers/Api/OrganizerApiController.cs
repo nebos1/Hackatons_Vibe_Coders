@@ -172,9 +172,53 @@ namespace EventsApp.Controllers.Api
                 .AsNoTracking()
                 .Where(p => p.OwnerId == UserId && p.IsActive)
                 .OrderByDescending(p => p.IsDefault)
-                .Select(p => new { id = p.Id, displayName = p.DisplayName, isDefault = p.IsDefault })
+                .Select(p => new
+                {
+                    id = p.Id,
+                    displayName = p.DisplayName,
+                    tagline = p.Tagline,
+                    city = p.City,
+                    avatarImageUrl = p.AvatarImageUrl,
+                    coverImageUrl = p.CoverImageUrl,
+                    website = p.Website,
+                    isDefault = p.IsDefault,
+                    isApproved = p.IsApproved,
+                    eventsCount = p.Events.Count,
+                    postsCount = p.Posts.Count,
+                })
                 .ToListAsync();
             return Ok(profiles);
+        }
+
+        // GET /api/organizer/validators
+        [HttpGet("validators")]
+        public async Task<IActionResult> Validators()
+        {
+            if (!IsOrganizer) return Forbid();
+            var organizerId = UserId;
+
+            var rows = await _db.OrganizerValidatorAssignments
+                .AsNoTracking()
+                .Include(a => a.ValidatorUser)
+                .Include(a => a.OrganizerProfile)
+                .Where(a => a.OrganizerId == organizerId)
+                .OrderByDescending(a => a.IsActive)
+                .ThenBy(a => a.ValidatorUser.UserName)
+                .Select(a => new
+                {
+                    id = a.Id,
+                    validatorUserId = a.ValidatorUserId,
+                    validatorUserName = a.ValidatorUser.UserName ?? string.Empty,
+                    validatorEmail = a.ValidatorUser.Email ?? string.Empty,
+                    organizerProfileId = a.OrganizerProfileId,
+                    organizerProfileName = a.OrganizerProfile != null ? a.OrganizerProfile.DisplayName : null,
+                    isActive = a.IsActive,
+                    createdAt = a.CreatedAt,
+                    updatedAt = a.UpdatedAt,
+                })
+                .ToListAsync();
+
+            return Ok(rows);
         }
 
         // POST /api/organizer/boost/{eventId}
