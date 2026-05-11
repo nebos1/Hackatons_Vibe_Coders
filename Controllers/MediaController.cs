@@ -30,7 +30,7 @@ namespace EventsApp.Controllers
                 return NotFound();
             }
 
-            Response.Headers.CacheControl = "public, max-age=300";
+            Response.Headers.CacheControl = "public, max-age=3600, stale-while-revalidate=86400";
             return Redirect(signedUrl);
         }
     }

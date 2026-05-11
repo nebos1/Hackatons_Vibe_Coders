@@ -398,7 +398,13 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+    }
+});
 
 var supportedCultures = new[] { "bg", "en" };
 app.UseRequestLocalization(new RequestLocalizationOptions()
