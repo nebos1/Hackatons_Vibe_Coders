@@ -267,20 +267,28 @@ namespace EventsApp.Controllers.Api
                 message.Likes.Add(new MessageLike { MessageId = id, UserId = userId });
                 await _db.SaveChangesAsync();
             }
-            return Ok(new { likesCount = message.Likes.Count, currentUserLiked = true });
+            var count = message.Likes.Count;
+            var convoToken = message.Conversation.Token.ToString();
+            await _hub.Clients.Group(convoToken).SendAsync("MessageLiked", new { messageId = id, likesCount = count });
+            return Ok(new { likesCount = count, currentUserLiked = true });
         }
 
         [HttpDelete("messages/{id:int}/like")]
         public async Task<IActionResult> UnlikeMessage(int id)
         {
             var userId = _userManager.GetUserId(User)!;
+            var message = await _db.Messages.Include(m => m.Conversation).FirstOrDefaultAsync(m => m.Id == id);
+            if (message == null) return NotFound();
             var like = await _db.MessageLikes.FirstOrDefaultAsync(l => l.MessageId == id && l.UserId == userId);
             if (like != null)
             {
                 _db.MessageLikes.Remove(like);
                 await _db.SaveChangesAsync();
             }
-            return Ok(new { likesCount = await _db.MessageLikes.CountAsync(l => l.MessageId == id), currentUserLiked = false });
+            var count = await _db.MessageLikes.CountAsync(l => l.MessageId == id);
+            var convoToken = message.Conversation.Token.ToString();
+            await _hub.Clients.Group(convoToken).SendAsync("MessageLiked", new { messageId = id, likesCount = count });
+            return Ok(new { likesCount = count, currentUserLiked = false });
         }
 
         private async Task<IActionResult> SetStatus(Guid token, ConversationStatus status)

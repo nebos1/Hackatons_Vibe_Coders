@@ -1,8 +1,10 @@
 using EventsApp.Data;
+using EventsApp.Hubs;
 using EventsApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventsApp.Controllers.Api
@@ -14,11 +16,13 @@ namespace EventsApp.Controllers.Api
     {
         private readonly ApplicationDbContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IHubContext<FeedHub> _feed;
 
-        public PostsApiController(ApplicationDbContext db, UserManager<ApplicationUser> userManager)
+        public PostsApiController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, IHubContext<FeedHub> feed)
         {
             _db = db;
             _userManager = userManager;
+            _feed = feed;
         }
 
         // GET /api/posts
@@ -246,7 +250,9 @@ namespace EventsApp.Controllers.Api
                 post.Likes.Add(new PostLike { UserId = userId, PostId = id });
                 await _db.SaveChangesAsync();
             }
-            return Ok(new { likesCount = post.Likes.Count });
+            var count = post.Likes.Count;
+            await _feed.Clients.Group($"post:{id}").SendAsync("PostLiked", new { postId = id, likesCount = count });
+            return Ok(new { likesCount = count });
         }
 
         // POST /api/posts/{id}/unlike
@@ -262,6 +268,7 @@ namespace EventsApp.Controllers.Api
                 await _db.SaveChangesAsync();
             }
             var count = await _db.PostLikes.CountAsync(l => l.PostId == id);
+            await _feed.Clients.Group($"post:{id}").SendAsync("PostLiked", new { postId = id, likesCount = count });
             return Ok(new { likesCount = count });
         }
 

@@ -1,5 +1,6 @@
 using EventsApp.Common;
 using EventsApp.Data;
+using EventsApp.Hubs;
 using EventsApp.Models;
 using EventsApp.Services;
 using EventsApp.Services.AI;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -25,6 +27,7 @@ namespace EventsApp.Controllers.Api
         private readonly IRecurringEventService _recurringEvents;
         private readonly IAiSearchService _ai;
         private readonly ILayoutService _layouts;
+        private readonly IHubContext<FeedHub> _feed;
 
         public EventsFullApiController(
             ApplicationDbContext db,
@@ -33,7 +36,8 @@ namespace EventsApp.Controllers.Api
             IEventDeletionService eventDeletion,
             IRecurringEventService recurringEvents,
             IAiSearchService ai,
-            ILayoutService layouts)
+            ILayoutService layouts,
+            IHubContext<FeedHub> feed)
         {
             _db = db;
             _userManager = userManager;
@@ -42,6 +46,7 @@ namespace EventsApp.Controllers.Api
             _recurringEvents = recurringEvents;
             _ai = ai;
             _layouts = layouts;
+            _feed = feed;
         }
 
         private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -240,6 +245,7 @@ namespace EventsApp.Controllers.Api
             }
 
             var count = await _db.EventLikes.CountAsync(l => l.EventId == id);
+            await _feed.Clients.Group($"event:{id}").SendAsync("EventLiked", new { eventId = id, likesCount = count });
             return Ok(new { likesCount = count, isLiked = true });
         }
 
@@ -257,6 +263,7 @@ namespace EventsApp.Controllers.Api
                 await _db.SaveChangesAsync();
             }
             var count = await _db.EventLikes.CountAsync(l => l.EventId == id);
+            await _feed.Clients.Group($"event:{id}").SendAsync("EventLiked", new { eventId = id, likesCount = count });
             return Ok(new { likesCount = count, isLiked = false });
         }
 

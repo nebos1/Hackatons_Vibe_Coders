@@ -458,6 +458,7 @@ app.MapGet("/", () => Results.Json(new { api = "Evento API", version = "1.0", do
 
 // SignalR hubs
 app.MapHub<EventsApp.Hubs.ChatHub>("/hubs/chat");
+app.MapHub<EventsApp.Hubs.FeedHub>("/hubs/feed");
 
 app.Run();
 
