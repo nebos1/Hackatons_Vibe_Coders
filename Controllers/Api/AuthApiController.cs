@@ -1,6 +1,12 @@
+using System.Text;
+using System.Text.Encodings.Web;
 using EventsApp.Data;
 using EventsApp.Models;
+using EventsApp.Services;
+using EventsApp.Services.Email;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -24,19 +30,28 @@ namespace EventsApp.Controllers.Api
         private readonly IConfiguration _config;
         private readonly SymmetricSecurityKey _jwtKey;
         private readonly ApplicationDbContext _db;
+        private readonly IEmailConfirmationSender _confirmationSender;
+        private readonly IEmailSender _emailSender;
+        private readonly IAppLinkService _appLinks;
 
         public AuthApiController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             IConfiguration config,
             SymmetricSecurityKey jwtKey,
-            ApplicationDbContext db)
+            ApplicationDbContext db,
+            IEmailConfirmationSender confirmationSender,
+            IEmailSender emailSender,
+            IAppLinkService appLinks)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _config = config;
             _jwtKey = jwtKey;
             _db = db;
+            _confirmationSender = confirmationSender;
+            _emailSender = emailSender;
+            _appLinks = appLinks;
         }
 
         // POST /api/auth/login
@@ -98,7 +113,11 @@ namespace EventsApp.Controllers.Api
             await _userManager.AddToRoleAsync(user, "User");
 
             if (!user.EmailConfirmed)
-                return Ok(new { message = "Регистрацията е успешна! Потвърди имейла си преди да влезеш." });
+            {
+                // Send confirmation email (non-blocking — don't fail registration if email fails)
+                _ = _confirmationSender.SendAsync(user, HttpContext.Request, returnUrl: null, organizerSignup: false);
+                return Ok(new { message = "Регистрацията е успешна! Изпратихме ти имейл за потвърждение." });
+            }
 
             var token = await GenerateJwtTokenAsync(user);
             var userDto = await BuildUserDtoAsync(user);
@@ -118,6 +137,105 @@ namespace EventsApp.Controllers.Api
             if (user == null) return NotFound();
 
             return Ok(await BuildUserDtoAsync(user));
+        }
+
+        // POST /api/auth/resend-confirmation
+        [HttpPost("resend-confirmation")]
+        [EnableRateLimiting("auth")]
+        public async Task<IActionResult> ResendConfirmation([FromBody] ResendConfirmationRequest request)
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email.Trim());
+            if (user == null || await _userManager.IsEmailConfirmedAsync(user))
+                return Ok(new { message = "Ако имейлът съществува и не е потвърден, ще получиш нов линк." });
+
+            _ = _confirmationSender.SendAsync(user, HttpContext.Request, returnUrl: null, organizerSignup: false);
+            return Ok(new { message = "Изпратихме нов линк за потвърждение." });
+        }
+
+        // POST /api/auth/forgot-password
+        [HttpPost("forgot-password")]
+        [EnableRateLimiting("auth")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email.Trim());
+            // Always return OK to avoid user enumeration
+            if (user == null || !await _userManager.IsEmailConfirmedAsync(user))
+                return Ok(new { message = "Ако имейлът е регистриран, ще получиш линк за смяна на парола." });
+
+            var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+            var resetRequest = new PasswordResetRequest
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                UserId = user.Id,
+                Email = user.Email!,
+                Code = code,
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddHours(2),
+            };
+            _db.PasswordResetRequests.Add(resetRequest);
+            await _db.SaveChangesAsync();
+
+            var resetUrl = _appLinks.ToAbsoluteUrl(HttpContext.Request, $"/reset-password?r={resetRequest.Id}");
+            var encodedUrl = HtmlEncoder.Default.Encode(resetUrl);
+
+            _ = _emailSender.SendEmailAsync(user.Email!, "Смяна на парола - Evento", $"""
+                <div style="margin:0;padding:0;background:#f2f5ff">
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f2f5ff;border-collapse:collapse">
+                    <tr><td align="center" style="padding:28px 14px">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:#fff;border-collapse:collapse;border-radius:18px;overflow:hidden">
+                        <tr><td style="background:#4f46e5;color:#fff;padding:28px 30px;font-family:Arial,sans-serif">
+                          <div style="font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase">Evento</div>
+                          <h1 style="margin:14px 0 0;font-size:26px;color:#fff">Смяна на парола</h1>
+                        </td></tr>
+                        <tr><td style="padding:28px 30px;font-family:Arial,sans-serif;color:#111827;font-size:15px;line-height:1.55">
+                          <p style="margin:0 0 18px">Получихме заявка за смяна на паролата ти. Натисни бутона по-долу:</p>
+                          <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;margin:0 0 20px">
+                            <tr><td bgcolor="#4f46e5" style="border-radius:10px">
+                              <a href="{encodedUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:12px 22px;font-family:Arial,sans-serif;font-size:15px;font-weight:800;color:#fff;text-decoration:none;border-radius:10px">Смени паролата</a>
+                            </td></tr>
+                          </table>
+                          <p style="margin:0 0 8px;color:#475569">Ако не си поискал смяна на парола, игнорирай този имейл. Линкът изтича след 2 часа.</p>
+                        </td></tr>
+                      </table>
+                    </td></tr>
+                  </table>
+                </div>
+                """);
+
+            return Ok(new { message = "Ако имейлът е регистриран, ще получиш линк за смяна на парола." });
+        }
+
+        // POST /api/auth/reset-password
+        [HttpPost("reset-password")]
+        [EnableRateLimiting("auth")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            var now = DateTime.UtcNow;
+            var resetRequest = await _db.PasswordResetRequests
+                .AsTracking()
+                .FirstOrDefaultAsync(r => r.Id == request.RequestId.Trim()
+                    && r.UsedAt == null
+                    && r.ExpiresAt > now);
+
+            if (resetRequest == null)
+                return BadRequest(new { error = "Линкът е невалиден или изтекъл. Поискай нов линк." });
+
+            var user = await _userManager.FindByIdAsync(resetRequest.UserId);
+            if (user == null) return BadRequest(new { error = "Акаунтът не е намерен." });
+
+            string decodedCode;
+            try { decodedCode = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(resetRequest.Code)); }
+            catch { return BadRequest(new { error = "Невалиден линк." }); }
+
+            var result = await _userManager.ResetPasswordAsync(user, decodedCode, request.NewPassword);
+            if (!result.Succeeded)
+                return BadRequest(new { error = result.Errors.FirstOrDefault()?.Description ?? "Грешка при смяна на паролата." });
+
+            resetRequest.UsedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Паролата е сменена успешно. Можеш да влезеш с новата парола." });
         }
 
         // POST /api/auth/logout
@@ -254,6 +372,22 @@ namespace EventsApp.Controllers.Api
         {
             public string Email { get; set; } = "";
             public string Password { get; set; } = "";
+        }
+
+        public class ResendConfirmationRequest
+        {
+            public string Email { get; set; } = "";
+        }
+
+        public class ForgotPasswordRequest
+        {
+            public string Email { get; set; } = "";
+        }
+
+        public class ResetPasswordRequest
+        {
+            public string RequestId { get; set; } = "";
+            public string NewPassword { get; set; } = "";
         }
 
         public class RegisterRequest
