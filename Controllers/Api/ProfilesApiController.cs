@@ -224,6 +224,28 @@ namespace EventsApp.Controllers.Api
             if (user == null) return NotFound();
 
             var roles = await _userManager.GetRolesAsync(user);
+            var isOrganizer = roles.Contains("Organizer") || roles.Contains("Admin");
+            var isOwn = user.Id == currentUserId;
+            var isFollowing = currentUserId != null && user.Followers.Any(f => f.FollowerId == currentUserId);
+            var followersCount = user.Followers.Count;
+            var followingCount = user.Following.Count;
+
+            var displayName = string.Join(" ", new[] { user.FirstName, user.LastName }
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
+            if (string.IsNullOrWhiteSpace(displayName)) displayName = user.UserName ?? "Профил";
+
+            // Attendance-based counts (cheap aggregates only — no event payloads here).
+            var attendedCount = await _db.EventAttendances
+                .CountAsync(a => a.UserId == user.Id && a.Status == EventAttendanceStatus.Going);
+            var interestedCount = await _db.EventAttendances
+                .CountAsync(a => a.UserId == user.Id && a.Status == EventAttendanceStatus.Interested);
+
+            var citiesVisitedCount = await _db.EventAttendances
+                .Where(a => a.UserId == user.Id && a.Status == EventAttendanceStatus.Going)
+                .Select(a => a.Event!.City)
+                .Where(c => c != null && c != "")
+                .Distinct()
+                .CountAsync();
 
             return Ok(new
             {
@@ -231,13 +253,30 @@ namespace EventsApp.Controllers.Api
                 userName = user.UserName,
                 firstName = user.FirstName,
                 lastName = user.LastName,
+                displayName,
                 profileImageUrl = user.ProfileImageUrl,
                 bio = user.Bio,
-                followerCount = user.Followers.Count,
-                followingCount = user.Following.Count,
-                isFollowing = currentUserId != null && user.Followers.Any(f => f.FollowerId == currentUserId),
-                isOwnProfile = user.Id == currentUserId,
-                roles = roles,
+                joinedAt = user.CreatedAt,
+                profileStatusText = user.ProfileStatusText,
+                profileStatusEmoji = user.ProfileStatusEmoji,
+                profileStatusUpdatedAt = user.ProfileStatusUpdatedAt,
+
+                // Counts (return both camelCase variants the frontend handles)
+                followerCount = followersCount,
+                followersCount,
+                followingCount,
+                eventsAttendedCount = attendedCount,
+                eventsInterestedCount = interestedCount,
+                citiesVisitedCount,
+
+                // Identity flags (return aliases so the frontend's `??` chains always hit)
+                isFollowing,
+                currentUserFollows = isFollowing,
+                isOwnProfile = isOwn,
+                isCurrentUser = isOwn,
+                isOrganizer,
+
+                roles,
             });
         }
 
