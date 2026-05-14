@@ -97,6 +97,8 @@ namespace EventsApp.Data
 
         public DbSet<EmailConfirmationRequest> EmailConfirmationRequests { get; set; } = null!;
 
+        public DbSet<RevokedJwtToken> RevokedJwtTokens { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -679,6 +681,20 @@ namespace EventsApp.Data
                 entity.HasIndex(r => r.UserId);
                 entity.HasIndex(r => r.ExpiresAt);
                 entity.HasIndex(r => r.UsedAt);
+            });
+
+            builder.Entity<RevokedJwtToken>(entity =>
+            {
+                entity.HasKey(t => t.Jti);
+                entity.Property(t => t.Jti).HasMaxLength(64);
+
+                entity.HasOne(t => t.User)
+                      .WithMany()
+                      .HasForeignKey(t => t.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(t => t.UserId);
+                entity.HasIndex(t => t.ExpiresAt);
             });
 
             builder.Entity<Ticket>(entity =>

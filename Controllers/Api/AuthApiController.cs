@@ -16,7 +16,6 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 
 namespace EventsApp.Controllers.Api
 {
@@ -243,6 +242,35 @@ namespace EventsApp.Controllers.Api
         [Authorize(Policy = "ApiAuth")]
         public async Task<IActionResult> Logout()
         {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+            var expiresAt = GetJwtExpiresAt(User);
+            if (!string.IsNullOrWhiteSpace(userId)
+                && !string.IsNullOrWhiteSpace(jti)
+                && expiresAt > DateTime.UtcNow)
+            {
+                var revokedToken = new RevokedJwtToken
+                {
+                    Jti = jti,
+                    UserId = userId,
+                    ExpiresAt = expiresAt,
+                };
+
+                _db.RevokedJwtTokens.Add(revokedToken);
+                try
+                {
+                    await _db.SaveChangesAsync();
+                }
+                catch (DbUpdateException)
+                {
+                    _db.Entry(revokedToken).State = EntityState.Detached;
+                    if (!await _db.RevokedJwtTokens.AnyAsync(t => t.Jti == jti))
+                    {
+                        throw;
+                    }
+                }
+            }
+
             await _signInManager.SignOutAsync();
             return Ok(new { message = "Излязохте успешно." });
         }
@@ -293,6 +321,14 @@ namespace EventsApp.Controllers.Api
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private static DateTime GetJwtExpiresAt(ClaimsPrincipal principal)
+        {
+            var exp = principal.FindFirstValue(JwtRegisteredClaimNames.Exp);
+            return long.TryParse(exp, out var seconds)
+                ? DateTimeOffset.FromUnixTimeSeconds(seconds).UtcDateTime
+                : DateTime.UtcNow;
         }
 
         private async Task<object> BuildUserDtoAsync(ApplicationUser user)

@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
@@ -184,6 +185,25 @@ builder.Services.AddAuthentication()
         // Allow JWT from query string for SignalR WebSocket connections
         options.Events = new JwtBearerEvents
         {
+            OnTokenValidated = async context =>
+            {
+                var principal = context.Principal;
+                var jti = principal?.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti);
+                if (string.IsNullOrWhiteSpace(jti))
+                {
+                    context.Fail("Token is missing id.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+                var isRevoked = await db.RevokedJwtTokens
+                    .AsNoTracking()
+                    .AnyAsync(t => t.Jti == jti && t.ExpiresAt > DateTime.UtcNow);
+                if (isRevoked)
+                {
+                    context.Fail("Token has been revoked.");
+                }
+            },
             OnMessageReceived = context =>
             {
                 var accessToken = context.Request.Query["access_token"];
@@ -222,8 +242,14 @@ builder.Services.AddRateLimiter(options =>
             .CreateLogger("RateLimit");
         var ip = context.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
         var path = context.HttpContext.Request.Path.Value ?? "?";
-        logger.LogWarning("Rate limit hit. IP={Ip} Path={Path} Method={Method}",
-            ip, path, context.HttpContext.Request.Method);
+        var method = context.HttpContext.Request.Method;
+        var logCache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
+        var logKey = $"rate-limit-log:{ip}:{method}:{path}";
+        if (!logCache.TryGetValue(logKey, out _))
+        {
+            logCache.Set(logKey, true, TimeSpan.FromMinutes(1));
+            logger.LogWarning("Rate limit hit. IP={Ip} Path={Path} Method={Method}", ip, path, method);
+        }
 
         if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
         {
