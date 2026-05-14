@@ -160,6 +160,9 @@ namespace EventsApp.Controllers.Api
             await _db.SaveChangesAsync();
 
             var summary = MapConversation(convo, userId);
+            var isOutgoingRequest = convo.Status == ConversationStatus.Pending && convo.RequestedByUserId == userId;
+            var isIncomingRequest = convo.Status == ConversationStatus.Pending && convo.RequestedByUserId != null && convo.RequestedByUserId != userId;
+
             return Ok(new
             {
                 summary.token,
@@ -172,6 +175,9 @@ namespace EventsApp.Controllers.Api
                 summary.currentUserOwnsPage,
                 summary.isPageConversation,
                 status = convo.Status.ToString(),
+                requestedByUserId = convo.RequestedByUserId,
+                isOutgoingRequest,
+                isIncomingRequest,
                 messages = convo.Messages.OrderBy(m => m.CreatedAt).Select(m => MapMessage(m, userId)),
             });
         }

@@ -20413,3 +20413,173 @@ html[data-theme="dark"] .filter-fab:hover {
 html[data-theme="dark"] .comment-author-link:hover {
     color: #a99df8 !important;
 }
+
+/* === People search (instant autocomplete) === */
+.people-search {
+    position: relative;
+}
+.people-search__form {
+    position: relative;
+    width: 100%;
+}
+.people-search__spinner {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(108, 92, 231, 0.25);
+    border-top-color: #6c5ce7;
+    border-radius: 50%;
+    animation: people-search-spin 0.7s linear infinite;
+    pointer-events: none;
+}
+@keyframes people-search-spin {
+    to { transform: translateY(-50%) rotate(360deg); }
+}
+.people-search__dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 50;
+    max-height: 420px;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    border-radius: 14px;
+    box-shadow: 0 12px 32px -10px rgba(15, 23, 42, 0.18);
+    overscroll-behavior: contain;
+}
+.people-search__state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 22px 16px;
+    color: #64748b;
+    font-size: 0.88rem;
+}
+.people-search__list {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+}
+.people-search__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.12s;
+}
+.people-search__item:hover,
+.people-search__item.is-active {
+    background: rgba(108, 92, 231, 0.08);
+    text-decoration: none;
+    color: inherit;
+}
+.people-search__avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6c5ce7, #a99df8);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.people-search__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.people-search__body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+.people-search__body strong {
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.people-search__body small {
+    font-size: 0.78rem;
+    color: #64748b;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.people-search__body small i { margin-right: 3px; }
+
+html[data-theme="dark"] .people-search__dropdown {
+    background: #171d2b;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 32px -10px rgba(0, 0, 0, 0.7);
+}
+html[data-theme="dark"] .people-search__state { color: #94a3b8; }
+html[data-theme="dark"] .people-search__item:hover,
+html[data-theme="dark"] .people-search__item.is-active {
+    background: rgba(108, 92, 231, 0.18);
+}
+html[data-theme="dark"] .people-search__body small { color: #94a3b8; }
+
+/* === Improved inbox empty state actions === */
+.msg-empty-state__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 6px;
+}
+.msg-empty-state__cta--ghost {
+    background: transparent !important;
+    color: var(--msg-accent, #2456ff) !important;
+    border: 1.5px solid rgba(36, 86, 255, 0.35);
+}
+.msg-empty-state__cta--ghost:hover {
+    background: rgba(36, 86, 255, 0.08) !important;
+    color: var(--msg-accent, #2456ff) !important;
+    border-color: rgba(36, 86, 255, 0.55);
+}
+html[data-theme="dark"] .msg-empty-state__cta--ghost {
+    color: #7c9aff !important;
+    border-color: rgba(124, 154, 255, 0.4);
+}
+html[data-theme="dark"] .msg-empty-state__cta--ghost:hover {
+    background: rgba(124, 154, 255, 0.12) !important;
+    color: #7c9aff !important;
+}
+
+/* === Toast notification for sent message request === */
+.evt-toast {
+    position: fixed;
+    bottom: 92px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1050;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border-radius: 999px;
+    background: #0f172a;
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.45);
+    animation: toast-in 0.25s ease-out;
+}
+.evt-toast i { color: #a99df8; }
+@keyframes toast-in {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+@media (min-width: 768px) {
+    .evt-toast { bottom: 28px; }
+}
