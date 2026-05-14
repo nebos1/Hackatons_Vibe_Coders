@@ -61,10 +61,13 @@ namespace EventsApp.Controllers.Api
         }
 
         [HttpPost("conversations")]
-        public async Task<IActionResult> FindOrCreateConversation([FromBody] StartConversationDto dto)
+        public async Task<IActionResult> FindOrCreateConversation([FromBody] StartConversationDto? dto)
         {
-            var userId = _userManager.GetUserId(User)!;
-            var otherUserId = (dto.UserId ?? string.Empty).Trim();
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId) || !await _db.Users.AnyAsync(u => u.Id == userId))
+                return Unauthorized(new { error = "Сесията е невалидна. Влез отново." });
+
+            var otherUserId = (dto?.UserId ?? string.Empty).Trim();
 
             if (string.IsNullOrWhiteSpace(otherUserId) || otherUserId == userId)
                 return BadRequest(new { error = "Невалиден получател." });
@@ -72,33 +75,48 @@ namespace EventsApp.Controllers.Api
             if (!await _db.Users.AnyAsync(u => u.Id == otherUserId))
                 return NotFound(new { error = "Потребителят не е намерен." });
 
-            var convo = await _db.Conversations.FirstOrDefaultAsync(c =>
-                c.OrganizerProfileId == null &&
-                ((c.ParticipantOneId == userId && c.ParticipantTwoId == otherUserId) ||
-                 (c.ParticipantOneId == otherUserId && c.ParticipantTwoId == userId)));
+            var convo = await FindPersonalConversationAsync(userId, otherUserId);
 
             if (convo == null)
             {
+                var (participantOneId, participantTwoId) = OrderParticipantIds(userId, otherUserId);
                 convo = new Conversation
                 {
-                    ParticipantOneId = userId,
-                    ParticipantTwoId = otherUserId,
+                    ParticipantOneId = participantOneId,
+                    ParticipantTwoId = participantTwoId,
                     Status = ConversationStatus.Pending,
                     RequestedByUserId = userId,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                 };
                 _db.Conversations.Add(convo);
-                await _db.SaveChangesAsync();
+
+                try
+                {
+                    await _db.SaveChangesAsync();
+                }
+                catch (DbUpdateException)
+                {
+                    _db.Entry(convo).State = EntityState.Detached;
+                    convo = await FindPersonalConversationAsync(userId, otherUserId);
+                    if (convo == null)
+                        return StatusCode(StatusCodes.Status409Conflict, new { error = "Разговорът не можа да бъде създаден. Опитай отново." });
+                }
             }
 
             return Ok(new { token = convo.Token.ToString() });
         }
 
         [HttpPost("conversations/page")]
-        public async Task<IActionResult> FindOrCreatePageConversation([FromBody] StartPageConversationDto dto)
+        public async Task<IActionResult> FindOrCreatePageConversation([FromBody] StartPageConversationDto? dto)
         {
-            var userId = _userManager.GetUserId(User)!;
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrWhiteSpace(userId) || !await _db.Users.AnyAsync(u => u.Id == userId))
+                return Unauthorized(new { error = "Сесията е невалидна. Влез отново." });
+
+            if (dto == null || dto.OrganizerProfileId <= 0)
+                return BadRequest(new { error = "Невалидна страница." });
+
             var page = await _db.OrganizerProfiles
                 .AsNoTracking()
                 .Include(p => p.BusinessWorkspace)
@@ -116,10 +134,11 @@ namespace EventsApp.Controllers.Api
 
             if (convo == null)
             {
+                var (participantOneId, participantTwoId) = OrderParticipantIds(userId, page.OwnerId);
                 convo = new Conversation
                 {
-                    ParticipantOneId = userId,
-                    ParticipantTwoId = page.OwnerId,
+                    ParticipantOneId = participantOneId,
+                    ParticipantTwoId = participantTwoId,
                     OrganizerProfileId = page.Id,
                     Status = ConversationStatus.Pending,
                     RequestedByUserId = userId,
@@ -127,7 +146,21 @@ namespace EventsApp.Controllers.Api
                     UpdatedAt = DateTime.UtcNow,
                 };
                 _db.Conversations.Add(convo);
-                await _db.SaveChangesAsync();
+
+                try
+                {
+                    await _db.SaveChangesAsync();
+                }
+                catch (DbUpdateException)
+                {
+                    _db.Entry(convo).State = EntityState.Detached;
+                    convo = await _db.Conversations.FirstOrDefaultAsync(c =>
+                        c.OrganizerProfileId == page.Id &&
+                        ((c.ParticipantOneId == userId && c.ParticipantTwoId == page.OwnerId) ||
+                         (c.ParticipantOneId == page.OwnerId && c.ParticipantTwoId == userId)));
+                    if (convo == null)
+                        return StatusCode(StatusCodes.Status409Conflict, new { error = "Разговорът не можа да бъде създаден. Опитай отново." });
+                }
             }
 
             return Ok(new { token = convo.Token.ToString() });
@@ -327,6 +360,17 @@ namespace EventsApp.Controllers.Api
             await _db.SaveChangesAsync();
             return Ok(new { status = convo.Status.ToString() });
         }
+
+        private Task<Conversation?> FindPersonalConversationAsync(string userId, string otherUserId)
+            => _db.Conversations.FirstOrDefaultAsync(c =>
+                c.OrganizerProfileId == null &&
+                ((c.ParticipantOneId == userId && c.ParticipantTwoId == otherUserId) ||
+                 (c.ParticipantOneId == otherUserId && c.ParticipantTwoId == userId)));
+
+        private static (string ParticipantOneId, string ParticipantTwoId) OrderParticipantIds(string firstUserId, string secondUserId)
+            => string.CompareOrdinal(firstUserId, secondUserId) <= 0
+                ? (firstUserId, secondUserId)
+                : (secondUserId, firstUserId);
 
         private static dynamic MapConversation(Conversation c, string userId)
         {
