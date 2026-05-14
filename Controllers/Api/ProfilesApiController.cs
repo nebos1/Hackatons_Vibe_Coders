@@ -242,12 +242,116 @@ namespace EventsApp.Controllers.Api
             var interestedCount = await _db.EventAttendances
                 .CountAsync(a => a.UserId == user.Id && a.Status == EventAttendanceStatus.Interested);
 
+            var now = DateTime.UtcNow;
+
             var citiesVisitedCount = await _db.EventAttendances
-                .Where(a => a.UserId == user.Id && a.Status == EventAttendanceStatus.Going)
+                .Where(a => a.UserId == user.Id && a.Status == EventAttendanceStatus.Going && a.Event!.EndTime < now)
                 .Select(a => a.Event!.City)
                 .Where(c => c != null && c != "")
                 .Distinct()
                 .CountAsync();
+
+            // Past attendance — events the user was Going to whose end time has passed.
+            var attendedEvents = await _db.EventAttendances
+                .AsNoTracking()
+                .Where(a => a.UserId == user.Id
+                    && a.Status == EventAttendanceStatus.Going
+                    && a.Event!.EndTime < now)
+                .OrderByDescending(a => a.Event!.StartTime)
+                .Take(24)
+                .Select(a => new
+                {
+                    id = a.Event!.Id,
+                    title = a.Event.Title,
+                    description = a.Event.Description,
+                    startTime = a.Event.StartTime,
+                    endTime = a.Event.EndTime,
+                    genre = a.Event.Genre.ToString(),
+                    imageUrl = a.Event.ImageUrl,
+                    address = a.Event.Address,
+                    city = a.Event.City,
+                    organizerProfileId = a.Event.OrganizerProfileId,
+                    organizerName = a.Event.OrganizerProfile != null
+                        ? a.Event.OrganizerProfile.DisplayName
+                        : (a.Event.Organizer.FirstName + " " + a.Event.Organizer.LastName).Trim(),
+                })
+                .ToListAsync();
+
+            // Upcoming "plans" — events the user is Going to that are still in the future.
+            var goingEvents = await _db.EventAttendances
+                .AsNoTracking()
+                .Where(a => a.UserId == user.Id
+                    && a.Status == EventAttendanceStatus.Going
+                    && a.Event!.EndTime >= now)
+                .OrderBy(a => a.Event!.StartTime)
+                .Take(12)
+                .Select(a => new
+                {
+                    id = a.Event!.Id,
+                    title = a.Event.Title,
+                    description = a.Event.Description,
+                    startTime = a.Event.StartTime,
+                    endTime = a.Event.EndTime,
+                    genre = a.Event.Genre.ToString(),
+                    imageUrl = a.Event.ImageUrl,
+                    address = a.Event.Address,
+                    city = a.Event.City,
+                    organizerProfileId = a.Event.OrganizerProfileId,
+                    organizerName = a.Event.OrganizerProfile != null
+                        ? a.Event.OrganizerProfile.DisplayName
+                        : (a.Event.Organizer.FirstName + " " + a.Event.Organizer.LastName).Trim(),
+                })
+                .ToListAsync();
+
+            // Saved/bookmarked events — only visible on own profile.
+            var savedEvents = isOwn
+                ? await _db.EventSaves
+                    .AsNoTracking()
+                    .Where(s => s.UserId == user.Id && s.Event!.EndTime >= now)
+                    .OrderBy(s => s.Event!.StartTime)
+                    .Take(12)
+                    .Select(s => new
+                    {
+                        id = s.Event!.Id,
+                        title = s.Event.Title,
+                        description = s.Event.Description,
+                        startTime = s.Event.StartTime,
+                        endTime = s.Event.EndTime,
+                        genre = s.Event.Genre.ToString(),
+                        imageUrl = s.Event.ImageUrl,
+                        address = s.Event.Address,
+                        city = s.Event.City,
+                        organizerProfileId = s.Event.OrganizerProfileId,
+                        organizerName = s.Event.OrganizerProfile != null
+                            ? s.Event.OrganizerProfile.DisplayName
+                            : (s.Event.Organizer.FirstName + " " + s.Event.Organizer.LastName).Trim(),
+                    })
+                    .ToListAsync()
+                : new();
+
+            // Pinned event — single highlighted card.
+            var pinnedEvent = user.PinnedEventId.HasValue
+                ? await _db.Events
+                    .AsNoTracking()
+                    .Where(e => e.Id == user.PinnedEventId.Value)
+                    .Select(e => new
+                    {
+                        id = e.Id,
+                        title = e.Title,
+                        description = e.Description,
+                        startTime = e.StartTime,
+                        endTime = e.EndTime,
+                        genre = e.Genre.ToString(),
+                        imageUrl = e.ImageUrl,
+                        address = e.Address,
+                        city = e.City,
+                        organizerProfileId = e.OrganizerProfileId,
+                        organizerName = e.OrganizerProfile != null
+                            ? e.OrganizerProfile.DisplayName
+                            : (e.Organizer.FirstName + " " + e.Organizer.LastName).Trim(),
+                    })
+                    .FirstOrDefaultAsync()
+                : null;
 
             return Ok(new
             {
@@ -270,6 +374,7 @@ namespace EventsApp.Controllers.Api
                 eventsAttendedCount = attendedCount,
                 eventsInterestedCount = interestedCount,
                 citiesVisitedCount,
+                pinnedEventId = user.PinnedEventId,
 
                 // Identity flags (return aliases so the frontend's `??` chains always hit)
                 isFollowing,
@@ -278,8 +383,123 @@ namespace EventsApp.Controllers.Api
                 isCurrentUser = isOwn,
                 isOrganizer,
 
+                // Event payloads consumed by the rich personal profile UI.
+                attendedEvents,
+                goingEvents,
+                plannedEvents = goingEvents,
+                savedEvents,
+                pinnedEvent,
+
                 roles,
             });
+        }
+
+        // GET /api/profiles/{id}/followers
+        [HttpGet("{id}/followers")]
+        public async Task<IActionResult> Followers(string id)
+        {
+            return await ResolveFollowList(id, kind: "followers");
+        }
+
+        // GET /api/profiles/{id}/following
+        [HttpGet("{id}/following")]
+        public async Task<IActionResult> Following(string id)
+        {
+            return await ResolveFollowList(id, kind: "following");
+        }
+
+        private async Task<IActionResult> ResolveFollowList(string id, string kind)
+        {
+            var currentUserId = _userManager.GetUserId(User);
+            var owner = await _db.Users
+                .AsNoTracking()
+                .Where(u => u.Id == id)
+                .Select(u => new { u.Id, u.FirstName, u.LastName, u.UserName })
+                .FirstOrDefaultAsync();
+            if (owner == null) return NotFound();
+
+            IQueryable<ApplicationUser> users;
+            if (kind == "followers")
+            {
+                // People who follow `id`.
+                users = _db.Follows
+                    .Where(f => f.FollowingId == id)
+                    .OrderByDescending(f => f.CreatedAt)
+                    .Select(f => f.Follower!);
+            }
+            else
+            {
+                // People `id` follows.
+                users = _db.Follows
+                    .Where(f => f.FollowerId == id)
+                    .OrderByDescending(f => f.CreatedAt)
+                    .Select(f => f.Following!);
+            }
+
+            var profiles = await users
+                .AsNoTracking()
+                .Select(u => new
+                {
+                    id = u.Id,
+                    userName = u.UserName,
+                    displayName = ((u.FirstName ?? "") + " " + (u.LastName ?? "")).Trim() == ""
+                        ? u.UserName
+                        : ((u.FirstName ?? "") + " " + (u.LastName ?? "")).Trim(),
+                    profileImageUrl = u.ProfileImageUrl,
+                    followersCount = _db.Follows.Count(f => f.FollowingId == u.Id),
+                    postsCount = _db.Posts.Count(p => p.OrganizerId == u.Id),
+                    currentUserFollows = currentUserId != null
+                        && _db.Follows.Any(f => f.FollowerId == currentUserId && f.FollowingId == u.Id),
+                })
+                .Take(200)
+                .ToListAsync();
+
+            var ownerDisplay = string.Join(" ", new[] { owner.FirstName, owner.LastName }
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
+            if (string.IsNullOrWhiteSpace(ownerDisplay)) ownerDisplay = owner.UserName ?? "Профил";
+
+            return Ok(new
+            {
+                profileId = owner.Id,
+                profileName = ownerDisplay,
+                listTitle = kind == "followers" ? "Последователи" : "Следвани",
+                profiles,
+            });
+        }
+
+        // POST /api/profiles/me/pin/{eventId} — pin an event on your own profile.
+        [HttpPost("me/pin/{eventId:int}")]
+        [Authorize(Policy = "ApiAuth")]
+        public async Task<IActionResult> PinEvent(int eventId)
+        {
+            var userId = _userManager.GetUserId(User);
+            if (userId == null) return Unauthorized();
+
+            var exists = await _db.Events.AnyAsync(e => e.Id == eventId);
+            if (!exists) return NotFound(new { error = "Събитието не съществува." });
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return NotFound();
+
+            user.PinnedEventId = eventId;
+            await _db.SaveChangesAsync();
+            return Ok(new { pinnedEventId = eventId });
+        }
+
+        // DELETE /api/profiles/me/pin — clear the pinned event.
+        [HttpDelete("me/pin")]
+        [Authorize(Policy = "ApiAuth")]
+        public async Task<IActionResult> UnpinEvent()
+        {
+            var userId = _userManager.GetUserId(User);
+            if (userId == null) return Unauthorized();
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return NotFound();
+
+            user.PinnedEventId = null;
+            await _db.SaveChangesAsync();
+            return Ok(new { pinnedEventId = (int?)null });
         }
 
         // GET /api/profiles/me
