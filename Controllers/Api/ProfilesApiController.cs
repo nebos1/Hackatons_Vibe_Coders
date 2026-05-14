@@ -224,7 +224,9 @@ namespace EventsApp.Controllers.Api
             if (user == null) return NotFound();
 
             var roles = await _userManager.GetRolesAsync(user);
-            var isOrganizer = roles.Contains("Organizer") || roles.Contains("Admin");
+            // "Organizer" view is only for users who actually run events — not admins.
+            // Admins keep the rich personal profile UI.
+            var isOrganizer = roles.Contains("Organizer");
             var isOwn = user.Id == currentUserId;
             var isFollowing = currentUserId != null && user.Followers.Any(f => f.FollowerId == currentUserId);
             var followersCount = user.Followers.Count;
