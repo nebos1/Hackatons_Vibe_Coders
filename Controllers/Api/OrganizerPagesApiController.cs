@@ -63,6 +63,9 @@ namespace EventsApp.Controllers.Api
                 })
                 .ToListAsync();
 
+            var followerCount = await _db.Follows.CountAsync(f => f.FollowingId == profile.OwnerId);
+            var totalPostsCount = await _db.Posts.CountAsync(p => p.OrganizerProfileId == id);
+
             return Ok(new
             {
                 profile.Id,
@@ -78,6 +81,10 @@ namespace EventsApp.Controllers.Api
                 profile.FacebookUrl,
                 profile.TikTokUrl,
                 profile.BrandColor,
+                createdAt = profile.CreatedAt,
+                pastEventsCount = profile.PastEventsCount,
+                followerCount,
+                totalPostsCount,
                 workspaceName = profile.BusinessWorkspace != null && profile.ShowLegalBusinessNamePublicly ? profile.BusinessWorkspace.DisplayName : null,
                 ownerId = profile.OwnerId,
                 events,

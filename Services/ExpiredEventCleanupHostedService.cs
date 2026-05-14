@@ -75,7 +75,10 @@ namespace EventsApp.Services
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var deletion = scope.ServiceProvider.GetRequiredService<IEventDeletionService>();
 
-            var candidateIds = await db.Events
+            // Pick candidates AND remember which organizer profile each belongs to,
+            // so we can bump PastEventsCount after a successful deletion and still
+            // show the historical count on the public organizer page.
+            var candidates = await db.Events
                 .AsNoTracking()
                 .Where(e => e.EndTime < cutoff)
                 .Where(e => e.EventSeries == null || !e.EventSeries.Occurrences.Any(o => o.EndDateTime >= cutoff))
@@ -84,30 +87,52 @@ namespace EventsApp.Services
                     .Any(ut => ut.Transaction.Status == GlobalConstants.TransactionStatuses.Paid))
                 .OrderBy(e => e.EndTime)
                 .Take(batchSize)
-                .Select(e => e.Id)
+                .Select(e => new { e.Id, e.OrganizerProfileId })
                 .ToListAsync(cancellationToken);
 
-            if (candidateIds.Count == 0)
+            if (candidates.Count == 0)
             {
                 _logger.LogDebug("Expired event cleanup found no candidates before {Cutoff}.", cutoff);
                 return;
             }
 
             var deleted = 0;
-            foreach (var eventId in candidateIds)
+            var counterBumps = new Dictionary<int, int>();
+            foreach (var candidate in candidates)
             {
-                var result = await deletion.DeleteEventAsync(eventId, preservePaidTickets: true, cancellationToken);
+                var result = await deletion.DeleteEventAsync(candidate.Id, preservePaidTickets: true, cancellationToken);
                 if (result.Deleted)
                 {
                     deleted++;
+                    if (candidate.OrganizerProfileId.HasValue)
+                    {
+                        var key = candidate.OrganizerProfileId.Value;
+                        counterBumps[key] = counterBumps.TryGetValue(key, out var current) ? current + 1 : 1;
+                    }
                 }
                 else
                 {
-                    _logger.LogInformation("Skipped expired event {EventId}: {Reason}", eventId, result.SkippedReason);
+                    _logger.LogInformation("Skipped expired event {EventId}: {Reason}", candidate.Id, result.SkippedReason);
                 }
             }
 
-            _logger.LogInformation("Expired event cleanup deleted {DeletedCount}/{CandidateCount} event(s).", deleted, candidateIds.Count);
+            if (counterBumps.Count > 0)
+            {
+                var profileIds = counterBumps.Keys.ToList();
+                var profiles = await db.OrganizerProfiles
+                    .Where(p => profileIds.Contains(p.Id))
+                    .ToListAsync(cancellationToken);
+                foreach (var profile in profiles)
+                {
+                    if (counterBumps.TryGetValue(profile.Id, out var bump))
+                    {
+                        profile.PastEventsCount += bump;
+                    }
+                }
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
+            _logger.LogInformation("Expired event cleanup deleted {DeletedCount}/{CandidateCount} event(s).", deleted, candidates.Count);
         }
 
         private bool IsEnabled()

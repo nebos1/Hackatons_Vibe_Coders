@@ -18,6 +18,13 @@ namespace EventsApp.Models
         [Key]
         public int Id { get; set; }
 
+        /// <summary>
+        /// Running count of past events that have been auto-purged from the DB.
+        /// Used so the public organizer page can still display 'X past events'
+        /// even after the underlying Event rows are deleted to keep the DB lean.
+        /// </summary>
+        public int PastEventsCount { get; set; }
+
         [Required]
         [ForeignKey(nameof(Owner))]
         public string OwnerId { get; set; } = null!;
