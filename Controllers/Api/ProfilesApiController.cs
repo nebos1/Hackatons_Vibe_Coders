@@ -21,6 +21,110 @@ namespace EventsApp.Controllers.Api
             _userManager = userManager;
         }
 
+        // GET /api/profiles/suggested?take=6
+        // If the user has preferences, suggest organizer pages whose events match
+        // those genres/city. Otherwise fall back to most-followed users + most-
+        // active organizer pages (those with most events / posts).
+        [HttpGet("suggested")]
+        public async Task<IActionResult> Suggested([FromQuery] int take = 6)
+        {
+            take = Math.Clamp(take, 1, 20);
+            var userId = _userManager.GetUserId(User);
+            var halfTake = Math.Max(2, take / 2);
+
+            // Don't suggest the user themselves, admins, or anyone they already follow.
+            var adminRoleId = await _db.Roles.Where(r => r.Name == "Admin").Select(r => r.Id).FirstOrDefaultAsync();
+            var adminIds = adminRoleId != null
+                ? await _db.UserRoles.Where(ur => ur.RoleId == adminRoleId).Select(ur => ur.UserId).ToListAsync()
+                : new List<string>();
+            var followingIds = userId != null
+                ? await _db.Follows.Where(f => f.FollowerId == userId).Select(f => f.FollowingId).ToListAsync()
+                : new List<string>();
+            var excludeIds = new HashSet<string>(adminIds);
+            foreach (var f in followingIds) excludeIds.Add(f);
+            if (userId != null) excludeIds.Add(userId);
+
+            // Try preferences-based pages first
+            UserPreferences? prefs = null;
+            if (userId != null)
+            {
+                prefs = await _db.UserPreferences.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == userId);
+            }
+
+            var pagesQuery = _db.OrganizerProfiles.AsNoTracking();
+            if (prefs != null && !excludeIds.Contains(prefs.UserId))
+            {
+                var preferredGenres = prefs.PreferredGenres.Select(g => g.ToString()).ToList();
+                if (preferredGenres.Count > 0)
+                {
+                    pagesQuery = pagesQuery.Where(p => _db.Events.Any(e =>
+                        e.OrganizerId == p.OwnerId &&
+                        preferredGenres.Contains(e.Genre.ToString())));
+                }
+                if (!string.IsNullOrWhiteSpace(prefs.PreferredCity))
+                {
+                    pagesQuery = pagesQuery.Where(p =>
+                        p.City == prefs.PreferredCity ||
+                        _db.Events.Any(e => e.OrganizerId == p.OwnerId && e.City == prefs.PreferredCity));
+                }
+            }
+
+            var pages = await pagesQuery
+                .Where(p => !excludeIds.Contains(p.OwnerId))
+                .OrderByDescending(p => _db.Events.Count(e => e.OrganizerId == p.OwnerId))
+                .ThenByDescending(p => _db.Posts.Count(po => po.OrganizerProfileId == p.Id))
+                .Take(halfTake)
+                .Select(p => new
+                {
+                    id = p.Id.ToString(),
+                    userId = (string?)null,
+                    organizerProfileId = (int?)p.Id,
+                    displayName = p.DisplayName,
+                    userName = (string?)null,
+                    profileImageUrl = p.AvatarImageUrl,
+                    bio = p.Tagline ?? p.Description,
+                    isOrganizer = true,
+                    typeKey = "profile.type.organizer",
+                    typeText = "Организатор",
+                    followerCount = 0,
+                    followersCount = 0,
+                    eventsCount = _db.Events.Count(e => e.OrganizerId == p.OwnerId),
+                    postsCount = _db.Posts.Count(po => po.OrganizerProfileId == p.Id),
+                })
+                .ToListAsync();
+
+            // Fill remaining with most-followed users
+            var remaining = take - pages.Count;
+            var users = remaining > 0
+                ? await _db.Users.AsNoTracking()
+                    .Where(u => !excludeIds.Contains(u.Id))
+                    .OrderByDescending(u => _db.Follows.Count(f => f.FollowingId == u.Id))
+                    .ThenByDescending(u => _db.Posts.Count(po => po.OrganizerId == u.Id))
+                    .Take(remaining)
+                    .Select(u => new
+                    {
+                        id = u.Id,
+                        userId = (string?)u.Id,
+                        organizerProfileId = (int?)null,
+                        displayName = (u.FirstName + " " + u.LastName).Trim(),
+                        userName = u.UserName,
+                        profileImageUrl = u.ProfileImageUrl,
+                        bio = u.Bio,
+                        isOrganizer = false,
+                        typeKey = "profile.type.profile",
+                        typeText = "Профил",
+                        followerCount = _db.Follows.Count(f => f.FollowingId == u.Id),
+                        followersCount = _db.Follows.Count(f => f.FollowingId == u.Id),
+                        eventsCount = _db.Events.Count(e => e.OrganizerId == u.Id),
+                        postsCount = _db.Posts.Count(po => po.OrganizerId == u.Id),
+                    })
+                    .ToListAsync()
+                : new();
+
+            var items = pages.Cast<object>().Concat(users.Cast<object>()).Take(take).ToList();
+            return Ok(new { items });
+        }
+
         // GET /api/profiles/search?q=...&take=8
         // Returns mixed list of users + organizer pages matching the query.
         [HttpGet("search")]
@@ -35,8 +139,18 @@ namespace EventsApp.Controllers.Api
             take = Math.Clamp(take, 1, 20);
             var like = $"%{query}%";
 
+            // Hide admin accounts from search results.
+            var adminRoleId = await _db.Roles
+                .Where(r => r.Name == "Admin")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+            var adminUserIds = adminRoleId != null
+                ? await _db.UserRoles.Where(ur => ur.RoleId == adminRoleId).Select(ur => ur.UserId).ToListAsync()
+                : new List<string>();
+
             var users = await _db.Users
                 .AsNoTracking()
+                .Where(u => !adminUserIds.Contains(u.Id))
                 .Where(u =>
                     (u.UserName != null && EF.Functions.ILike(u.UserName, like)) ||
                     (u.FirstName != null && EF.Functions.ILike(u.FirstName, like)) ||

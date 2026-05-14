@@ -410,6 +410,39 @@ namespace EventsApp.Controllers.Api
             return Ok(new { deleted = true });
         }
 
+        [HttpPost("{id:int}/comments/{commentId:int}/like")]
+        [Authorize(Policy = "ApiAuth")]
+        public async Task<IActionResult> LikeComment(int id, int commentId)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var comment = await _db.PostComments.FirstOrDefaultAsync(c => c.Id == commentId && c.PostId == id);
+            if (comment == null) return NotFound();
+
+            var exists = await _db.PostCommentLikes.AnyAsync(l => l.PostCommentId == commentId && l.UserId == userId);
+            if (!exists)
+            {
+                _db.PostCommentLikes.Add(new PostCommentLike { PostCommentId = commentId, UserId = userId, CreatedAt = DateTime.UtcNow });
+                await _db.SaveChangesAsync();
+            }
+            var count = await _db.PostCommentLikes.CountAsync(l => l.PostCommentId == commentId);
+            return Ok(new { likesCount = count, currentUserLiked = true });
+        }
+
+        [HttpPost("{id:int}/comments/{commentId:int}/unlike")]
+        [Authorize(Policy = "ApiAuth")]
+        public async Task<IActionResult> UnlikeComment(int id, int commentId)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var like = await _db.PostCommentLikes.FirstOrDefaultAsync(l => l.PostCommentId == commentId && l.UserId == userId);
+            if (like != null)
+            {
+                _db.PostCommentLikes.Remove(like);
+                await _db.SaveChangesAsync();
+            }
+            var count = await _db.PostCommentLikes.CountAsync(l => l.PostCommentId == commentId);
+            return Ok(new { likesCount = count, currentUserLiked = false });
+        }
+
         private static object MapToCard(Post p, string? userId) => new
         {
             id = p.Id,
