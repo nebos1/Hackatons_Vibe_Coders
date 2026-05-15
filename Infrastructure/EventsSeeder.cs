@@ -27,16 +27,25 @@ namespace EventsApp.Infrastructure
             var today = DateTime.UtcNow.Date;
             var seedEvents = BuildSeedEvents(admin.Id, today);
 
-            var existingTitles = await db.Events
-                .Where(e => seedEvents.Select(s => s.Title).Contains(e.Title))
-                .Select(e => e.Title)
+            var seedTitles = seedEvents.Select(s => s.Title).ToList();
+            var existingEvents = await db.Events
+                .Where(e => seedTitles.Contains(e.Title))
                 .ToListAsync();
 
+            foreach (var existing in existingEvents)
+            {
+                var seed = seedEvents.First(e => e.Title == existing.Title);
+                if (string.IsNullOrWhiteSpace(existing.ImageUrl))
+                {
+                    existing.ImageUrl = seed.ImageUrl;
+                }
+            }
+
             var toInsert = seedEvents
-                .Where(e => !existingTitles.Contains(e.Title))
+                .Where(e => existingEvents.All(existing => existing.Title != e.Title))
                 .ToList();
 
-            if (toInsert.Count == 0)
+            if (toInsert.Count == 0 && !db.ChangeTracker.HasChanges())
             {
                 return;
             }
@@ -62,6 +71,7 @@ namespace EventsApp.Infrastructure
                     City = "Русе",
                     Latitude = 43.8564,
                     Longitude = 25.9658,
+                    ImageUrl = SeedImage("rock-ruse"),
                     IsApproved = true,
                     TicketingMode = EventTicketingMode.GeneralAdmission,
                     CreatedAt = DateTime.UtcNow,
@@ -78,6 +88,7 @@ namespace EventsApp.Infrastructure
                     City = "Русе",
                     Latitude = 43.8564,
                     Longitude = 25.9658,
+                    ImageUrl = SeedImage("jazz-ruse"),
                     IsApproved = true,
                     TicketingMode = EventTicketingMode.GeneralAdmission,
                     CreatedAt = DateTime.UtcNow,
@@ -94,6 +105,7 @@ namespace EventsApp.Infrastructure
                     City = "Русе",
                     Latitude = 43.8564,
                     Longitude = 25.9658,
+                    ImageUrl = SeedImage("electronic-ruse"),
                     IsApproved = true,
                     TicketingMode = EventTicketingMode.GeneralAdmission,
                     CreatedAt = DateTime.UtcNow,
@@ -110,6 +122,7 @@ namespace EventsApp.Infrastructure
                     City = "София",
                     Latitude = 42.6977,
                     Longitude = 23.3219,
+                    ImageUrl = SeedImage("pop-sofia"),
                     IsApproved = true,
                     TicketingMode = EventTicketingMode.GeneralAdmission,
                     CreatedAt = DateTime.UtcNow,
@@ -126,11 +139,14 @@ namespace EventsApp.Infrastructure
                     City = "Пловдив",
                     Latitude = 42.1465,
                     Longitude = 24.7480,
+                    ImageUrl = SeedImage("theater-plovdiv"),
                     IsApproved = true,
                     TicketingMode = EventTicketingMode.GeneralAdmission,
                     CreatedAt = DateTime.UtcNow,
                 },
             };
         }
+
+        private static string SeedImage(string seed) => $"https://picsum.photos/seed/seed-event-{seed}/1200/720";
     }
 }
