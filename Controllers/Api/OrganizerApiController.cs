@@ -47,7 +47,11 @@ namespace EventsApp.Controllers.Api
             var totalViews = await _db.UserActivities.CountAsync(a => a.ActivityType == UserActivityType.EventViewed && a.Event != null && a.Event.OrganizerId == userId);
             var last30Views = await _db.UserActivities.CountAsync(a => a.ActivityType == UserActivityType.EventViewed && a.CreatedAt >= since30 && a.Event != null && a.Event.OrganizerId == userId);
             var upcomingCount = await _db.Events.CountAsync(e => e.OrganizerId == userId && e.StartTime >= now);
-            var pastCount = await _db.Events.CountAsync(e => e.OrganizerId == userId && e.EndTime < now);
+            var livePastCount = await _db.Events.CountAsync(e => e.OrganizerId == userId && e.EndTime < now);
+            var archivedPastCount = await _db.OrganizerProfiles
+                .Where(p => p.OwnerId == userId)
+                .SumAsync(p => (int?)p.PastEventsCount) ?? 0;
+            var pastCount = livePastCount + archivedPastCount;
             var eventsCount = await _db.Events.CountAsync(e => e.OrganizerId == userId);
             var postsCount = await _db.Posts.CountAsync(p => p.OrganizerId == userId);
 

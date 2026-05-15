@@ -65,6 +65,7 @@ namespace EventsApp.Controllers.Api
 
             var followerCount = await _db.Follows.CountAsync(f => f.FollowingId == profile.OwnerId);
             var totalPostsCount = await _db.Posts.CountAsync(p => p.OrganizerProfileId == id);
+            var livePastEventsCount = await _db.Events.CountAsync(e => e.OrganizerProfileId == id && e.EndTime < DateTime.UtcNow);
 
             return Ok(new
             {
@@ -82,7 +83,7 @@ namespace EventsApp.Controllers.Api
                 profile.TikTokUrl,
                 profile.BrandColor,
                 createdAt = profile.CreatedAt,
-                pastEventsCount = profile.PastEventsCount,
+                pastEventsCount = profile.PastEventsCount + livePastEventsCount,
                 followerCount,
                 totalPostsCount,
                 workspaceName = profile.BusinessWorkspace != null && profile.ShowLegalBusinessNamePublicly ? profile.BusinessWorkspace.DisplayName : null,

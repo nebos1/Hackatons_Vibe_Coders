@@ -28,16 +28,7 @@ namespace EventsApp.Services
                 return;
             }
 
-            var interval = TimeSpan.FromHours(ReadInt("Cleanup:ExpiredEvents:IntervalHours", "EXPIRED_EVENT_CLEANUP_INTERVAL_HOURS", 24, 1, 168));
-
-            try
-            {
-                await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
+            var interval = TimeSpan.FromMinutes(ReadIntervalMinutes());
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -67,8 +58,8 @@ namespace EventsApp.Services
 
         private async Task RunOnceAsync(CancellationToken cancellationToken)
         {
-            var retentionDays = ReadInt("Cleanup:ExpiredEvents:DaysAfterEnd", "EXPIRED_EVENT_CLEANUP_DAYS_AFTER_END", 7, 0, 365);
-            var batchSize = ReadInt("Cleanup:ExpiredEvents:BatchSize", "EXPIRED_EVENT_CLEANUP_BATCH_SIZE", 20, 1, 200);
+            var retentionDays = ReadInt("Cleanup:ExpiredEvents:DaysAfterEnd", "EXPIRED_EVENT_CLEANUP_DAYS_AFTER_END", 0, 0, 365);
+            var batchSize = ReadInt("Cleanup:ExpiredEvents:BatchSize", "EXPIRED_EVENT_CLEANUP_BATCH_SIZE", 100, 1, 200);
             var cutoff = DateTime.UtcNow.AddDays(-retentionDays);
 
             using var scope = _scopeFactory.CreateScope();
@@ -139,6 +130,19 @@ namespace EventsApp.Services
         {
             var value = _configuration["Cleanup:ExpiredEvents:Enabled"] ?? _configuration["EXPIRED_EVENT_CLEANUP_ENABLED"];
             return bool.TryParse(value, out var enabled) && enabled;
+        }
+
+        private int ReadIntervalMinutes()
+        {
+            var minutes = _configuration["Cleanup:ExpiredEvents:IntervalMinutes"]
+                ?? _configuration["EXPIRED_EVENT_CLEANUP_INTERVAL_MINUTES"];
+            if (int.TryParse(minutes, out var minuteValue))
+            {
+                return Math.Clamp(minuteValue, 1, 24 * 60);
+            }
+
+            var hours = ReadInt("Cleanup:ExpiredEvents:IntervalHours", "EXPIRED_EVENT_CLEANUP_INTERVAL_HOURS", 1, 1, 168);
+            return hours * 60;
         }
 
         private int ReadInt(string configKey, string envKey, int fallback, int min, int max)
