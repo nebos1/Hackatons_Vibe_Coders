@@ -36,6 +36,27 @@ namespace EventsApp.Controllers.Api
             _logger = logger;
         }
 
+        // GET /api/messages/summary
+        // Lightweight unread-message counter used by the organizer dashboard
+        // attention card. Counts messages addressed to the current user that
+        // are not yet seen, across conversations the user has not archived.
+        [HttpGet("summary")]
+        public async Task<IActionResult> Summary()
+        {
+            var userId = _userManager.GetUserId(User)!;
+
+            var unreadCount = await _db.Messages
+                .AsNoTracking()
+                .Where(m => !m.IsDeleted
+                            && m.SenderId != userId
+                            && m.SeenAt == null
+                            && ((m.Conversation.ParticipantOneId == userId && m.Conversation.ArchivedByP1At == null) ||
+                                (m.Conversation.ParticipantTwoId == userId && m.Conversation.ArchivedByP2At == null)))
+                .CountAsync();
+
+            return Ok(new { unreadCount });
+        }
+
         [HttpGet("conversations")]
         public async Task<IActionResult> Conversations()
         {

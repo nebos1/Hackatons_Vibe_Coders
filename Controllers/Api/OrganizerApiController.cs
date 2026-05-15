@@ -121,6 +121,7 @@ namespace EventsApp.Controllers.Api
                 organizationName = orgData.OrganizationName,
                 approved = orgData.Approved,
                 vipBoostCreditsAvailable = orgData.VipBoostCreditsAvailable,
+                vipBoostCreditsUsed = orgData.VipBoostCreditsUsed,
                 eventsCount,
                 postsCount,
                 ticketsSoldCount,
