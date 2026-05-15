@@ -184,6 +184,71 @@ namespace EventsApp.Controllers.Api
             return Ok(rows);
         }
 
+        // GET /api/organizer/events/{id}/stats
+        // Full per-event analytics for the organizer dashboard's event view.
+        // Authorized: owner of the event, or admin.
+        [HttpGet("events/{id:int}/stats")]
+        public async Task<IActionResult> EventStats(int id)
+        {
+            if (!IsOrganizer) return Forbid();
+            var userId = UserId;
+            var paid = GlobalConstants.TransactionStatuses.Paid;
+            var isAdmin = User.IsInRole(GlobalConstants.Roles.Admin);
+
+            var ev = await _db.Events
+                .AsNoTracking()
+                .Where(e => e.Id == id && (e.OrganizerId == userId || isAdmin))
+                .Select(e => new
+                {
+                    id = e.Id,
+                    title = e.Title,
+                    description = e.Description,
+                    startTime = e.StartTime,
+                    endTime = e.EndTime,
+                    city = e.City,
+                    address = e.Address,
+                    genre = e.Genre.ToString(),
+                    imageUrl = e.ImageUrl,
+                    isApproved = e.IsApproved,
+                    hasPendingChanges = e.ChangeRequests.Any(r => r.Status == EventChangeRequestStatus.Pending),
+                    organizerPageName = e.OrganizerProfile != null ? e.OrganizerProfile.DisplayName : null,
+                    workspaceName = e.BusinessWorkspace != null ? e.BusinessWorkspace.DisplayName : null,
+                    vipBoostScore = e.Boosts.Sum(b => (int?)b.CreditsSpent) ?? 0,
+                    capacity = e.Tickets.Where(t => t.IsActive).Sum(t => (int?)t.QuantityTotal) ?? 0,
+                    sold = e.Tickets.SelectMany(t => t.UserTickets).Count(ut => ut.Transaction.Status == paid),
+                    used = e.Tickets.SelectMany(t => t.UserTickets).Count(ut => ut.Transaction.Status == paid && ut.IsUsed),
+                    revenue = e.Tickets.SelectMany(t => t.UserTickets)
+                        .Where(ut => ut.Transaction.Status == paid)
+                        .Sum(ut => (decimal?)ut.PricePaid) ?? 0m,
+                    views = e.UserActivities.Count(a => a.ActivityType == UserActivityType.EventViewed),
+                    uniqueViewers = e.UserActivities
+                        .Where(a => a.ActivityType == UserActivityType.EventViewed && a.UserId != null)
+                        .Select(a => a.UserId).Distinct().Count(),
+                    likesCount = e.Likes.Count,
+                    commentsCount = e.Comments.Count,
+                    savesCount = e.Saves.Count,
+                    goingCount = e.Attendances.Count(a => a.Status == EventAttendanceStatus.Going),
+                    interestedCount = e.Attendances.Count(a => a.Status == EventAttendanceStatus.Interested),
+                    tickets = e.Tickets.Where(t => t.IsActive).Select(t => new
+                    {
+                        id = t.Id,
+                        name = t.Name,
+                        description = t.Description,
+                        price = t.Price,
+                        quantityTotal = t.QuantityTotal,
+                        quantityRemaining = t.QuantityRemaining,
+                        sold = t.UserTickets.Count(ut => ut.Transaction.Status == paid),
+                        revenue = t.UserTickets
+                            .Where(ut => ut.Transaction.Status == paid)
+                            .Sum(ut => (decimal?)ut.PricePaid) ?? 0m,
+                    }).ToArray(),
+                })
+                .FirstOrDefaultAsync();
+
+            if (ev == null) return NotFound(new { error = "Не намерих такова събитие или нямаш достъп до него." });
+            return Ok(ev);
+        }
+
         // GET /api/organizer/profiles
         [HttpGet("profiles")]
         public async Task<IActionResult> Profiles()

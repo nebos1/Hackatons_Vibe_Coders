@@ -38,6 +38,11 @@ namespace EventsApp.Models
 
         public DateTime? LastLoginAt { get; set; }
 
+        // Last time this user had at least one live presence connection (chat hub).
+        // Persisted when the final connection drops so peers can show
+        // "Active 5 minutes ago" instead of a stale state.
+        public DateTime? LastSeenAt { get; set; }
+
         [MaxLength(GlobalConstants.User.FirstNameMaxLength)]
         public string? FirstName { get; set; }
 
