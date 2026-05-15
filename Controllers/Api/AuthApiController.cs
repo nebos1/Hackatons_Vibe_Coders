@@ -78,16 +78,28 @@ namespace EventsApp.Controllers.Api
             if (!result.Succeeded)
                 return Unauthorized(new { error = "Грешен имейл или парола." });
 
-            var lastLoginAt = DateTime.UtcNow;
-            await _db.Users
-                .Where(u => u.Id == user.Id)
-                .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.LastLoginAt, lastLoginAt));
-            user.LastLoginAt = lastLoginAt;
+            await TouchLastLoginAsync(user);
 
             var token = await GenerateJwtTokenAsync(user);
             var userDto = await BuildUserDtoAsync(user);
 
             return Ok(new { token, user = userDto });
+        }
+
+        // POST /api/auth/visit
+        [HttpPost("visit")]
+        [Authorize(Policy = "ApiAuth")]
+        public async Task<IActionResult> Visit()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
+
+            var lastLoginAt = DateTime.UtcNow;
+            await _db.Users
+                .Where(u => u.Id == userId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.LastLoginAt, lastLoginAt));
+
+            return NoContent();
         }
 
         // POST /api/auth/register
@@ -327,6 +339,15 @@ namespace EventsApp.Controllers.Api
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private async Task TouchLastLoginAsync(ApplicationUser user)
+        {
+            var lastLoginAt = DateTime.UtcNow;
+            await _db.Users
+                .Where(u => u.Id == user.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.LastLoginAt, lastLoginAt));
+            user.LastLoginAt = lastLoginAt;
         }
 
         private static DateTime GetJwtExpiresAt(ClaimsPrincipal principal)
