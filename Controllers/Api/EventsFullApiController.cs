@@ -62,7 +62,8 @@ namespace EventsApp.Controllers.Api
             [FromQuery] string? city = null,
             [FromQuery] string? keyword = null,
             [FromQuery] DateTime? dateFrom = null,
-            [FromQuery] DateTime? dateTo = null)
+            [FromQuery] DateTime? dateTo = null,
+            [FromQuery] bool freeOnly = false)
         {
             page = Math.Max(1, page);
             pageSize = Math.Clamp(pageSize, 1, 50);
@@ -97,7 +98,18 @@ namespace EventsApp.Controllers.Api
                 q = q.Where(e => e.StartTime >= dateFrom.Value);
 
             if (dateTo.HasValue)
-                q = q.Where(e => e.StartTime <= dateTo.Value);
+            {
+                var inclusiveDateEnd = dateTo.Value.TimeOfDay == TimeSpan.Zero
+                    ? dateTo.Value.Date.AddDays(1)
+                    : dateTo.Value;
+
+                q = dateTo.Value.TimeOfDay == TimeSpan.Zero
+                    ? q.Where(e => e.StartTime < inclusiveDateEnd)
+                    : q.Where(e => e.StartTime <= inclusiveDateEnd);
+            }
+
+            if (freeOnly)
+                q = q.Where(e => !e.Tickets.Any(t => t.IsActive && t.Price > 0m));
 
             var total = await q.CountAsync();
             var events = await q
