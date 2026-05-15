@@ -3,6 +3,7 @@ using EventsApp.Data;
 using EventsApp.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace EventsApp.Infrastructure
 {
@@ -13,7 +14,9 @@ namespace EventsApp.Infrastructure
     /// </summary>
     public static class DemoDataSeeder
     {
-        private const string DemoPassword = "Demo123";
+        // Must satisfy the strictest Identity policy across all environments
+        // (production: RequiredLength=10, uppercase, lowercase, digit, non-alphanumeric).
+        private const string DemoPassword = "Demo123!Pass";
 
         // Images are served from picsum.photos with deterministic seeds so every record gets
         // a stable, unique, high-quality photo without local uploads.
@@ -23,9 +26,11 @@ namespace EventsApp.Infrastructure
         {
             var db = services.GetRequiredService<ApplicationDbContext>();
             var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+            var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("DemoDataSeeder");
 
             var rnd = new Random(20260515);
             var now = DateTime.UtcNow;
+            int orgCreated = 0, orgSkipped = 0, evtCreated = 0, evtSkipped = 0, postCreated = 0, postSkipped = 0;
 
             // ── 40 Organizers (idempotent) ────────────────────────────────────────
             var organizers = new[]
@@ -88,6 +93,7 @@ namespace EventsApp.Infrastructure
                 if (existing != null)
                 {
                     user = existing;
+                    orgSkipped++;
                     // Update avatar/bio if the user predates the new image strategy.
                     if (string.IsNullOrEmpty(user.ProfileImageUrl) || !user.ProfileImageUrl.Contains("picsum.photos"))
                     {
@@ -110,7 +116,13 @@ namespace EventsApp.Infrastructure
                         CreatedAt = now.AddMonths(-rnd.Next(3, 24)),
                     };
                     var res = await userManager.CreateAsync(user, DemoPassword);
-                    if (!res.Succeeded) continue;
+                    if (!res.Succeeded)
+                    {
+                        var errs = string.Join("; ", res.Errors.Select(e => e.Code + ": " + e.Description));
+                        logger.LogWarning("DemoSeeder: failed to create organizer {Email} — {Errors}", email, errs);
+                        continue;
+                    }
+                    orgCreated++;
                 }
 
                 if (!await userManager.IsInRoleAsync(user, GlobalConstants.Roles.Organizer))
@@ -206,7 +218,12 @@ namespace EventsApp.Infrastructure
                     CreatedAt = now.AddMonths(-rnd.Next(2, 18)),
                 };
                 var res = await userManager.CreateAsync(au, DemoPassword);
-                if (!res.Succeeded) continue;
+                if (!res.Succeeded)
+                {
+                    var errs = string.Join("; ", res.Errors.Select(e => e.Code + ": " + e.Description));
+                    logger.LogWarning("DemoSeeder: failed to create user {Email} — {Errors}", email, errs);
+                    continue;
+                }
                 await userManager.AddToRoleAsync(au, GlobalConstants.Roles.User);
                 regularUsers.Add(au);
             }
@@ -277,8 +294,10 @@ namespace EventsApp.Infrastructure
                         db.Events.Update(existing);
                     }
                     createdEvents.Add(existing);
+                    evtSkipped++;
                     continue;
                 }
+                evtCreated++;
 
                 var start = now.AddDays(e.StartOffsetDays).AddHours(rnd.Next(0, 6) + 18);
                 var ev = new Event
@@ -482,8 +501,10 @@ namespace EventsApp.Infrastructure
                 if (existing != null)
                 {
                     createdPosts.Add(existing);
+                    postSkipped++;
                     continue;
                 }
+                postCreated++;
 
                 var post = new Post
                 {
@@ -594,6 +615,10 @@ namespace EventsApp.Infrastructure
                 }
             }
             await db.SaveChangesAsync();
+
+            logger.LogInformation(
+                "DemoSeeder summary: organizers {OrgCreated} created / {OrgSkipped} already existed; events {EvtCreated}/{EvtSkipped}; posts {PostCreated}/{PostSkipped}; regular users {Users}.",
+                orgCreated, orgSkipped, evtCreated, evtSkipped, postCreated, postSkipped, regularUsers.Count);
         }
 
         // ── Local spec records ───────────────────────────────────────────────────
