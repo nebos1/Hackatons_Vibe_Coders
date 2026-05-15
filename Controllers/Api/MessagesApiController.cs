@@ -503,6 +503,7 @@ namespace EventsApp.Controllers.Api
             senderBadgeText = m.AuthorType == AuthorIdentityType.OrganizerPage ? "Page" : m.SenderId == userId ? "You" : "User",
             createdAt = m.CreatedAt,
             editedAt = m.EditedAt,
+            seenAt = m.SeenAt,
             isDeleted = m.IsDeleted,
             likesCount = m.Likes.Count,
             currentUserLiked = m.Likes.Any(l => l.UserId == userId),
