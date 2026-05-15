@@ -28,8 +28,10 @@ namespace EventsApp.Controllers.Api
         private bool IsOrganizer => User.IsInRole(GlobalConstants.Roles.Organizer) || User.IsInRole(GlobalConstants.Roles.Admin);
 
         // GET /api/organizer/dashboard
+        // Scope params filter the lower sections (recent events / posts / event rows)
+        // while top-level counters remain global across all workspaces and pages.
         [HttpGet("dashboard")]
-        public async Task<IActionResult> Dashboard()
+        public async Task<IActionResult> Dashboard([FromQuery] int? profileId = null, [FromQuery] int? workspaceId = null)
         {
             if (!IsOrganizer) return Forbid();
             var userId = UserId;
@@ -40,6 +42,18 @@ namespace EventsApp.Controllers.Api
             var paid = GlobalConstants.TransactionStatuses.Paid;
             var now = DateTime.UtcNow;
             var since30 = now.AddDays(-29).Date;
+
+            IQueryable<Event> scopedEvents = _db.Events.Where(e => e.OrganizerId == userId);
+            if (profileId.HasValue)
+                scopedEvents = scopedEvents.Where(e => e.OrganizerProfileId == profileId.Value);
+            else if (workspaceId.HasValue)
+                scopedEvents = scopedEvents.Where(e => e.BusinessWorkspaceId == workspaceId.Value);
+
+            IQueryable<Post> scopedPosts = _db.Posts.Where(p => p.OrganizerId == userId);
+            if (profileId.HasValue)
+                scopedPosts = scopedPosts.Where(p => p.OrganizerProfileId == profileId.Value);
+            else if (workspaceId.HasValue)
+                scopedPosts = scopedPosts.Where(p => p.BusinessWorkspaceId == workspaceId.Value);
 
             var ticketsSoldCount = await _db.UserTickets.CountAsync(ut => ut.Ticket.Event.OrganizerId == userId && ut.Transaction.Status == paid);
             var totalRevenue = await _db.UserTickets.Where(ut => ut.Ticket.Event.OrganizerId == userId && ut.Transaction.Status == paid).SumAsync(ut => (decimal?)ut.Ticket.Price) ?? 0m;
@@ -58,9 +72,8 @@ namespace EventsApp.Controllers.Api
             var last30Sold = await _db.UserTickets.CountAsync(ut => ut.Ticket.Event.OrganizerId == userId && ut.Transaction.Status == paid && ut.CreatedAt >= since30);
             var last30Revenue = await _db.UserTickets.Where(ut => ut.Ticket.Event.OrganizerId == userId && ut.Transaction.Status == paid && ut.CreatedAt >= since30).SumAsync(ut => (decimal?)ut.Ticket.Price) ?? 0m;
 
-            var recentEvents = await _db.Events
+            var recentEvents = await scopedEvents
                 .AsNoTracking()
-                .Where(e => e.OrganizerId == userId)
                 .OrderByDescending(e => e.CreatedAt)
                 .Take(5)
                 .Select(e => new
@@ -75,9 +88,8 @@ namespace EventsApp.Controllers.Api
                 })
                 .ToListAsync();
 
-            var recentPosts = await _db.Posts
+            var recentPosts = await scopedPosts
                 .AsNoTracking()
-                .Where(p => p.OrganizerId == userId)
                 .OrderByDescending(p => p.CreatedAt)
                 .Take(5)
                 .Select(p => new
@@ -90,9 +102,8 @@ namespace EventsApp.Controllers.Api
                 })
                 .ToListAsync();
 
-            var eventTicketRows = await _db.Events
+            var eventTicketRows = await scopedEvents
                 .AsNoTracking()
-                .Where(e => e.OrganizerId == userId)
                 .OrderByDescending(e => e.CreatedAt)
                 .Take(8)
                 .Select(e => new
@@ -136,6 +147,7 @@ namespace EventsApp.Controllers.Api
                 recentEvents,
                 recentPosts,
                 eventTicketRows,
+                scope = new { profileId, workspaceId },
             });
         }
 
