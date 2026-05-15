@@ -243,6 +243,14 @@ namespace EventsApp.Controllers.Api
             var isOutgoingRequest = convo.Status == ConversationStatus.Pending && convo.RequestedByUserId == userId;
             var isIncomingRequest = convo.Status == ConversationStatus.Pending && convo.RequestedByUserId != null && convo.RequestedByUserId != userId;
 
+            // Initial peer last-seen so the chat header can show "Active X ago"
+            // immediately — the SignalR hub will keep it live after that.
+            var otherUserId = convo.ParticipantOneId == userId ? convo.ParticipantTwoId : convo.ParticipantOneId;
+            var otherUserLastSeenAt = await _db.Users
+                .Where(u => u.Id == otherUserId)
+                .Select(u => u.LastSeenAt)
+                .FirstOrDefaultAsync();
+
             return Ok(new
             {
                 summary.token,
@@ -254,6 +262,7 @@ namespace EventsApp.Controllers.Api
                 summary.pageImageUrl,
                 summary.currentUserOwnsPage,
                 summary.isPageConversation,
+                otherUserLastSeenAt,
                 status = convo.Status.ToString(),
                 requestedByUserId = convo.RequestedByUserId,
                 isOutgoingRequest,

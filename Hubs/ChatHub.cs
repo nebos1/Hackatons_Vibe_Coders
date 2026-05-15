@@ -38,6 +38,26 @@ namespace EventsApp.Hubs
             return UserConnections.TryGetValue(userId, out var set) && set.Count > 0;
         }
 
+        private async Task UpdateUserLastSeenAsync(string userId, DateTime when)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return;
+            user.LastSeenAt = when;
+            await db.SaveChangesAsync();
+        }
+
+        private async Task<DateTime?> ReadUserLastSeenAsync(string userId)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            return await db.Users
+                .Where(u => u.Id == userId)
+                .Select(u => u.LastSeenAt)
+                .FirstOrDefaultAsync();
+        }
+
         public override async Task OnConnectedAsync()
         {
             var userId = Context.UserIdentifier;
@@ -81,13 +101,20 @@ namespace EventsApp.Hubs
             return Groups.RemoveFromGroupAsync(Context.ConnectionId, token);
         }
 
-        // Snapshot of a user's current online state. The presence-changed
-        // broadcasts only fire on transitions, so a client opening a chat to
-        // an already-online peer would never receive an event — they have to
-        // ask for the current state explicitly when joining.
-        public Task<bool> QueryPresence(string userId)
+        // Snapshot of a user's current online state plus their last-seen
+        // timestamp for the offline case. The presence-changed broadcasts only
+        // fire on transitions, so a client opening a chat to an already-online
+        // peer would never receive an event — they have to ask for the
+        // current state explicitly when joining.
+        public async Task<object> QueryPresence(string userId)
         {
-            return Task.FromResult(IsUserOnline(userId));
+            var online = IsUserOnline(userId);
+            DateTime? lastSeenAt = null;
+            if (!online && !string.IsNullOrWhiteSpace(userId))
+            {
+                lastSeenAt = await ReadUserLastSeenAsync(userId);
+            }
+            return new { online, lastSeenAt };
         }
 
         // Lightweight typing broadcast — no persistence. Fires to the other
@@ -154,7 +181,9 @@ namespace EventsApp.Hubs
                 if (becameOffline)
                 {
                     UserConnections.TryRemove(userId, out _);
-                    await Clients.All.SendAsync("PresenceChanged", new { userId, online = false });
+                    var lastSeenAt = DateTime.UtcNow;
+                    try { await UpdateUserLastSeenAsync(userId, lastSeenAt); } catch { /* best-effort */ }
+                    await Clients.All.SendAsync("PresenceChanged", new { userId, online = false, lastSeenAt });
                 }
             }
 
