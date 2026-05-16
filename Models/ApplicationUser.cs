@@ -36,12 +36,21 @@ namespace EventsApp.Models
         [Required]
         public DateTime CreatedAt { get; set; }
 
+        // Refreshed on login + every /api/auth/visit heartbeat from an active
+        // tab. Treated together with LastLogoutAt to derive online state for
+        // chat: a user counts as online when LastLoginAt is newer than
+        // LastLogoutAt AND falls within the heartbeat freshness window.
         public DateTime? LastLoginAt { get; set; }
 
         // Last time this user had at least one live presence connection (chat hub).
         // Persisted when the final connection drops so peers can show
         // "Active 5 minutes ago" instead of a stale state.
         public DateTime? LastSeenAt { get; set; }
+
+        // Set when the user explicitly signs out, when the last live chat-hub
+        // connection drops, or when /api/auth/heartbeat-end fires on tab
+        // close. Drives the "Active X ago" label on the chat header.
+        public DateTime? LastLogoutAt { get; set; }
 
         [MaxLength(GlobalConstants.User.FirstNameMaxLength)]
         public string? FirstName { get; set; }

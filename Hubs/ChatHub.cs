@@ -38,24 +38,56 @@ namespace EventsApp.Hubs
             return UserConnections.TryGetValue(userId, out var set) && set.Count > 0;
         }
 
+        // Records the moment the final chat connection dropped. Mirrors
+        // LastLogoutAt so the chat header can show "Active X ago" based on
+        // the same column the auth Logout endpoint writes to.
         private async Task UpdateUserLastSeenAsync(string userId, DateTime when)
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null) return;
-            user.LastSeenAt = when;
-            await db.SaveChangesAsync();
+            await db.Users
+                .Where(u => u.Id == userId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(u => u.LastSeenAt, when)
+                    .SetProperty(u => u.LastLogoutAt, when));
         }
 
-        private async Task<DateTime?> ReadUserLastSeenAsync(string userId)
+        // Refresh LastLoginAt when a connection establishes so the
+        // login/logout pair stays the authoritative source for presence,
+        // even if VisitTracker hasn't fired yet.
+        private async Task TouchUserLastLoginAsync(string userId, DateTime when)
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            return await db.Users
+            await db.Users
                 .Where(u => u.Id == userId)
-                .Select(u => u.LastSeenAt)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.LastLoginAt, when));
+        }
+
+        private sealed record UserPresenceSnapshot(DateTime? LastLoginAt, DateTime? LastLogoutAt);
+
+        private async Task<UserPresenceSnapshot> ReadUserPresenceAsync(string userId)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var record = await db.Users
+                .Where(u => u.Id == userId)
+                .Select(u => new { u.LastLoginAt, u.LastLogoutAt })
                 .FirstOrDefaultAsync();
+            return new UserPresenceSnapshot(record?.LastLoginAt, record?.LastLogoutAt);
+        }
+
+        // "Online" if the user's most recent action was a login (or
+        // heartbeat that refreshed LastLoginAt) AND that action happened
+        // within the heartbeat freshness window. VisitTracker keeps the
+        // column current while the tab is open.
+        private static readonly TimeSpan OnlineWindow = TimeSpan.FromMinutes(2);
+
+        private static bool IsOnlineFromSnapshot(UserPresenceSnapshot s)
+        {
+            if (s.LastLoginAt is null) return false;
+            if (s.LastLogoutAt is not null && s.LastLogoutAt > s.LastLoginAt) return false;
+            return DateTime.UtcNow - s.LastLoginAt.Value <= OnlineWindow;
         }
 
         public override async Task OnConnectedAsync()
@@ -79,7 +111,9 @@ namespace EventsApp.Hubs
 
                 if (becameOnline)
                 {
-                    await Clients.All.SendAsync("PresenceChanged", new { userId, online = true });
+                    var when = DateTime.UtcNow;
+                    try { await TouchUserLastLoginAsync(userId, when); } catch { /* best-effort */ }
+                    await Clients.All.SendAsync("PresenceChanged", new { userId, online = true, lastLoginAt = when });
                 }
             }
             await base.OnConnectedAsync();
@@ -102,20 +136,28 @@ namespace EventsApp.Hubs
             return Groups.RemoveFromGroupAsync(Context.ConnectionId, token);
         }
 
-        // Snapshot of a user's current online state plus their last-seen
-        // timestamp for the offline case. The presence-changed broadcasts only
-        // fire on transitions, so a client opening a chat to an already-online
-        // peer would never receive an event — they have to ask for the
-        // current state explicitly when joining.
+        // Snapshot of a user's presence. Online state is derived from the
+        // LastLoginAt/LastLogoutAt columns (refreshed by login + the
+        // VisitTracker heartbeat; cleared by explicit Logout, tab-close
+        // beacon, or the chat hub disconnect), with a freshness window so
+        // a long-idle session does not appear online forever.
         public async Task<object> QueryPresence(string userId)
         {
-            var online = IsUserOnline(userId);
-            DateTime? lastSeenAt = null;
-            if (!online && !string.IsNullOrWhiteSpace(userId))
+            if (string.IsNullOrWhiteSpace(userId))
             {
-                lastSeenAt = await ReadUserLastSeenAsync(userId);
+                return new { online = false, lastLoginAt = (DateTime?)null, lastLogoutAt = (DateTime?)null };
             }
-            return new { online, lastSeenAt };
+            var snap = await ReadUserPresenceAsync(userId);
+            var online = IsOnlineFromSnapshot(snap);
+            return new
+            {
+                online,
+                lastLoginAt = snap.LastLoginAt,
+                lastLogoutAt = snap.LastLogoutAt,
+                // Echoed for backward compatibility with older clients
+                // that read this field for the "Active X ago" label.
+                lastSeenAt = snap.LastLogoutAt,
+            };
         }
 
         // Lightweight typing broadcast — no persistence. Fires to the other
@@ -193,9 +235,16 @@ namespace EventsApp.Hubs
                 if (becameOffline)
                 {
                     UserConnections.TryRemove(userId, out _);
-                    var lastSeenAt = DateTime.UtcNow;
-                    try { await UpdateUserLastSeenAsync(userId, lastSeenAt); } catch { /* best-effort */ }
-                    await Clients.All.SendAsync("PresenceChanged", new { userId, online = false, lastSeenAt });
+                    var lastLogoutAt = DateTime.UtcNow;
+                    try { await UpdateUserLastSeenAsync(userId, lastLogoutAt); } catch { /* best-effort */ }
+                    await Clients.All.SendAsync("PresenceChanged", new
+                    {
+                        userId,
+                        online = false,
+                        lastLogoutAt,
+                        // Back-compat with older clients reading lastSeenAt.
+                        lastSeenAt = lastLogoutAt,
+                    });
                 }
             }
 

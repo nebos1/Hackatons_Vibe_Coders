@@ -289,8 +289,42 @@ namespace EventsApp.Controllers.Api
                 }
             }
 
+            // Mark the explicit sign-out so peers see the user as offline
+            // immediately in the chat. Best-effort — failure to write the
+            // column should not block the logout response.
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                try
+                {
+                    await _db.Users
+                        .Where(u => u.Id == userId)
+                        .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.LastLogoutAt, DateTime.UtcNow));
+                }
+                catch { /* presence is non-critical */ }
+            }
+
             await _signInManager.SignOutAsync();
             return Ok(new { message = "Излязохте успешно." });
+        }
+
+        // POST /api/auth/heartbeat-end
+        // Best-effort presence write fired from the browser via sendBeacon on
+        // tab close / page unload. Updates LastLogoutAt only — the JWT stays
+        // valid so the user can reopen the tab and resume.
+        [HttpPost("heartbeat-end")]
+        [Authorize(Policy = "ApiAuth")]
+        public async Task<IActionResult> HeartbeatEnd()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
+            try
+            {
+                await _db.Users
+                    .Where(u => u.Id == userId)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.LastLogoutAt, DateTime.UtcNow));
+            }
+            catch { /* presence is non-critical */ }
+            return NoContent();
         }
 
         // POST /api/auth/refresh  —  issue a fresh JWT for an already-authenticated user
