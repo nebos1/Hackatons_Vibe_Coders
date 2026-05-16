@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace EventsApp.Controllers.Api
@@ -354,6 +355,14 @@ namespace EventsApp.Controllers.Api
                 workspaceId = convo.OrganizerProfile.BusinessWorkspaceId;
             }
 
+            // Multi-image bubbles carry extras in attachmentUrls. Only accept
+            // image MIME — the new chat UI is image-only by design.
+            var extraImages = (dto.AttachmentUrls ?? new List<string>())
+                .Select(NormalizeNullable)
+                .Where(u => !string.IsNullOrEmpty(u))
+                .Cast<string>()
+                .ToList();
+
             var message = new Message
             {
                 ConversationId = convo.Id,
@@ -368,6 +377,7 @@ namespace EventsApp.Controllers.Api
                 AttachmentUrl = NormalizeNullable(dto.AttachmentUrl),
                 AttachmentName = NormalizeNullable(dto.AttachmentName),
                 AttachmentMediaType = NormalizeNullable(dto.AttachmentMediaType),
+                AttachmentUrlsJson = extraImages.Count > 0 ? JsonSerializer.Serialize(extraImages) : null,
                 CreatedAt = DateTime.UtcNow,
             };
 
@@ -385,7 +395,7 @@ namespace EventsApp.Controllers.Api
                 ? await _db.OrganizerProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.Id == authorProfileId.Value)
                 : null;
 
-            var mapped = MapMessage(message, userId);
+            var mapped = MapMessage(message, userId, token);
             await _hub.Clients.Group(token.ToString()).SendAsync("ReceiveMessage", mapped);
             await BroadcastConversationChangedAsync(convo.Id);
             await SendPushNotificationAsync(convo, message, userId, token);
@@ -425,6 +435,7 @@ namespace EventsApp.Controllers.Api
             message.AttachmentUrl = null;
             message.AttachmentName = null;
             message.AttachmentMediaType = null;
+            message.AttachmentUrlsJson = null;
             message.IsDeleted = true;
             message.DeletedAt = DateTime.UtcNow;
             var wasPinned = message.Conversation.PinnedMessageId == message.Id;
@@ -791,38 +802,52 @@ namespace EventsApp.Controllers.Api
             };
         }
 
-        private static object MapMessage(Message m, string userId) => new
+        private static object MapMessage(Message m, string userId, Guid? conversationToken = null)
         {
-            id = m.Id,
-            content = m.Content,
-            senderId = m.SenderId,
-            senderName = m.AuthorType == AuthorIdentityType.OrganizerPage && m.AuthorOrganizerProfile != null
-                ? m.AuthorOrganizerProfile.DisplayName
-                : m.Sender?.UserName,
-            senderImageUrl = m.AuthorType == AuthorIdentityType.OrganizerPage && m.AuthorOrganizerProfile != null
-                ? m.AuthorOrganizerProfile.AvatarImageUrl
-                : m.Sender?.ProfileImageUrl,
-            senderBadgeText = m.AuthorType == AuthorIdentityType.OrganizerPage ? "Page" : m.SenderId == userId ? "You" : "User",
-            createdAt = m.CreatedAt,
-            editedAt = m.EditedAt,
-            seenAt = m.SeenAt,
-            isDeleted = m.IsDeleted,
-            likesCount = m.Likes.Count,
-            currentUserLiked = m.Likes.Any(l => l.UserId == userId),
-            reactions = BuildReactionSummary(m.Reactions, userId),
-            attachmentUrl = m.AttachmentUrl,
-            attachmentName = m.AttachmentName,
-            attachmentMediaType = m.AttachmentMediaType,
-            replyToId = m.ReplyToMessageId,
-            replyToContent = m.ReplyToMessage?.Content,
-            replyToSenderName = m.ReplyToMessage == null
-                ? null
-                : m.ReplyToMessage.AuthorType == AuthorIdentityType.OrganizerPage && m.ReplyToMessage.AuthorOrganizerProfile != null
-                    ? m.ReplyToMessage.AuthorOrganizerProfile.DisplayName
-                    : m.ReplyToMessage.Sender?.UserName,
-            canEdit = m.SenderId == userId && !m.IsDeleted && !m.SharedEventId.HasValue && !m.SharedPostId.HasValue,
-            canDelete = m.SenderId == userId && !m.IsDeleted,
-        };
+            List<string>? extras = null;
+            if (!string.IsNullOrEmpty(m.AttachmentUrlsJson))
+            {
+                try { extras = JsonSerializer.Deserialize<List<string>>(m.AttachmentUrlsJson); }
+                catch { extras = null; }
+            }
+
+            return new
+            {
+                id = m.Id,
+                content = m.Content,
+                senderId = m.SenderId,
+                senderName = m.AuthorType == AuthorIdentityType.OrganizerPage && m.AuthorOrganizerProfile != null
+                    ? m.AuthorOrganizerProfile.DisplayName
+                    : m.Sender?.UserName,
+                senderImageUrl = m.AuthorType == AuthorIdentityType.OrganizerPage && m.AuthorOrganizerProfile != null
+                    ? m.AuthorOrganizerProfile.AvatarImageUrl
+                    : m.Sender?.ProfileImageUrl,
+                senderBadgeText = m.AuthorType == AuthorIdentityType.OrganizerPage ? "Page" : m.SenderId == userId ? "You" : "User",
+                createdAt = m.CreatedAt,
+                editedAt = m.EditedAt,
+                seenAt = m.SeenAt,
+                isDeleted = m.IsDeleted,
+                likesCount = m.Likes.Count,
+                currentUserLiked = m.Likes.Any(l => l.UserId == userId),
+                reactions = BuildReactionSummary(m.Reactions, userId),
+                attachmentUrl = m.AttachmentUrl,
+                attachmentName = m.AttachmentName,
+                attachmentMediaType = m.AttachmentMediaType,
+                attachmentUrls = extras,
+                replyToId = m.ReplyToMessageId,
+                replyToContent = m.ReplyToMessage?.Content,
+                replyToSenderName = m.ReplyToMessage == null
+                    ? null
+                    : m.ReplyToMessage.AuthorType == AuthorIdentityType.OrganizerPage && m.ReplyToMessage.AuthorOrganizerProfile != null
+                        ? m.ReplyToMessage.AuthorOrganizerProfile.DisplayName
+                        : m.ReplyToMessage.Sender?.UserName,
+                canEdit = m.SenderId == userId && !m.IsDeleted && !m.SharedEventId.HasValue && !m.SharedPostId.HasValue,
+                canDelete = m.SenderId == userId && !m.IsDeleted,
+                // Echoed so list rows that listen for ReceiveMessage know
+                // which conversation the new bubble belongs to.
+                conversationToken = conversationToken?.ToString(),
+            };
+        }
 
         private static string? ReadMeta(string html, string key)
         {
@@ -896,7 +921,8 @@ namespace EventsApp.Controllers.Api
         int? SharedPostId,
         string? AttachmentUrl,
         string? AttachmentName,
-        string? AttachmentMediaType);
+        string? AttachmentMediaType,
+        List<string>? AttachmentUrls = null);
     public record MessageReactionDto(string? Emoji);
     public record MuteConversationDto(bool Muted);
 }

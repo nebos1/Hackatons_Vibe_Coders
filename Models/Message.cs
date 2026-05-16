@@ -70,6 +70,11 @@ namespace EventsApp.Models
 
         public string? AttachmentMediaType { get; set; }
 
+        // Additional image URLs for multi-image messages. Stored as a JSON
+        // array so the schema stays a simple text column — the API layer
+        // serializes/deserializes through System.Text.Json.
+        public string? AttachmentUrlsJson { get; set; }
+
         [Required]
         public DateTime CreatedAt { get; set; }
 

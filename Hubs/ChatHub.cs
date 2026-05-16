@@ -119,12 +119,19 @@ namespace EventsApp.Hubs
         }
 
         // Lightweight typing broadcast — no persistence. Fires to the other
-        // participant(s) so they can render the "is typing…" bubble.
+        // participant(s) so they can render the "is typing…" bubble. The
+        // conversationToken is echoed back so list rows for non-active chats
+        // can flip to "typing…" too.
         public Task Typing(string token, bool isTyping)
         {
             var userId = Context.UserIdentifier;
             if (string.IsNullOrWhiteSpace(userId)) return Task.CompletedTask;
-            return Clients.OthersInGroup(token).SendAsync("UserTyping", new { userId, isTyping });
+            return Clients.OthersInGroup(token).SendAsync("UserTyping", new
+            {
+                userId,
+                isTyping,
+                conversationToken = token,
+            });
         }
 
         // Mark every incoming message in the conversation with id ≤ lastMessageId
