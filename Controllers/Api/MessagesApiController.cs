@@ -410,7 +410,7 @@ namespace EventsApp.Controllers.Api
                 ? await _db.OrganizerProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.Id == authorProfileId.Value)
                 : null;
 
-            var mapped = MapMessage(message, userId, token);
+            var mapped = MapMessage(message, userId, token, dto.ClientMessageId);
             await _hub.Clients.Group(token.ToString()).SendAsync("ReceiveMessage", mapped);
             await BroadcastConversationChangedAsync(convo.Id);
             await SendPushNotificationAsync(convo, message, userId, token);
@@ -841,7 +841,7 @@ namespace EventsApp.Controllers.Api
             };
         }
 
-        private static object MapMessage(Message m, string userId, Guid? conversationToken = null)
+        private static object MapMessage(Message m, string userId, Guid? conversationToken = null, string? clientMessageId = null)
         {
             List<string>? extras = null;
             if (!string.IsNullOrEmpty(m.AttachmentUrlsJson))
@@ -882,6 +882,7 @@ namespace EventsApp.Controllers.Api
                         : m.ReplyToMessage.Sender?.UserName,
                 canEdit = m.SenderId == userId && !m.IsDeleted && !m.SharedEventId.HasValue && !m.SharedPostId.HasValue,
                 canDelete = m.SenderId == userId && !m.IsDeleted,
+                clientMessageId = NormalizeNullable(clientMessageId),
                 // Echoed so list rows that listen for ReceiveMessage know
                 // which conversation the new bubble belongs to.
                 conversationToken = conversationToken?.ToString(),
@@ -930,7 +931,8 @@ namespace EventsApp.Controllers.Api
         string? AttachmentUrl,
         string? AttachmentName,
         string? AttachmentMediaType,
-        List<string>? AttachmentUrls = null);
+        List<string>? AttachmentUrls = null,
+        string? ClientMessageId = null);
     public record MessageReactionDto(string? Emoji);
     public record MuteConversationDto(bool Muted);
 }

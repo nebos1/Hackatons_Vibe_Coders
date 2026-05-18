@@ -1,10 +1,12 @@
 using System.Collections.Concurrent;
 using EventsApp.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventsApp.Hubs
 {
+    [Authorize(Policy = "ApiAuth")]
     public class ChatHub : Hub
     {
         private sealed record ActiveConversationConnection(string Token, string UserId);
