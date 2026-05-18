@@ -548,6 +548,7 @@ namespace EventsApp.Controllers.Api
 
         // GET /api/profiles/me
         [HttpGet("me")]
+        [Authorize(Policy = "ApiAuth")]
         public async Task<IActionResult> Me()
         {
             var userId = _userManager.GetUserId(User);
